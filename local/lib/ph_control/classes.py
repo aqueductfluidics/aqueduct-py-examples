@@ -177,7 +177,7 @@ class DataCache(object):
         pH_2_roc_values, pH_2_values = [], []
 
         # set tolerance for time between reads to be acceptable for averaging
-        delta_t_interval_s = 1
+        delta_t_interval_s = 0.2
         delta_t_interval_tolerance_s = 2
 
         # set the minimum safe iteration length
@@ -359,12 +359,12 @@ class Data(object):
 
         :return:
         """
-        pH_vals = self._devices.PH_PROBE.get_all_values()
+        ph = self._devices.PH_PROBE.get_all_values()
 
         self.timestamp = time.time()
-        self.pH_0 = pH_vals[0]
-        self.pH_1 = pH_vals[1]
-        self.pH_2 = pH_vals[2]
+        self.pH_0 = ph[0]
+        self.pH_1 = ph[1]
+        self.pH_2 = ph[2]
 
         # save the data to the cache
         self._cache.cache(data=self)

@@ -57,7 +57,7 @@ class ReactionModel(object):
 class PidModel(object):
     reaction_start_time: float = None
 
-    dpH_s_dmL_min_start: float = .000095  # (pH/s)/(mL/min)
+    dpH_s_dmL_min_start: float = .095  # (pH/s)/(mL/min)
     delta_change_s: float = 0.00001  # (pH/s)/(mL/min*s)
     delta_change_bounds: tuple = (-.5, .5)
     roc_offset: float = None
@@ -81,9 +81,9 @@ class PidModel(object):
 
         self.pH_probe_index = pH_probe_index
 
-        self.time_constant_s = round(random.uniform(.2, .6), 3)
+        self.time_constant_s = round(random.uniform(2, 6), 3)
         # initialize the roc_offset value in a range between -1.95/60 and -.95/60
-        self.roc_offset = round(random.uniform(-1.95 / 6000, -.95 / 6000), 4)
+        self.roc_offset = round(random.uniform(-1.95 / 60, -.95 / 60), 4)
 
     def start_reaction(self) -> None:
         self.reaction_start_time = time.time()
