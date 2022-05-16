@@ -1,0 +1,440 @@
+{
+    "id": 13,
+    "name": "MeHA PID",
+    "code": "\"\"\"\nUsage - Copy this template when creating a new Recipe\nprotocol.\n\nIn DEV MODE, the template creates an\nAqueduct Object (with Prompt, Input, etc.. helpers),\nDevice Objects.\n\nIN LAB MODE or SIM MODE (run through the Aqueduct Recipe\nRunner), the Aqueduct and Device Objects are inherited\nfrom the Python interpreters Globals() dict\n\nThe Data, Setpoints, Watchdog, and Process Objects are constructed\nusing the appropriate Aqueduct and Devices objects.\n\"\"\"\n\nimport config\n# local imports\nimport local.lib.ph_control.classes\n\nif not config.LAB_MODE_ENABLED:\n\n    from aqueduct.aqueduct import Aqueduct\n\n    aqueduct = Aqueduct('G', None, None, None)\n\n    # make the Devices object\n    devices = local.lib.ph_control.classes.Devices.generate_dev_devices()\n\nelse:\n\n    # pass the aqueduct object\n    aqueduct = globals().get('aqueduct')\n\n    # pass the globals dictionary, which will have the\n    # objects for the Devices already instantiated\n    devices = local.lib.ph_control.classes.Devices(**globals())\n\n# make the Data object, pass the new devices object\n# and the aqueduct object\ndata = local.lib.ph_control.classes.Data(devices, aqueduct)\n\n# make the Process object\nprocess = local.lib.ph_control.classes.ProcessHandler(\n    devices_obj=devices,\n    aqueduct=aqueduct,\n    data=data,\n)\n\n\"\"\"\nAdd code here\n\"\"\"\n\nprocess.pid_control()",
+    "setup": {
+        "devices": {
+            "1:DEVICE2": {
+                "device_key": "1:DEVICE2",
+                "id": "3",
+                "sn": "SIM2",
+                "name": "BASE_PUMP",
+                "type": "PP",
+                "link": "None",
+                "firmware_version": "1.0",
+                "verbose": "True",
+                "number_ports": "None",
+                "number_decks": "0",
+                "number_icons": "1",
+                "D_steps_done": "21124",
+                "D_rpm": "0.0",
+                "D_is_running": "0",
+                "D_direction": "0",
+                "acceleration": "None",
+                "_mode": "0",
+                "_steps_per_rev": "200",
+                "_rev_per_ml": "24.0",
+                "_motor_driver": "TMC5130",
+                "_tubing_length_mm": "124.0",
+                "_tubing_id_mm": "1.0",
+                "_tubing_material": "pharmaline",
+                "_max_rpm": "500",
+                "_max_usteps": "4294967295",
+                "_max_accel": "50000"
+            },
+            "1:DEVICE3": {
+                "device_key": "1:DEVICE3",
+                "id": "4",
+                "sn": "SIM",
+                "name": "PH_PROBE",
+                "type": "PH3",
+                "link": "None",
+                "firmware_version": "1.0",
+                "verbose": "True",
+                "number_ports": "None",
+                "number_decks": "0",
+                "number_icons": "3",
+                "period_ms": "1000",
+                "D_status": "1",
+                "D_probe_0_value": "0.760",
+                "D_probe_1_value": "8.827",
+                "D_probe_2_value": "12.659"
+            }
+        },
+        "connections": {
+            "1:X:U:002": {
+                "tubing_length_mm": 100.0,
+                "tubing_id_mm": 1.0,
+                "tubing_od_mm": 2.0,
+                "fluid_material_list": [
+                    {
+                        "name": "air",
+                        "volume_ml": 0.07853981633974483
+                    }
+                ],
+                "port_0": "1:P:DEVICE2:00",
+                "port_1": "1:P:C002:00",
+                "tubing_material": "fep"
+            },
+            "1:X:U:003": {
+                "tubing_length_mm": 100.0,
+                "tubing_id_mm": 1.0,
+                "tubing_od_mm": 2.0,
+                "fluid_material_list": [
+                    {
+                        "name": "air",
+                        "volume_ml": 0.07853981633974483
+                    }
+                ],
+                "port_0": "1:P:DEVICE2:01",
+                "port_1": "1:P:C003:00",
+                "tubing_material": "fep"
+            }
+        },
+        "ports": {
+            "1:P:C002:00": {
+                "connection_0": "1:X:U:002",
+                "connection_1": null,
+                "position": "bottom"
+            },
+            "1:P:C003:00": {
+                "connection_0": "1:X:U:003",
+                "connection_1": null,
+                "position": "top"
+            },
+            "1:P:DEVICE2:00": {
+                "connection_0": "1:X:U:002"
+            },
+            "1:P:DEVICE2:01": {
+                "connection_0": "1:X:U:003"
+            }
+        },
+        "containers": {
+            "1:C002": {
+                "type": "50 mL beaker",
+                "name": "50 mL beaker",
+                "height_mm": 60.0,
+                "outer_diameter_mm": 42.0,
+                "inner_diameter_mm": 38.0,
+                "opening_diameter_mm": 38.0,
+                "container_material": "glass",
+                "floor_height_mm": 2.5,
+                "fluid_material_list": [],
+                "insert_key": null,
+                "x_mm": null,
+                "y_mm": null,
+                "number_ports": 0
+            },
+            "1:C003": {
+                "type": "50 mL beaker",
+                "name": "50 mL beaker",
+                "height_mm": 60.0,
+                "outer_diameter_mm": 42.0,
+                "inner_diameter_mm": 38.0,
+                "opening_diameter_mm": 38.0,
+                "container_material": "glass",
+                "floor_height_mm": 2.5,
+                "fluid_material_list": [],
+                "insert_key": null,
+                "x_mm": null,
+                "y_mm": null,
+                "number_ports": 0
+            }
+        },
+        "decks": {},
+        "deck_inserts": {}
+    },
+    "sandbox_data": {
+        "connections": {
+            "1:X:U:000": {
+                "port_0_class": "port_0",
+                "port_0_parent_key": "1:DEVICE1",
+                "port_1_class": "port_0",
+                "port_1_parent_key": "1:C000",
+                "connecting_points": [
+                    {
+                        "node": null,
+                        "x": 46.3228759765625,
+                        "y": -102.7685546875
+                    },
+                    {
+                        "node": null,
+                        "x": 43.8228759765625,
+                        "y": -97.7685546875
+                    },
+                    {
+                        "node": null,
+                        "x": 9.3299560546875,
+                        "y": -74.87112426757812
+                    },
+                    {
+                        "node": null,
+                        "x": -5.6700439453125,
+                        "y": -67.87112426757812
+                    },
+                    {
+                        "node": null,
+                        "x": -33.1771240234375,
+                        "y": -44.7685546875
+                    },
+                    {
+                        "node": null,
+                        "x": -30.1771240234375,
+                        "y": 73.7314453125
+                    },
+                    {
+                        "node": null,
+                        "x": -22.220367431640625,
+                        "y": 102.5789794921875
+                    },
+                    {
+                        "node": null,
+                        "x": -119.6771240234375,
+                        "y": 94.7314453125
+                    },
+                    {
+                        "node": null,
+                        "x": -121.6771240234375,
+                        "y": 103.2314453125
+                    }
+                ]
+            },
+            "1:X:U:001": {
+                "port_0_class": "port_0",
+                "port_0_parent_key": "1:C001",
+                "port_1_class": "port_0",
+                "port_1_parent_key": "1:DEVICE0",
+                "connecting_points": [
+                    {
+                        "node": null,
+                        "x": -15.6771240234375,
+                        "y": 107.7314453125
+                    },
+                    {
+                        "node": null,
+                        "x": -16.1700439453125,
+                        "y": 98.12887573242188
+                    },
+                    {
+                        "node": null,
+                        "x": 45.8299560546875,
+                        "y": 102.12887573242188
+                    },
+                    {
+                        "node": null,
+                        "x": 45.8228759765625,
+                        "y": 101.2314453125
+                    }
+                ]
+            },
+            "1:X:U:002": {
+                "anchor_nodes_visible": false,
+                "port_0_class": "port_0",
+                "port_1_class": "port_0",
+                "connecting_points": [
+                    {
+                        "x": 35.920196533203125,
+                        "y": 99.74526977539062
+                    },
+                    {
+                        "x": 37.09082359075546,
+                        "y": 211.55802154541016
+                    }
+                ],
+                "port_0_parent_key": "1:DEVICE2",
+                "port_1_parent_key": "1:C002",
+                "stroke_color": "#99ccff",
+                "stroke_width": 6
+            },
+            "1:X:U:003": {
+                "anchor_nodes_visible": false,
+                "port_0_class": "port_1",
+                "port_1_class": "port_0",
+                "connecting_points": [
+                    {
+                        "x": 129.1799913406372,
+                        "y": 58.43573036193848
+                    },
+                    {
+                        "x": 192.74575212597847,
+                        "y": 115.52264404296875
+                    }
+                ],
+                "port_0_parent_key": "1:DEVICE2",
+                "port_1_parent_key": "1:C003",
+                "stroke_color": "#99ccff",
+                "stroke_width": 6
+            },
+            "1:X:U:004": {
+                "port_0_class": "port_1",
+                "port_0_parent_key": "1:C003",
+                "port_1_class": "port_1",
+                "port_1_parent_key": "1:DEVICE0",
+                "connecting_points": [
+                    {
+                        "node": null,
+                        "x": 187.566162109375,
+                        "y": 78.01094818115234
+                    },
+                    {
+                        "node": null,
+                        "x": 163.09591674804688,
+                        "y": 84.45048522949219
+                    },
+                    {
+                        "node": null,
+                        "x": 138.6256561279297,
+                        "y": 91.53397369384766
+                    },
+                    {
+                        "node": null,
+                        "x": 96.7686538696289,
+                        "y": 94.10979461669922
+                    }
+                ]
+            },
+            "1:X:U:005": {
+                "port_0_class": "port_1",
+                "port_0_parent_key": "1:DEVICE1",
+                "port_1_class": "port_2",
+                "port_1_parent_key": "1:C003",
+                "connecting_points": [
+                    {
+                        "node": null,
+                        "x": 143.59556579589844,
+                        "y": -67.53646850585938
+                    },
+                    {
+                        "node": null,
+                        "x": 150.21682739257812,
+                        "y": -39.83262252807617
+                    },
+                    {
+                        "node": null,
+                        "x": 154.59556579589844,
+                        "y": 81.46353149414062
+                    },
+                    {
+                        "node": null,
+                        "x": 173.09556579589844,
+                        "y": 83.46353149414062
+                    },
+                    {
+                        "node": null,
+                        "x": 193.3617401123047,
+                        "y": 88.314208984375
+                    }
+                ]
+            }
+        },
+        "containers": {
+            "1:C002": {
+                "x": -10.909176409244537,
+                "y": 130.55802154541016,
+                "rotation": 0,
+                "dragStart": {
+                    "x": 45.564869463443756,
+                    "y": -15.191505432128906
+                },
+                "dragEnabled": true,
+                "centroid": {
+                    "x": 48,
+                    "y": 67
+                },
+                "display": "visible",
+                "selected": false
+            },
+            "1:C003": {
+                "x": 144.74575212597847,
+                "y": 126.52264404296875,
+                "rotation": 0,
+                "dragStart": {
+                    "x": -13.204828053712845,
+                    "y": 0.7111358642578125
+                },
+                "dragEnabled": true,
+                "centroid": {
+                    "x": 48,
+                    "y": 67
+                },
+                "display": "visible",
+                "selected": false
+            }
+        },
+        "decks": {},
+        "devices": {
+            "1:DEVICE2": {
+                "nodes": {
+                    "0": {
+                        "x": 38.32999134063721,
+                        "y": -142.96426963806152,
+                        "rotation": 0,
+                        "dragStart": {
+                            "x": 32.64441967010498,
+                            "y": 35.066240310668945
+                        },
+                        "dragEnabled": true,
+                        "centroid": {
+                            "x": 70.8690185546875,
+                            "y": 116.08346176147461
+                        },
+                        "display": "visible",
+                        "selected": false,
+                        "controlsVisible": true
+                    }
+                }
+            },
+            "1:DEVICE3": {
+                "nodes": {
+                    "0": {
+                        "x": 154.72626495361328,
+                        "y": 70.62195587158203,
+                        "rotation": 0,
+                        "dragStart": {
+                            "x": -3.462989807128885,
+                            "y": 32.767677307128906
+                        },
+                        "dragEnabled": true,
+                        "centroid": {
+                            "x": 42.99999999999998,
+                            "y": 86.25
+                        },
+                        "display": "visible",
+                        "selected": false,
+                        "controlsVisible": true
+                    },
+                    "1": {
+                        "x": 0,
+                        "y": 0,
+                        "rotation": 0,
+                        "dragStart": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "dragEnabled": true,
+                        "centroid": {
+                            "x": 42.99999999999998,
+                            "y": 86.25
+                        },
+                        "display": false,
+                        "selected": false,
+                        "controlsVisible": true
+                    },
+                    "2": {
+                        "x": 0,
+                        "y": 0,
+                        "rotation": 0,
+                        "dragStart": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "dragEnabled": true,
+                        "centroid": {
+                            "x": 42.99999999999998,
+                            "y": 86.25
+                        },
+                        "display": false,
+                        "selected": false,
+                        "controlsVisible": true
+                    }
+                }
+            }
+        },
+        "inserts": {},
+        "ports": {}
+    },
+    "description": null,
+    "timestamp": "2022-01-07 12:14:37.906227",
+    "public": false,
+    "user_id": 1
+}
