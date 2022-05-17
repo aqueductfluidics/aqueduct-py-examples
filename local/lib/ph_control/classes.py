@@ -1081,8 +1081,12 @@ class ProcessHandler(object):
     def pid_control(
             self,
             initial_rate_rpm: float = 1,
-            pumps: Tuple["aqueduct.devices.pp.obj.PP"] = (None, None, None),
-            pH_probe_indices: Tuple[int] = (0, 1, 2),
+            pumps: Tuple[
+                "aqueduct.devices.pp.obj.PP",
+                "aqueduct.devices.pp.obj.PP",
+                "aqueduct.devices.pp.obj.PP"
+            ] = (None, None, None),
+            pH_probe_indices: Tuple[int, int, int] = (0, 1, 2),
             output_limits: Tuple[Tuple] = (),
     ):
 
