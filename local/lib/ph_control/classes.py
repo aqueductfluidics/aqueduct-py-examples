@@ -1108,7 +1108,7 @@ class ProcessHandler(object):
             # create a Setpoint to adjust the proportional PID constant
             kp_sp = self._aqueduct.setpoint(
                 name=f"k_p_{i}",
-                value=0.5,
+                value=1,
                 dtype=float.__name__,
             )
 
@@ -1122,7 +1122,7 @@ class ProcessHandler(object):
             # create a Setpoint to adjust the derivative PID constant
             kd_sp = self._aqueduct.setpoint(
                 name=f"k_d_{i}",
-                value=1.55,
+                value=0.55,
                 dtype=float.__name__,
             )
 
@@ -1179,7 +1179,7 @@ class ProcessHandler(object):
 
         self._devices.PH_PROBE.set_sim_values(values=(6, 6, 6))
         self._devices.PH_PROBE.set_sim_rates_of_change(values=rates_of_change)
-        self._devices.PH_PROBE.set_sim_noise(values=(0.001, 0.001, 0.001))
+        self._devices.PH_PROBE.set_sim_noise(values=(0.0001, 0.0001, 0.0001))
 
         # start recording data from the pH probe
         self._devices.PH_PROBE.start(
