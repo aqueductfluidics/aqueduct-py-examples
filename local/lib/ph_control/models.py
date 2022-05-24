@@ -58,7 +58,7 @@ class PidModel(object):
     reaction_start_time: float = None
 
     dpH_s_dmL_min_start: float = .095  # (pH/s)/(mL/min)
-    delta_change_s: float = 0.00001  # (pH/s)/(mL/min*s)
+    delta_change_s: float = 0.000005  # (pH/s)/(mL/min*s)
     delta_change_bounds: tuple = (-.5, .5)
     roc_offset: float = None
 
