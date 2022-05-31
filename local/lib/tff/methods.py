@@ -2,15 +2,15 @@ import time
 from typing import List, Union
 import local.lib.tff.helpers
 import local.lib.tff.definitions
-import devices.aqueduct.mfpp.obj
-import devices.aqueduct.ohsa.obj
-import devices.aqueduct.scip.obj
-import devices.aqueduct.pv.obj
 
+import aqueduct.devices.mfpp.obj
+import aqueduct.devices.ohsa.obj
+import aqueduct.devices.scip.obj
+import aqueduct.devices.pv.obj
 
 def pump_ramp(
         interval_s: int = 1,
-        pump: "devices.aqueduct.mfpp.obj" = None,
+        pump: "aqueduct.devices.mfpp.obj" = None,
         pump_name: str = "PUMP",
         start_flowrate_ml_min: Union[float, int] = 10,
         end_flowrate_ml_min: Union[float, int] = 20,
@@ -30,7 +30,7 @@ def pump_ramp(
     :param interval_s: time, in seconds, of outer loop heartbeat
     :param pump_name: name of Pump to display
     :param pump: MFPP object
-    :rtype pump: local.lib.tff.classes.devices.aqueduct.mfpp.obj
+    :rtype pump: local.lib.tff.classes.aqueduct.devices.mfpp.obj
     :param start_flowrate_ml_min: starting flowrate in mL/min
     :param end_flowrate_ml_min: ending flowrate in mL/min
     :param rate_change_interval_s: time, in seconds, between changing the flowrate
@@ -166,7 +166,7 @@ def pumps_2_and_3_ramp(
     # find the timeout time to break from loop
     timeout: float = time_start + timeout_min * 60
 
-    if isinstance(devices_obj.PUMP2, devices.aqueduct.mfpp.obj.MFPP):
+    if isinstance(devices_obj.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
         print("Starting PUMP2 at {:.2f} mL/min".format(pump2_start_flowrate_ml_min))
         devices_obj.PUMP2.start(
             mode="continuous",
@@ -220,7 +220,7 @@ def pumps_2_and_3_ramp(
                     print("Scale 3 target mass of {} g hit during pumps 2 and 3 ramp.".format(scale3_target_mass_g))
                     return local.lib.tff.definitions.STATUS_TARGET_MASS_HIT
 
-        if isinstance(devices_obj.PUMP2, devices.aqueduct.mfpp.obj.MFPP):
+        if isinstance(devices_obj.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
             # change the rate of PUMP2
             print("Adjusting PUMP2 rate to {:.2f} mL/min".format(pump2_rate_ml_min))
             devices_obj.PUMP2.change_speed(pump2_rate_ml_min)
@@ -234,7 +234,7 @@ def pumps_2_and_3_ramp(
         watchdog.check_alarms()
 
     # heartbeat delay
-    if isinstance(devices_obj.PUMP2, devices.aqueduct.mfpp.obj.MFPP):
+    if isinstance(devices_obj.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
         print("Completed Pumps 2 and 3 ramp up.")
     else:
         print("Completed Pump 3 ramp up.")

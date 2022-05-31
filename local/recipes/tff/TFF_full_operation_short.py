@@ -1,48 +1,43 @@
-import datetime
-import time
+import aqueduct.core.aq
 
-import config
+import sys
+from pathlib import Path
+
+path = Path(__file__).parent.resolve().parent.resolve().parent.resolve().parent.resolve()
+sys.path.extend([str(path)])
+
 import local.lib.tff.helpers
 import local.lib.tff.methods
 import local.lib.tff.classes
-from local.lib.tff.definitions import (SCALE1_INDEX, SCALE2_INDEX, SCALE3_INDEX,
-                                       TXDCR1_INDEX, TXDCR2_INDEX, TXDCR3_INDEX, SCIP_INDEX)
+from local.lib.tff.definitions import (
+    SCALE1_INDEX, SCALE2_INDEX, SCALE3_INDEX, TXDCR1_INDEX, TXDCR2_INDEX, TXDCR3_INDEX, SCIP_INDEX,
+    STATUS_OK, STATUS_TIMED_OUT, STATUS_TARGET_MASS_HIT
+)
 
-if not config.LAB_MODE_ENABLED:
+aq = aqueduct.core.aq.Aqueduct(1)
+aq.initialize()
 
-    from aqueduct.aqueduct import Aqueduct
-
-    aqueduct = Aqueduct('G', None, None, None)
-
-    # make the Devices object
-    devices = local.lib.tff.classes.Devices.generate_dev_devices()
-
-else:
-
-    # pass the aqueduct object
-    aqueduct = globals().get('aqueduct')
-
-    # pass the globals dictionary, which will have the
-    # objects for the Devices already instantiated
-    devices = local.lib.tff.classes.Devices(**globals())
+# pass the globals dictionary, which will have the
+# objects for the Devices already instantiated
+devices = local.lib.tff.classes.Devices(aq)
 
 # make the Data object, pass the new devices object
 # and the aqueduct object
-data = local.lib.tff.classes.Data(devices, aqueduct)
+data = local.lib.tff.classes.Data(devices, aq)
 
 # make the Setpoints object, pass the aqueduct object
-setpoints = local.lib.tff.classes.Setpoints(aqueduct)
+setpoints = local.lib.tff.classes.Setpoints(aq)
 
 # make the Watchdog object
 watchdog = local.lib.tff.classes.Watchdog(
     data_obj=data,
     devices_obj=devices,
-    aqueduct_obj=aqueduct)
+    aqueduct_obj=aq)
 
 # make the Process object
 process = local.lib.tff.classes.Process(
     devices_obj=devices,
-    aqueduct=aqueduct,
+    aqueduct=aq,
     data=data,
     setpoints=setpoints,
     watchdog=watchdog,

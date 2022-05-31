@@ -8,15 +8,17 @@ import local.lib.tff.methods
 import local.lib.tff.models
 from local.lib.tff.definitions import *
 
-from aqueduct.aqueduct import Aqueduct, Setpoint
-import devices.aqueduct.mfpp.obj
-import devices.aqueduct.ohsa.obj
-import devices.aqueduct.scip.obj
-import devices.aqueduct.pv.obj
-import devices.aqueduct.mfpp.constants
-import devices.aqueduct.scip.constants
-import devices.aqueduct.pv.constants
-import devices.aqueduct.ohsa.constants
+from aqueduct.core.aq import Aqueduct
+from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES
+
+import aqueduct.devices.mfpp.obj
+import aqueduct.devices.mfpp.constants
+import aqueduct.devices.ohsa.obj
+import aqueduct.devices.ohsa.constants
+import aqueduct.devices.scip.obj
+import aqueduct.devices.scip.constants
+import aqueduct.devices.pv.obj
+import aqueduct.devices.pv.constants
 
 from typing import List, Union
 
@@ -42,39 +44,27 @@ class Devices(object):
     SCIP is the Aqueduct Device that interfaces with 3 Parker SciLog
         SciPres transducers
 
-    In DEV MODE, we create `devices.aqueduct.mfpp.obj` for easy access to
+    In DEV MODE, we create `aqueduct.devices.mfpp.obj` for easy access to
     the methods for each device type.
 
     In LAB MODE, we associate each Device with the Name for the device
     that is saved on its firmware.
 
     """
-    PUMP1: devices.aqueduct.mfpp.obj.MFPP = None
-    PUMP2: devices.aqueduct.mfpp.obj.MFPP = None
-    PUMP3: devices.aqueduct.mfpp.obj.MFPP = None
-    SCIP: devices.aqueduct.scip.obj.SCIP = None
-    OHSA: devices.aqueduct.ohsa.obj.OHSA = None
-    PV: devices.aqueduct.pv.obj.PV = None
+    PUMP1: aqueduct.devices.mfpp.obj.MFPP = None
+    PUMP2: aqueduct.devices.mfpp.obj.MFPP = None
+    PUMP3: aqueduct.devices.mfpp.obj.MFPP = None
+    SCIP: aqueduct.devices.scip.obj.SCIP = None
+    OHSA: aqueduct.devices.ohsa.obj.OHSA = None
+    PV: aqueduct.devices.pv.obj.PV = None
 
-    def __init__(self, **kwargs):
-        self.PUMP1 = kwargs.get(PUMP1_NAME)
-        self.PUMP2 = kwargs.get(PUMP2_NAME)
-        self.PUMP3 = kwargs.get(PUMP3_NAME)
-        self.OHSA = kwargs.get(OHSA_NAME)
-        self.SCIP = kwargs.get(SCIP_NAME)
-        self.PV = kwargs.get(PV_NAME)
-
-    @classmethod
-    def generate_dev_devices(cls):
-        dev = Devices()
-        dev.PUMP1 = devices.aqueduct.mfpp.obj.MFPP(**devices.aqueduct.mfpp.constants.BASE)
-        dev.PUMP2 = devices.aqueduct.mfpp.obj.MFPP(**devices.aqueduct.mfpp.constants.BASE)
-        dev.PUMP3 = devices.aqueduct.mfpp.obj.MFPP(**devices.aqueduct.mfpp.constants.BASE)
-        dev.PV = devices.aqueduct.pv.obj.PV(**devices.aqueduct.pv.constants.BASE)
-        dev.OHSA = devices.aqueduct.ohsa.obj.OHSA(**devices.aqueduct.ohsa.constants.BASE)
-        dev.SCIP = devices.aqueduct.scip.obj.SCIP(**devices.aqueduct.scip.constants.BASE)
-
-        return dev
+    def __init__(self, aq: aqueduct.core.aq.Aqueduct):
+        self.PUMP1 = aq.devices.get(PUMP1_NAME)
+        self.PUMP2 = aq.devices.get(PUMP2_NAME)
+        self.PUMP3 = aq.devices.get(PUMP3_NAME)
+        self.OHSA = aq.devices.get(OHSA_NAME)
+        self.SCIP = aq.devices.get(SCIP_NAME)
+        self.PV = aq.devices.get(PV_NAME)
 
 
 class TrailingRates(object):
@@ -229,7 +219,7 @@ class DataCache(object):
             delta_t_interval_s = 0
             delta_t_interval_tolerance_s = 1
 
-            if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP):
+            if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
                 enum_keys = (('W1', 'R1'), ('W2', 'R2'), ('W3', 'R3'))
             else:
                 # have to use R3 in lieu of R2 when PUMP2 is absent
@@ -289,7 +279,7 @@ class DataCache(object):
                 pump_nominal_rate_mean_ml_min[i] = sum(good_rates) / len(good_rates)
 
             if counts > 0:
-                if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP):
+                if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
                     R2_ml_min = round(pump_nominal_rate_mean_ml_min[1], 4)
                 else:
                     R2_ml_min = None
@@ -360,10 +350,7 @@ class Data(object):
         self._devices = devices_obj
         self._aqueduct = aqueduct_obj
 
-        if isinstance(aqueduct_obj, Aqueduct):
-            self._is_lab_mode = aqueduct_obj.is_lab_mode()
-        else:
-            self._is_lab_mode = False
+        self._is_lab_mode = False
 
         self._cache: DataCache = DataCache(self._devices)
 
@@ -416,7 +403,7 @@ class Data(object):
                 self.update_data(retries=retries - 1)
 
         self.R1 = self._devices.PUMP1.get_flow_rate()
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP):
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
             self.R2 = self._devices.PUMP2.get_flow_rate()
         self.R3 = self._devices.PUMP3.get_flow_rate()
         self.PV = self._devices.PV.position()
@@ -425,7 +412,7 @@ class Data(object):
         if not self._is_lab_mode:
             balance_rocs = [0, 0, 0, 0]
             # if PUMP2 is present, use this to drive sim value balance
-            if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP):
+            if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
                 balance_rocs[SCALE2_INDEX] = (-1 * self.R2) * (1. + self._scale2_sim_error_pct)
             # else, use PUMP3 to drive it
             else:
@@ -453,28 +440,28 @@ class Data(object):
 
         :return: None
         """
-        self._aqueduct.log(
-            "P1: {0}, "
-            "P2: {1}, "
-            "P3: {2}, "
-            "W1: {3}, "
-            "W2: {4}, "
-            "W3: {5}, "
-            "R1: {6}, "
-            "R2: {7}, "
-            "R3: {8}, "
-            "PV: {9}".format(
-                local.lib.tff.helpers.format_float(self.P1, 3),
-                local.lib.tff.helpers.format_float(self.P2, 3),
-                local.lib.tff.helpers.format_float(self.P3, 3),
-                local.lib.tff.helpers.format_float(self.W1, 3),
-                local.lib.tff.helpers.format_float(self.W2, 3),
-                local.lib.tff.helpers.format_float(self.W3, 3),
-                local.lib.tff.helpers.format_float(self.R1, 3),
-                local.lib.tff.helpers.format_float(self.R2, 3),
-                local.lib.tff.helpers.format_float(self.R3, 3),
-                local.lib.tff.helpers.format_float(self.PV, 4)
-            ))
+        # self._aqueduct.log(
+        #     "P1: {0}, "
+        #     "P2: {1}, "
+        #     "P3: {2}, "
+        #     "W1: {3}, "
+        #     "W2: {4}, "
+        #     "W3: {5}, "
+        #     "R1: {6}, "
+        #     "R2: {7}, "
+        #     "R3: {8}, "
+        #     "PV: {9}".format(
+        #         local.lib.tff.helpers.format_float(self.P1, 3),
+        #         local.lib.tff.helpers.format_float(self.P2, 3),
+        #         local.lib.tff.helpers.format_float(self.P3, 3),
+        #         local.lib.tff.helpers.format_float(self.W1, 3),
+        #         local.lib.tff.helpers.format_float(self.W2, 3),
+        #         local.lib.tff.helpers.format_float(self.W3, 3),
+        #         local.lib.tff.helpers.format_float(self.R1, 3),
+        #         local.lib.tff.helpers.format_float(self.R2, 3),
+        #         local.lib.tff.helpers.format_float(self.R3, 3),
+        #         local.lib.tff.helpers.format_float(self.PV, 4)
+        #     ))
 
     def as_dict(self) -> dict:
         """
@@ -541,7 +528,7 @@ class Data(object):
 
                 # BUFFER pump, debit this value
                 # if PUMP2 is present, drive with PUMP2
-                if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP):
+                if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
                     scale2_delta_m_g = self.R2 / 60. * (self.timestamp - self._extrapolation_timestamp)
                     scale2_mass_g = self.W2 - scale2_delta_m_g * (1. + self._scale2_sim_error_pct)
 
@@ -571,11 +558,11 @@ class Data(object):
     def init_sim_values(self):
 
         if not self._is_lab_mode:
-            if isinstance(self._devices.OHSA, devices.aqueduct.ohsa.obj.OHSA):
+            if isinstance(self._devices.OHSA, aqueduct.devices.ohsa.obj.OHSA):
                 self._devices.OHSA.set_sim_noise(0)
                 self._devices.OHSA.set_sim_weights(values=(0, 0, 0, 0))
 
-            if isinstance(self._devices.SCIP, devices.aqueduct.scip.obj.SCIP):
+            if isinstance(self._devices.SCIP, aqueduct.devices.scip.obj.SCIP):
                 self._devices.SCIP.set_sim_pressures(values=((5., 5., 5.,) + 9 * (0,)))
                 self._devices.SCIP.set_sim_noise(values=((0.1, 0.1, 0.1,) + 9 * (0,)))
 
@@ -799,15 +786,15 @@ class OverPressureAlarm(Alarm):
 
         print("***Overpressure alarm raised! Stopping all pumps. Dismiss prompt to continue.***")
         self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
         self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Overpressure! Press <b>continue</b> to resume operation. 
                         Upon resume: 
@@ -927,23 +914,23 @@ class LowP3PressureAlarm(Alarm):
         """
 
         print("***Underpressure P3 alarm raised!***")
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             print("Stopping Pumps 2 and 3.")
         else:
             print("Stopping Pump 3.")
 
         self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
         # small time delay
         time.sleep(5)
 
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             print("Ramping Pumps 2 and 3 to 90% of previous rates.")
         else:
             print("Ramping Pump 3 to 90% of previous rates.")
@@ -1042,15 +1029,15 @@ class VacuumConditionAlarm(Alarm):
 
         print("***Vacuum Condition Alarm raised! Stopping all pumps. Dismiss prompt to continue.***")
         self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
         self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Vacuum Condition! Ensure proper vessels contain liquid and 
                 feed tubes are submerged. Press <b>continue</b> to resume operation. 
@@ -1169,7 +1156,7 @@ class BufferVesselEmptyAlarm(Alarm):
 
         :return:
         """
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             print("""***Low Buffer Vessel Mass alarm raised! 
             Stopping Pumps 2 and 3.***""")
         else:
@@ -1177,14 +1164,14 @@ class BufferVesselEmptyAlarm(Alarm):
             Stopping Pump 3.***""")
 
         self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Low Buffer Vessel Mass! Refill vessel. Press <b>continue</b> to resume operation. 
                         Upon resume: 
@@ -1294,7 +1281,7 @@ class RetentateVesselLowAlarm(Alarm):
 
         :return:
         """
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             print("""***Retentate Vessel Mass alarm raised! 
             Stopping Pumps 1, 2, and 3.***""")
 
@@ -1303,15 +1290,15 @@ class RetentateVesselLowAlarm(Alarm):
             Stopping Pumps 1 and 3.***""")
 
         self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
         self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Low Retentate Vessel Mass! Press <b>continue</b> to resume operation. 
                         Upon resume: 
@@ -1467,7 +1454,7 @@ class VolumeAccumulationAlarm(Alarm):
             rates.print()
 
             # if PUMP2 is present, try to handle the vol. accum
-            if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP):
+            if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
 
                 try:
 
@@ -1941,9 +1928,9 @@ class Process(object):
         self._data = data
         self._data._process = self
         self._aqueduct = aqueduct
-        if isinstance(self._aqueduct, Aqueduct):
-            self.hub_sn = self._aqueduct.hub_sn
-            self.lab_mode = self._aqueduct.is_lab_mode()
+        # if isinstance(self._aqueduct, Aqueduct):
+        #     self.hub_sn = self._aqueduct.hub_sn
+        #     self.lab_mode = self._aqueduct.is_lab_mode()
 
         self._setpoints = setpoints
         self._watchdog = watchdog
@@ -2147,7 +2134,7 @@ class Process(object):
         print("Stopping all Pumps.")
 
         self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
@@ -2285,7 +2272,7 @@ class Process(object):
 
     def do_init_transfer(self):
 
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
 
             ipt = self._aqueduct.input(
                 message="Enter the volume of solution to transfer to the retentate vessel prior to initial"
@@ -2438,7 +2425,7 @@ class Process(object):
         Increase Pump 2, Pump 3 flowrate once per minute, reaching target flowrate after 5 minutes
         Will adjust pinch valve position during ramp to maintain setpoint bounds in `monitor` method
         """
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
             print("Beginning Initial Concentration Step 2: Pump 2 and Pump 3 Ramp Up.")
         else:
             print("Beginning Initial Concentration Step 2: Pump 3 Ramp Up.")
@@ -2558,7 +2545,7 @@ class Process(object):
 
         # Set PUMP2 (if present) and PUMP3 to no flow. Pump 1 will continue to operate at
         # target flowrate between Concentration and Diafiltration
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
             print("Stopping PUMP2 and PUMP3.")
             self._devices.PUMP2.stop()
         else:
@@ -2786,7 +2773,7 @@ class Process(object):
 
         # Set PUMP2 (if present) and PUMP3 to no flow. Pump 1 will continue to operate at
         # target flowrate between Diafiltration and Final Conc.
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
             print("Stopping PUMP2 and PUMP3.")
             self._devices.PUMP2.stop()
         else:
@@ -2985,7 +2972,7 @@ class Process(object):
         print("Final Concentration Step complete.")
 
         # stop Pumps 2 (if present) and 3
-        if isinstance(self._devices.PUMP2, devices.aqueduct.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
             print("Stopping PUMP2 and PUMP3.")
             self._devices.PUMP2.stop()
         else:
