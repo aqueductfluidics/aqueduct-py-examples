@@ -61,7 +61,7 @@ class PressureModel(object):
     @staticmethod
     def calc_pv_cv(PV) -> float:
         if PV < .30:
-            return 100 - (1/PV)**2 * 1
+            return max(100 - (1/PV**2), 1)
         else:
             return 100
 
