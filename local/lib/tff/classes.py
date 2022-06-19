@@ -8,6 +8,7 @@ import local.lib.tff.methods
 import local.lib.tff.models
 import local.lib.tff.alarms
 import local.lib.tff.data
+import local.lib.tff.pid
 from local.lib.tff.definitions import *
 
 from aqueduct.core.aq import Aqueduct
@@ -81,6 +82,9 @@ class Setpoints(object):
     """
     pinch_valve_control_active: Setpoint = None
     P3_target_pressure: Setpoint = None
+    k_p: Setpoint = None
+    k_i: Setpoint = None
+    k_d: Setpoint = None
 
     _aqueduct: Aqueduct = None
 
@@ -102,6 +106,27 @@ class Setpoints(object):
             "P3_target_pressure",
             5,
             float.__name__
+        )
+
+        # create a Setpoint to adjust the proportional PID constant
+        self.k_p = self._aqueduct.setpoint(
+            name=f"k_p",
+            value=0.0005,
+            dtype=float.__name__,
+        )
+
+        # create a Setpoint to adjust the integral PID constant
+        self.k_i = self._aqueduct.setpoint(
+            name=f"k_i",
+            value=0.0,
+            dtype=float.__name__,
+        )
+
+        # create a Setpoint to adjust the derivative PID constant
+        self.k_d = self._aqueduct.setpoint(
+            name=f"k_d",
+            value=0.0,
+            dtype=float.__name__,
         )
 
 
@@ -367,6 +392,35 @@ class Process(object):
     _setpoints: Setpoints = None
     _watchdog: Watchdog = None
     _model: local.lib.tff.models = None
+    _pid: local.lib.tff.pid.PID
+
+    @property
+    def setpoints(self):
+        return self._setpoints
+
+    @property
+    def aqueduct(self):
+        return self._aqueduct
+
+    @property
+    def devices(self):
+        return self._devices
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def watchdog(self):
+        return self._watchdog
+
+    @property
+    def model(self):
+        return self._model
+
+    @property
+    def pid(self):
+        return self._pid
 
     def __init__(
             self,
@@ -401,19 +455,27 @@ class Process(object):
         self._data._process = self
         self._aqueduct = aqueduct
         # if isinstance(self._aqueduct, Aqueduct):
-            # self.hub_sn = self._aqueduct.hub_sn
-            # self.lab_mode = self._aqueduct.is_lab_mode()
+        # self.hub_sn = self._aqueduct.hub_sn
+        # self.lab_mode = self._aqueduct.is_lab_mode()
 
         self._setpoints = setpoints
         self._watchdog = watchdog
+
         if isinstance(self._watchdog, Watchdog):
             self._watchdog.assign_process_to_alarms(self)
+
         self._model = local.lib.tff.models.PressureModel(
             aqueduct=self._aqueduct,
             devices_obj=self._devices,
             data=self._data,
         )
         self._data._model = self._model
+
+        self._pid = local.lib.tff.pid.PID(
+            k_p=self._setpoints.k_p.value,
+            k_i=self._setpoints.k_i.value,
+            k_d=self._setpoints.k_d.value,
+        )
 
         self.drug_substance = drug_substance
         self.filter_area_cm2 = filter_area_cm2
@@ -588,7 +650,7 @@ class Process(object):
         """
         log_dict = self.log_info_to_dict()
         log_info = pprint.pformat(log_dict)
-        self._aqueduct.log("\n" + log_info)
+        # self._aqueduct.log("\n" + log_info)
 
     def initialize(self):
         """
@@ -747,40 +809,42 @@ class Process(object):
 
         if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
 
-            ipt = self._aqueduct.input(
-                message="Enter the volume of solution to transfer to the retentate vessel prior to initial"
-                        " concentration. Press <b>submit</b> to continue.",
-                pause_recipe=True,
-                dtype=float.__name__,
-            )
-            self.initial_transfer_volume = ipt.get_value()
+            if self.do_prompts:
+                ipt = self._aqueduct.input(
+                    message="Enter the volume of solution to transfer to the retentate vessel prior to initial"
+                            " concentration. Press <b>submit</b> to continue.",
+                    pause_recipe=True,
+                    dtype=float.__name__,
+                )
+                self.initial_transfer_volume = ipt.get_value()
 
-            # prompt operator to place empty vessel on feed scale
-            self._aqueduct.prompt(
-                message="Place empty vessel on Scale 1 (feed scale) and connect buffer feed line. Ensure all other"
-                        " lines are disconnected from the vessel. Press <b>continue</b> to start transfer.",
-                pause_recipe=True
-            )
+                # prompt operator to place empty vessel on feed scale
+                self._aqueduct.prompt(
+                    message="Place empty vessel on Scale 1 (feed scale) and connect buffer feed line. Ensure all other"
+                            " lines are disconnected from the vessel. Press <b>continue</b> to start transfer.",
+                    pause_recipe=True
+                )
 
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
             self._devices.OHSA.tare(SCALE1_INDEX)
             time.sleep(5)
 
-            ipt = self._aqueduct.input(
-                message="Enter the volume of solution to transfer to the retentate vessel prior to initial"
-                        " concentration. Press <b>submit</b> to continue.",
-                pause_recipe=True,
-                dtype=float.__name__,
-            )
-            self.initial_transfer_volume = ipt.get_value()
+            if self.do_prompts:
+                ipt = self._aqueduct.input(
+                    message="Enter the volume of solution to transfer to the retentate vessel prior to initial"
+                            " concentration. Press <b>submit</b> to continue.",
+                    pause_recipe=True,
+                    dtype=float.__name__,
+                )
+                self.initial_transfer_volume = ipt.get_value()
 
-            # prompt operator to place empty vessel on feed scale
-            self._aqueduct.prompt(
-                message="Place empty vessel on Scale 1 (feed scale) and connect buffer feed line. Ensure all other"
-                        " lines are disconnected from the vessel. Press <b>continue</b> to start transfer.",
-                pause_recipe=True
-            )
+                # prompt operator to place empty vessel on feed scale
+                self._aqueduct.prompt(
+                    message="Place empty vessel on Scale 1 (feed scale) and connect buffer feed line. Ensure all other"
+                            " lines are disconnected from the vessel. Press <b>continue</b> to start transfer.",
+                    pause_recipe=True
+                )
 
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
@@ -814,7 +878,7 @@ class Process(object):
                     break
 
                 local.lib.tff.methods.monitor(
-                    interval_s=1,
+                    interval_s=.2,
                     adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
                     devices_obj=self._devices,
                     data=self._data,
@@ -831,32 +895,36 @@ class Process(object):
 
             self._data.update_data()
 
-            # prompt to confirm completion of transfer and start initial concentration
-            self._aqueduct.prompt(
-                message="Transfer to retentate vessel complete. Press <b>continue</b> to proceed to initial "
-                        "concentration.",
-                pause_recipe=True
-            )
+            if self.do_prompts:
+                # prompt to confirm completion of transfer and start initial concentration
+                self._aqueduct.prompt(
+                    message="Transfer to retentate vessel complete. Press <b>continue</b> to proceed to initial "
+                            "concentration.",
+                    pause_recipe=True
+                )
 
         else:
 
-            # prompt operator to place empty vessel on feed scale
-            self._aqueduct.prompt(
-                message="Place empty vessel on Scale 1 (feed scale) and connect all lines."
-                        " Press <b>continue</b> to start transfer.",
-                pause_recipe=True
-            )
+            if self.do_prompts:
+                # prompt operator to place empty vessel on feed scale
+                self._aqueduct.prompt(
+                    message="Place empty vessel on Scale 1 (feed scale) and connect all lines."
+                            " Press <b>continue</b> to start transfer.",
+                    pause_recipe=True
+                )
 
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
             self._devices.OHSA.tare(SCALE1_INDEX)
 
-            # prompt operator to pour product into feed vessel, press prompt to continue
-            self._aqueduct.prompt(
-                message="Pour product solution into vessel on Scale 1 (feed scale). Press <b>continue</b> to proceed to"
-                        " initial concentration.",
-                pause_recipe=True
-            )
+            if self.do_prompts:
+                # prompt operator to pour product into feed vessel, press prompt to continue
+                self._aqueduct.prompt(
+                    message="Pour product solution into vessel on Scale 1 (feed scale)."
+                            " Press <b>continue</b> to proceed to"
+                            " initial concentration.",
+                    pause_recipe=True
+                )
 
     def do_init_conc(self):
 
@@ -941,13 +1009,11 @@ class Process(object):
         if status != STATUS_TARGET_MASS_HIT:
             time.sleep(5)
             print("[PHASE (INIT)] Beginning Initial Concentration Step 3: Pinch Valve Lock-In.")
-            status = local.lib.tff.methods.pinch_valve_lock_in(
-                interval=1,
-                target_p3_psi=self._setpoints.P3_target_pressure.value,
+            status = local.lib.tff.methods.pinch_valve_lock_in_pid(
+                interval=0.2,
                 timeout_min=self.pinch_valve_lock_in_min,
                 scale3_target_mass_g=self.init_conc_target_mass_g,
-                devices_obj=self._devices,
-                data=self._data
+                process=self,
             )
 
         # update the data object
@@ -1032,6 +1098,7 @@ class Process(object):
         else:
             print("[PHASE (INIT)] Stopping PUMP3.")
         self._devices.PUMP3.stop()
+        self._data.update_data()
 
         # time delay to allow for pumps to decelerate to a stop before
         # recording init conc mass
@@ -1066,7 +1133,7 @@ class Process(object):
 
         # open pinch valve
         print("[PHASE (INIT->DIA)] Opening pinch valve.")
-        self._devices.PV.set_position(pct_open=0.4)
+        self._devices.PV.set_position(pct_open=0.3)
 
         if self.do_prompts:
 
@@ -1177,13 +1244,11 @@ class Process(object):
         if status != STATUS_TARGET_MASS_HIT:
             time.sleep(5)
             print("[PHASE (DIA)] Beginning Diafiltration Step 2: Pinch Valve Lock-In.")
-            status = local.lib.tff.methods.pinch_valve_lock_in(
-                interval=1,
-                target_p3_psi=self._setpoints.P3_target_pressure.value,
+            status = local.lib.tff.methods.pinch_valve_lock_in_pid(
+                interval=0.2,
                 timeout_min=self.pinch_valve_lock_in_min,
                 scale3_target_mass_g=self.diafilt_target_mass_g,
-                devices_obj=self._devices,
-                data=self._data
+                process=self,
             )
 
         # update the data object
@@ -1263,6 +1328,7 @@ class Process(object):
         else:
             print("[PHASE (DIA)] Stopping PUMP3.")
         self._devices.PUMP3.stop()
+        self._data.update_data()
 
         # time delay to allow for pumps to decelerate to a stop before
         # recording diafiltration mass

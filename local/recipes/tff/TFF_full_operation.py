@@ -15,8 +15,11 @@ from local.lib.tff.definitions import (
     STATUS_OK, STATUS_TIMED_OUT, STATUS_TARGET_MASS_HIT
 )
 
-aq = aqueduct.core.aq.Aqueduct(1)
-aq.initialize()
+aq = aqueduct.core.aq.Aqueduct(1, "169.254.211.104", 59001)
+aq.initialize(False)
+# aq = aqueduct.core.aq.Aqueduct(1)
+# aq.initialize(True)
+
 
 # pass the globals dictionary, which will have the
 # objects for the Devices already instantiated
@@ -53,7 +56,7 @@ accelerated params useful for simulating.
 Set speed="medium" or speed="fast" to control
 rate of accel.
 """
-# process.set_quick_run_params(speed="medium")
+process.set_quick_run_params(speed="medium")
 
 
 
@@ -67,10 +70,10 @@ being used: 2pump or 3pump, default = 3pump
 Uncomment the following lines to adjust the target 
 flowrates for each phase of the TFF protocol.
 """
-# process.pump_1_target_flowrate_ml_min = 17.6
-# process.pump_2_target_flowrate_ml_min = 1.6
-# process.pump_3_target_flowrate_ml_min = 1.6
-# process.assign_process_flowrates()
+process.pump_1_target_flowrate_ml_min = 217.6
+process.pump_2_target_flowrate_ml_min = 31.6
+process.pump_3_target_flowrate_ml_min = 31.6
+process.assign_process_flowrates()
 
 
 """
@@ -79,7 +82,7 @@ start at 40% open, which works well with the mini cartridge.
 
 30% is the default opening percentage
 """
-# process.pinch_valve_init_pct_open = 0.4
+process.pinch_valve_init_pct_open = 0.30
 
 
 """
@@ -89,9 +92,11 @@ user prompts.
 You should set target masses 
 directly when user prompts are disabled.
 """
-# process.do_prompts = False
-# process.init_conc_target_mass_g = 10
-# process.diafilt_target_mass_g = 10
-# process.final_conc_target_mass_g = 10
+process.do_prompts = False
+process.initial_transfer_volume = 10
+process.init_conc_target_mass_g = 300
+process.diafilt_target_mass_g = 300
+process.final_conc_target_mass_g = 100
+process.pinch_valve_lock_in_min = 2
 
 process.do_tff_protocol()

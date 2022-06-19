@@ -95,4 +95,5 @@ class PressureModel(object):
         p2 = PressureModel.calc_p2(self._data.R1, self._data.PV)
         p1 = self.calc_p1(self._data.R1, self._data.PV, p2)
         p3 = PressureModel.calc_p3(p1, p2, self._data.R1, self._data.R3)
+        p1, p2, p3 = min(p1, 50), min(p2, 50), min(p3, 50)
         self._devices.SCIP.set_sim_pressures(values=(p1, p2, p3,))

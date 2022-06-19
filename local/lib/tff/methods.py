@@ -281,7 +281,7 @@ def open_pinch_valve(
 
 
 def monitor(
-        interval_s: int = 1,
+        interval_s: float = 1,
         adjust_pinch_valve: bool = True,
         pressure_bounds_1_psi: tuple = (1, 30),
         pressure_bounds_2_psi: tuple = (0, 30),
@@ -387,12 +387,14 @@ def monitor(
                         break
 
                     error: float = abs(data.P3 - pressure_bounds_1_psi[0])
-                    if error > 2:
+                    if error > 5:
                         adj = 0.02
+                    elif error > 2:
+                        adj = 0.001
                     elif error > 1:
-                        adj = 0.005
+                        adj = 0.0005
                     else:
-                        adj = 0.002
+                        adj = 0.0002
 
                     target_pct_open: float = max(data.PV - adj, 0.)
                     devices_obj.PV.set_position(target_pct_open, record=True)
@@ -525,11 +527,11 @@ def pinch_valve_lock_in(
 
                 error: float = abs(data.P3 - target_p3_psi)
                 if error > 5:
-                    adj = 0.006
-                elif error > 1:
-                    adj = 0.001
-                else:
                     adj = 0.0005
+                elif error > 1:
+                    adj = 0.00025
+                else:
+                    adj = 0.0001
 
                 target_pct_open: float = data.PV - adj
                 devices_obj.PV.set_position(target_pct_open, record=True)
@@ -556,11 +558,11 @@ def pinch_valve_lock_in(
 
                 error: float = abs(data.P3 - target_p3_psi)
                 if error > 5:
-                    adj = 0.002
-                elif error > 1:
-                    adj = 0.001
-                else:
                     adj = 0.0005
+                elif error > 1:
+                    adj = 0.00025
+                else:
+                    adj = 0.0001
 
                 target_pct_open: float = data.PV + adj
                 devices_obj.PV.set_position(target_pct_open, record=True)
@@ -577,6 +579,80 @@ def pinch_valve_lock_in(
             if in_window_counter > 10:
                 print("[LOCK IN] Stabilized...")
                 break
+
+        except TypeError:
+            pass
+
+        # heartbeat delay
+        time.sleep(interval)
+        time_tried_s += interval
+
+    print("[LOCK IN] completed pinch valve lock-in.")
+    return local.lib.tff.definitions.STATUS_OK
+
+
+def pinch_valve_lock_in_pid(
+        interval: float = 1,
+        timeout_min: float = 2.,
+        scale3_target_mass_g: Union[float, None] = None,
+        process: "local.lib.tff.classes.Process" = None,
+) -> int:
+    """
+    Once all pumps for a given module are up to full speed, start a timer (use 2min until you hear otherwise from us)
+    over which the pinch valve can reposition to target P3 of 5 psig (let us know if this is a difficult target).
+
+    :param [int, float] timeout_min:
+    :param [int, float] interval:
+    :param [int, float, None] = scale3_target_mass_g:
+    :param local.lib.tff.classes.Process process:
+    :return: integer for a status code
+        0, None = lock in completed
+        1 = timed out
+        2 = scale 3 hit target mass
+    """
+    # set a window around the target_p3_psi in which the valve will not adjust, the
+    WINDOW_PSI: float = .5
+
+    # time to sleep after valve adjustment
+    VALVE_DELAY_S = .2
+
+    # define a timer that counts time spent in loop
+    time_tried_s: int = 0
+
+    print("[LOCK IN] beginning pinch valve lock-in to target P3 {} psi.".format(
+        process.setpoints.P3_target_pressure.value)
+    )
+
+    in_window_counter = 0
+
+    process.pid.setpoint = process.setpoints.P3_target_pressure.value
+    process.pid.period_s = VALVE_DELAY_S
+
+    while time_tried_s < timeout_min * 60:
+
+        # update the data dictionary and
+        # log the data
+        process.data.update_data()
+        process.data.log_data_at_interval(5)
+
+        in_window_counter += 1
+
+        if scale3_target_mass_g is not None:
+            if process.data.W3 is not None and process.data.W3 >= scale3_target_mass_g:
+                print("[LOCK IN] scale 3 target mass of {} g hit during pinch valve lock-in.".format(
+                    scale3_target_mass_g))
+                return local.lib.tff.definitions.STATUS_TARGET_MASS_HIT
+
+        # try/catch for invalid pressure readings
+        try:
+
+            delta_pct_open = process.pid(process.data.P3)
+            target_pct_open = process.data.PV - min(max(delta_pct_open, -0.001), 0.001)
+            process.devices.PV.set_position(target_pct_open, record=True)
+            time.sleep(VALVE_DELAY_S)
+            time_tried_s += VALVE_DELAY_S
+            process.data.update_data()
+            process.data.log_data_at_interval(5)
 
         except TypeError:
             pass
