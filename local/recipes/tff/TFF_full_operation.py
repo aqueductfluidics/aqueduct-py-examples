@@ -15,10 +15,10 @@ from local.lib.tff.definitions import (
     STATUS_OK, STATUS_TIMED_OUT, STATUS_TARGET_MASS_HIT
 )
 
-# aq = aqueduct.core.aq.Aqueduct(1, "169.254.211.104", 59001)
-# aq.initialize(False)
-aq = aqueduct.core.aq.Aqueduct(1)
-aq.initialize(True)
+aq = aqueduct.core.aq.Aqueduct(1, "169.254.211.104", 59001)
+aq.initialize(False)
+# aq = aqueduct.core.aq.Aqueduct(1)
+# aq.initialize(True)
 
 
 # pass the globals dictionary, which will have the
