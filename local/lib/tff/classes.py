@@ -869,12 +869,17 @@ class Process(object):
                 if time.time() > timeout:
                     self._devices.PUMP2.stop()
                     self._data.update_data()
+                    print("[PHASE (INIT)] Transfer complete.")
                     time.sleep(2)
                     print("[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(self._data.W1))
                     break
 
                 if isinstance(self._data.W1, float) and self._data.W1 > self.initial_transfer_volume:
                     self._devices.PUMP2.stop()
+                    self._data.update_data()
+                    print("[PHASE (INIT)] Transfer complete.")
+                    time.sleep(2)
+                    print("[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(self._data.W1))
                     break
 
                 local.lib.tff.methods.monitor(
@@ -1559,7 +1564,7 @@ class Process(object):
         """
 
         # slowly open pinch valve to 30%
-        print("[PHASE (CLN)] Beginning clean-up, open pinch valve to 30%")
+        print(f"[PHASE (CLN)] Beginning clean-up, open pinch valve to {self.pinch_valve_init_pct_open * 100}%")
         local.lib.tff.methods.open_pinch_valve(
             target_pct_open=self.pinch_valve_init_pct_open,
             increment_pct_open=0.005,
@@ -1608,6 +1613,8 @@ class Process(object):
         timeout = time_start + datetime.timedelta(seconds=5 * 60)
         print("[PHASE (WASH)] Washing for 5 minutes.")
 
+        counter = 0
+
         # infinite loop until we meet a break condition
         while True:
 
@@ -1625,13 +1632,23 @@ class Process(object):
                 process=self,
             )
 
+            counter += 1
+
+            if counter > 30:
+                seconds_left = local.lib.tff.helpers.format_float(
+                    (timeout - datetime.datetime.utcnow()).total_seconds(),
+                    1
+                )
+                print(f"[PHASE (WASH)] Washing for {seconds_left} more seconds...")
+                counter = 0
+
         # stop Pump 1
         print("[PHASE (WASH)] Stopping PUMP1.")
         self._devices.PUMP1.stop()
 
         # save log file
         self.add_process_info_to_log()
-        self._aqueduct.save_log_file(self.log_file_name, timestamp=True)
+        # self._aqueduct.save_log_file(self.log_file_name, timestamp=True)
 
         # stop balance and pressure A/D
         self._devices.OHSA.stop()
