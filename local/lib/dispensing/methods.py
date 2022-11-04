@@ -3,6 +3,8 @@ import typing
 
 from aqueduct.devices.trcx.obj import TRCX
 
+DELAY_S = 0.1
+
 
 def set_valve_and_withdraw(pump: TRCX, pump_index: int, port: int,
                            withdraw_rate_ul_min: float, withdraw_volume_ul: float) -> None:
@@ -29,7 +31,7 @@ def set_valve_and_withdraw(pump: TRCX, pump_index: int, port: int,
     https://docs.python.org/3/reference/expressions.html#calls        
     """
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
     # "construct" a Pump Command
     pump_command_t = pump.make_command(
@@ -44,7 +46,7 @@ def set_valve_and_withdraw(pump: TRCX, pump_index: int, port: int,
     # send the constructed pump command to the pumps
     pump.pump(wait_for_complete=False, **{f"pump{pump_index}": pump_command_t})
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
 
 def withdraw(
@@ -74,7 +76,7 @@ def withdraw(
         **{f"pump{index}": command for index, command in zip(pump_indices, pump_commands_l)}
     )
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
 
 def set_valves_and_withdraw(
@@ -95,7 +97,7 @@ def set_valves_and_withdraw(
     # send the constructed valve commands to the pumps
     pump.set_valves(**{f"pump{index}": command for index, command in zip(pump_indices, valve_commands_l)})
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
     # "construct" a list Pump Commands
     pump_commands_l: list = [pump.make_command(
@@ -113,7 +115,7 @@ def set_valves_and_withdraw(
         **{f"pump{index}": command for index, command in zip(pump_indices, pump_commands_l)}
     )
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
 
 def set_valve_and_infuse(pump: TRCX, pump_index: int, port: int,
@@ -131,7 +133,7 @@ def set_valve_and_infuse(pump: TRCX, pump_index: int, port: int,
     # send the constructed valve command to the pumps
     pump.set_valves(**{f"pump{pump_index}": valve_command_t})
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
     # "construct" a Pump Command
     pump_command_t = pump.make_command(
@@ -146,7 +148,7 @@ def set_valve_and_infuse(pump: TRCX, pump_index: int, port: int,
     # send the constructed pump command to the pumps
     pump.pump(wait_for_complete=False, **{f"pump{pump_index}": pump_command_t})
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
 
 def set_valves_and_infuse(
@@ -167,7 +169,7 @@ def set_valves_and_infuse(
     # send the constructed valve commands to the pumps
     pump.set_valves(**{f"pump{index}": command for index, command in zip(pump_indices, valve_commands_l)})
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
     # "construct" a list Pump Commands
     pump_commands_l: list = [pump.make_command(
@@ -185,7 +187,7 @@ def set_valves_and_infuse(
         **{f"pump{index}": command for index, command in zip(pump_indices, pump_commands_l)}
     )
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
 
 def set_valves(
@@ -203,7 +205,7 @@ def set_valves(
     # send the constructed valve commands to the pumps
     pump.set_valves(**{f"pump{index}": command for index, command in zip(pump_indices, valve_commands_l)})
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
 
 def stop_pumps(pump: TRCX, pump_indices: typing.List[int], ) -> None:
@@ -214,7 +216,7 @@ def stop_pumps(pump: TRCX, pump_indices: typing.List[int], ) -> None:
     """
     pump.stop(**{f"pump{index}": True for index in pump_indices})
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
 
 def is_active(pump: TRCX, pump_indices: typing.List[int], ) -> bool:
@@ -261,12 +263,12 @@ def prime_and_fill_tubing(pump: TRCX):
         withdraw_volume_ul=priming_volume_ul
     )
 
-    time.sleep(1)
+    time.sleep(DELAY_S)
 
     # we have to wait for the plunger to finish moving, so we wait for this pump input to become inactive
 
     while pump.is_active(**{f"pump{pump_index}": True}):
-        time.sleep(1)
+        time.sleep(DELAY_S)
         # print an update if you want...
         # print(f"Pump {pump_index} withdrawing...")
 
@@ -346,7 +348,7 @@ def set_plunger_mode(pump: TRCX, index: int, target_mode: int, force: bool = Fal
     if int(pump.config[index].plgr_mode) != int(target_mode) or force is True:
         pump.set_plunger_resolution(**{f"pump{index}": target_mode})
         pump.config[index].plgr_mode = target_mode
-        time.sleep(1)
+        time.sleep(DELAY_S)
 
 
 def set_plunger_modes(pump: TRCX, pump_indices: typing.List[int], target_modes: typing.List[int],
@@ -367,4 +369,4 @@ def set_plunger_modes(pump: TRCX, pump_indices: typing.List[int], target_modes: 
         if int(pump.config[index].plgr_mode) != int(target_mode) or force is True:
             pump.set_plunger_resolution(**{f"pump{index}": target_mode})
             pump.config[index].plgr_mode = target_mode
-            time.sleep(1)
+            time.sleep(DELAY_S)

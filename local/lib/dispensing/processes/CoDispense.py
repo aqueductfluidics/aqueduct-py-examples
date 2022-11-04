@@ -10,11 +10,14 @@ from local.lib.dispensing.definitions import *
 
 from aqueduct.core.aq import Aqueduct
 from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES
+from aqueduct.core.recordable import Recordable
 
 import aqueduct.devices.trcx.obj
 import aqueduct.devices.trcx.constants
 
 from typing import List, Tuple, Callable
+
+DELAY_S = 0.2
 
 
 class Enabled(enum.Enum):
@@ -98,10 +101,10 @@ class CoDispenseStation(object):
     phase_setpoint: Setpoint = None
 
     # make an Aqueduct Recordable to record/visualize pump0 dispensed
-    # pump0_dispensed_recordable: Recordable = None
+    pump0_dispensed_recordable: Recordable = None
 
     # make an Aqueduct Recordable to record/visualize pump1 dispensed
-    # pump1_dispensed_recordable: Recordable = None
+    pump1_dispensed_recordable: Recordable = None
 
     # track the status of the current phase using one of the CurrentPhaseStatus
     # enum's members
@@ -220,17 +223,17 @@ class CoDispenseStation(object):
             dtype=int.__name__
         )
 
-        # self.pump0_dispensed_recordable = self._aqueduct.recordable(
-        #     name=f"station_{self.index}_pump0_disp.",
-        #     value=0.,
-        #     dtype=float.__name__
-        # )
+        self.pump0_dispensed_recordable = self._aqueduct.recordable(
+            name=f"station_{self.index}_pump0_disp.",
+            value=0.,
+            dtype=float.__name__
+        )
 
-        # self.pump1_dispensed_recordable = self._aqueduct.recordable(
-        #     name=f"station_{self.index}_pump1_disp.",
-        #     value=0.,
-        #     dtype=float.__name__
-        # )
+        self.pump1_dispensed_recordable = self._aqueduct.recordable(
+            name=f"station_{self.index}_pump1_disp.",
+            value=0.,
+            dtype=float.__name__
+        )
 
     def record(self, plunger_positions: Tuple[Tuple[int, any, any]]) -> None:
         """
@@ -254,9 +257,9 @@ class CoDispenseStation(object):
                 else:
                     delta_ul = self._pump0_input_last_position_ul - current_position_ul
                     self._realtime_pump0_dispensed_ul_counter += round(delta_ul, 2)
-                    # self.pump0_dispensed_recordable.update(
-                    #     round(self._realtime_pump0_dispensed_ul_counter, 2)
-                    # )
+                    self.pump0_dispensed_recordable.update(
+                        round(self._realtime_pump0_dispensed_ul_counter, 2)
+                    )
                     self._pump0_input_last_position_ul = current_position_ul
 
                 position, status, resolution = plunger_positions[self.pump1_input]
@@ -272,8 +275,8 @@ class CoDispenseStation(object):
                 else:
                     delta_ul = self._pump1_input_last_position_ul - current_position_ul
                     self._realtime_pump1_dispensed_ul_counter += round(delta_ul, 2)
-                    # self.pump1_dispensed_recordable.update(
-                    #     round(self._realtime_pump1_dispensed_ul_counter, 2))
+                    self.pump1_dispensed_recordable.update(
+                        round(self._realtime_pump1_dispensed_ul_counter, 2))
                     self._pump1_input_last_position_ul = current_position_ul
 
     def record_pump0_input_position(self, calc_delta: bool = False) -> float:
@@ -468,7 +471,7 @@ class CoDispenseStation(object):
                     target_modes=[0, 0],
                 )
 
-                time.sleep(1)
+                time.sleep(DELAY_S)
 
                 local.lib.dispensing.methods.set_valves_and_infuse(
                     pump=self._devices.PUMP,
@@ -878,12 +881,12 @@ class CoDispenseStation(object):
                 # record the pump0 volume dispensed
                 delta_ul = self.record_pump0_input_position(calc_delta=True)
                 self._realtime_pump0_dispensed_ul_counter += round(delta_ul, 2)
-                # self.pump0_dispensed_recordable.update(round(self._realtime_pump0_dispensed_ul_counter, 2))
+                self.pump0_dispensed_recordable.update(round(self._realtime_pump0_dispensed_ul_counter, 2))
 
                 # record the pump1 volume dispensed
                 delta_ul = self.record_pump1_input_position(calc_delta=True)
                 self._realtime_pump1_dispensed_ul_counter += round(delta_ul, 2)
-                # self.pump1_dispensed_recordable.update(round(self._realtime_pump1_dispensed_ul_counter, 2))
+                self.pump1_dispensed_recordable.update(round(self._realtime_pump1_dispensed_ul_counter, 2))
 
                 # check to see if the pump0 and pump1 are complete
                 if self._pump0_dispensed_ul_counter >= self.pump0_volume_to_dispense_ul:
@@ -952,7 +955,7 @@ class CoDispenseStation(object):
                         pump=self._devices.PUMP,
                         pump_indices=[self.pump0_input, self.pump1_input]
                 ):
-                    time.sleep(1)
+                    time.sleep(DELAY_S)
 
                 local.lib.dispensing.methods.set_valves_and_infuse(
                     pump=self._devices.PUMP,
@@ -970,7 +973,7 @@ class CoDispenseStation(object):
                         pump=self._devices.PUMP,
                         pump_indices=[self.pump0_input, self.pump1_input]
                 ):
-                    time.sleep(1)
+                    time.sleep(DELAY_S)
 
             self._phase_helper(do_if_not_started=to_do,
                                next_phase=Phase.PHASE_1_COMPLETE)

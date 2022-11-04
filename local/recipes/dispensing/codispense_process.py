@@ -53,15 +53,15 @@ for i in range(0, 6):
     station.pump1_output_tubing_volume_ul = 350.
     station.pump1_priming_volume_ul = 151. + 300. + 200
     
-    station.pump0_volume_to_dispense_ul = 36500
-    station.pump0_dispense_rate_ul_min = 5000.
+    station.pump0_volume_to_dispense_ul = 365000
+    station.pump0_dispense_rate_ul_min = 500.
     station.pump0_priming_volume_ul = 151. + 300. + 200.
     station.pump0_output_tubing_prime_volume_ul = 315.
     station.pump0_output_tubing_prime_rate_ul_min = 2000.
     station.pump0_withdraw_rate_ul_min = 25000.
 
-    station.pump1_volume_to_dispense_ul = 11600
-    station.pump1_dispense_rate_ul_min = 1500
+    station.pump1_volume_to_dispense_ul = 116000
+    station.pump1_dispense_rate_ul_min = 150.
     station.pump1_output_tubing_prime_volume_ul = 315.
     station.pump1_output_tubing_prime_rate_ul_min = 2000.
     station.pump1_withdraw_rate_ul_min = 25000.
