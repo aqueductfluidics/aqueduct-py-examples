@@ -3,7 +3,7 @@ import typing
 
 from aqueduct.devices.trcx.obj import TRCX
 
-DELAY_S = 0.1
+DELAY_S = 0.01
 
 
 def set_valve_and_withdraw(pump: TRCX, pump_index: int, port: int,

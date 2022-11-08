@@ -17,7 +17,7 @@ import aqueduct.devices.trcx.constants
 
 from typing import List, Tuple, Callable
 
-DELAY_S = 0.2
+DELAY_S = 0.1
 
 
 class Enabled(enum.Enum):
