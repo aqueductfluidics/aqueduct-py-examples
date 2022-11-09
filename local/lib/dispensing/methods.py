@@ -351,8 +351,12 @@ def set_plunger_mode(pump: TRCX, index: int, target_mode: int, force: bool = Fal
         time.sleep(DELAY_S)
 
 
-def set_plunger_modes(pump: TRCX, pump_indices: typing.List[int], target_modes: typing.List[int],
-                      force_pumps: typing.List[bool] = [False, False]) -> None:
+def set_plunger_modes(
+        pump: TRCX,
+        pump_indices: typing.List[int],
+        target_modes: typing.List[int],
+        force_pumps: typing.List[bool] = [False, False]
+) -> None:
     """
     Helper method to change the plunger stepping modes of the given inputs.
 

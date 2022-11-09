@@ -1,33 +1,41 @@
-import config
-# local imports
+import argparse
+import sys
+from pathlib import Path
+
+import aqueduct.core.aq
+
+path = Path(__file__).parent.resolve().parent.resolve().parent.resolve().parent.resolve()
+sys.path.extend([str(path)])
+
 import local.lib.ph_control.classes
 
-if not config.LAB_MODE_ENABLED:
+parser = argparse.ArgumentParser()
+parser.add_argument("-u", "--user_id", type=str, help="user_id (either int or 'L')", default="1")
+parser.add_argument("-a", "--addr", type=str, help="IP address (no port, like 127.0.0.1)", default="127.0.0.1")
+parser.add_argument("-p", "--port", type=int, help="port (like 59000)", default=59000)
+parser.add_argument("-i", "--init", type=int, help="initialize (1 for true, 0 for false)", default=1)
+args = parser.parse_args()
 
-    from aqueduct.aqueduct import Aqueduct
+user_id = args.user_id
+ip_address = args.addr
+port = args.port
+init = bool(args.init)
 
-    aqueduct = Aqueduct('G', None, None, None)
+aq = aqueduct.core.aq.Aqueduct(user_id, ip_address, port)
+aq.initialize(init)
 
-    # make the Devices object
-    devices = local.lib.ph_control.classes.Devices.generate_dev_devices()
-
-else:
-
-    # pass the aqueduct object
-    aqueduct = globals().get('aqueduct')
-
-    # pass the globals dictionary, which will have the
-    # objects for the Devices already instantiated
-    devices = local.lib.ph_control.classes.Devices(**globals())
+# pass the globals dictionary, which will have the
+# objects for the Devices already instantiated
+devices = local.lib.ph_control.classes.Devices(aq)
 
 # make the Data object, pass the new devices object
 # and the aqueduct object
-data = local.lib.ph_control.classes.Data(devices, aqueduct)
+data = local.lib.ph_control.classes.Data(devices, aq)
 
 # make the Process object
 process = local.lib.ph_control.classes.ProcessHandler(
     devices_obj=devices,
-    aqueduct=aqueduct,
+    aqueduct=aq,
     data=data,
 )
 
@@ -35,4 +43,8 @@ process = local.lib.ph_control.classes.ProcessHandler(
 Continuous On/Off control
 """
 
-process.on_off_control()
+process.on_off_control(
+    pumps=(devices.PUMP0, devices.PUMP1, devices.PUMP2),
+    pH_probe_indices=(0, 1, 2),
+)
+

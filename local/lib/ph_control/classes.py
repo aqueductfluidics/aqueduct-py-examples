@@ -801,7 +801,6 @@ class ReactionStation(object):
                     rate_units=pump.RPM,
                     finite_value=dose_ml,
                     finite_units=pump.ML,
-                    wait_for_complete=False
                 )
 
                 n = 0
@@ -984,8 +983,12 @@ class ProcessHandler(object):
 
     def on_off_control(
             self,
-            pumps: Tuple["aqueduct.devices.pp.obj.PP"] = (None, None, None),
-            pH_probe_indices: Tuple[int] = (0, 1, 2),
+            pumps: Tuple[
+                "aqueduct.devices.pp.obj.PP",
+                "aqueduct.devices.pp.obj.PP",
+                "aqueduct.devices.pp.obj.PP"
+            ] = (None, None, None),
+            pH_probe_indices: Tuple[int, int, int] = (0, 1, 2),
     ):
 
         self.log_file_name = f"data_{datetime.datetime.now().isoformat()}"
