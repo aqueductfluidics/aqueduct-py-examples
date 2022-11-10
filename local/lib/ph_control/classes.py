@@ -1187,6 +1187,8 @@ class ProcessHandler(object):
         self._devices.PH_PROBE.set_sim_values(values=(6, 6, 6))
         self._devices.PH_PROBE.set_sim_rates_of_change(values=rates_of_change)
         self._devices.PH_PROBE.set_sim_noise(values=(0.0001, 0.0001, 0.0001))
+        self._devices.PH_PROBE.clear_recorded()
+        self._devices.PH_PROBE.update_record(True)
 
         # start recording data from the pH probe
         self._devices.PH_PROBE.start(
