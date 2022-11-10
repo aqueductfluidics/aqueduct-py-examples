@@ -93,10 +93,7 @@ class ProcessRunner(object):
 
         :return:
         """
-        all_positions = self._devices.PUMP.get_plunger_positions(
-            # include_status=True,
-            # include_resolution=True,
-        )
+        all_positions = self._devices.PUMP.get_plunger_positions()
         for s in self.stations:
             record_op = getattr(s, "record", None)
             if callable(record_op):
