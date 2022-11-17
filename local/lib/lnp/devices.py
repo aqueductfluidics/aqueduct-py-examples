@@ -13,7 +13,6 @@ import aqueduct.devices.tempx.constants
 import aqueduct.devices.tempx.obj
 from local.lib.lnp.definitions import *
 
-
 class Devices(object):
     """
 

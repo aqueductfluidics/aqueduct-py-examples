@@ -10,6 +10,8 @@ import aqueduct.devices.pv.obj
 import aqueduct.devices.scip.constants
 import aqueduct.devices.scip.obj
 import local.lib.lnp.classes
+import local.lib.lnp.data
+import local.lib.lnp.devices
 from aqueduct.core.aq import Aqueduct
 
 """
@@ -24,12 +26,12 @@ class Alarm(object):
 
     """
     active: bool = False
-    _data: "Data" = None  # pointer to Data object
-    _devices: "Devices" = None  # pointer to Devices object
+    _data: "local.lib.lnp.data.Data" = None  # pointer to Data object
+    _devices: "local.lib.lnp.devices.Devices" = None  # pointer to Devices object
     _aqueduct: Aqueduct = None  # pointer to Aqueduct object
     _process = None  # pointer to Process object
 
-    def __init__(self, data_obj: "Data", devices_obj: "Devices", aqueduct_obj: Aqueduct):
+    def __init__(self, data_obj: "local.lib.lnp.data.Data", devices_obj: "local.lib.lnp.devices.Devices", aqueduct_obj: Aqueduct):
         """
         Instantiation method.
 
@@ -37,8 +39,8 @@ class Alarm(object):
         :param devices_obj:
         :param aqueduct_obj:
         """
-        self._data: "Data" = data_obj
-        self._devices: "Devices" = devices_obj
+        self._data: "local.lib.lnp.data.Data" = data_obj
+        self._devices: "local.lib.lnp.devices.Devices" = devices_obj
         self._aqueduct: Aqueduct = aqueduct_obj
         return
 
@@ -111,19 +113,6 @@ class Alarm(object):
         """
         self.active = False
 
-    def get_target_mass(self) -> Union[float, int, None]:
-        """
-        Returns the Scale 3 target mass for the current phase of the process.
-        :return:
-        """
-        if self._process.current_phase == local.lib.lnp.classes.Process.INITIAL_CONC_PHASE:
-            return self._process.init_conc_target_mass_g
-        elif self._process.current_phase == local.lib.lnp.classes.Process.DIAFILT_PHASE:
-            return self._process.diafilt_target_mass_g
-        elif self._process.current_phase == local.lib.lnp.classes.Process.FINAL_CONC_PHASE:
-            return self._process.final_conc_target_mass_g
-        return None
-
 
 class OverPressureAlarm(Alarm):
     """
@@ -144,9 +133,9 @@ class OverPressureAlarm(Alarm):
 
     max_pressure_psi: float = 35.
 
-    cached_pump1_rate_ml_min: float = 0.
-    cached_pump2_rate_ml_min: float = 0.
-    cached_pump3_rate_ml_min: float = 0.
+    cached_aq_pump_rate_ml_min: float = 0.
+    cached_oil_pump_rate_ml_min: float = 0.
+    cached_dilution_pump_rate_ml_min: float = 0.
 
     _pump_1_rate_change_interval_s: float = 30
     _pump_1_rate_change_increment_ml_min: float = 2
@@ -196,16 +185,16 @@ class OverPressureAlarm(Alarm):
         """
 
         print("[***ALARM***] Overpressure alarm raised! Stopping all pumps. Dismiss prompt to continue.")
-        self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
-            self.cached_pump2_rate_ml_min = self._data.R2
-        self.cached_pump3_rate_ml_min = self._data.R3
-        self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+        self.cached_aq_pump_rate_ml_min = self._data.R1
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+            self.cached_oil_pump_rate_ml_min = self._data.R2
+        self.cached_dilution_pump_rate_ml_min = self._data.R3
+        self._devices.AQ_PUMP.stop()
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+            self._devices.OIL_PUMP.stop()
+        self._devices.DILUTION_PUMP.stop()
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Overpressure! Press <b>continue</b> to resume operation. 
                         Upon resume: 
@@ -240,10 +229,10 @@ class OverPressureAlarm(Alarm):
 
         local.lib.lnp.methods.pump_ramp(
             interval_s=1,
-            pump=self._devices.PUMP1,
-            pump_name="PUMP1",
-            start_flowrate_ml_min=self.cached_pump1_rate_ml_min / 2,
-            end_flowrate_ml_min=self.cached_pump1_rate_ml_min * 0.9,
+            pump=self._devices.AQ_PUMP,
+            pump_name="AQ_PUMP",
+            start_flowrate_ml_min=self.cached_aq_pump_rate_ml_min / 2,
+            end_flowrate_ml_min=self.cached_aq_pump_rate_ml_min * 0.9,
             rate_change_interval_s=self._pump_1_rate_change_interval_s,
             rate_change_pct=self._pump_1_rate_change_pct_inc,
             timeout_min=self._pump_1_rate_change_timeout_min,
@@ -252,10 +241,10 @@ class OverPressureAlarm(Alarm):
 
         local.lib.lnp.methods.pumps_2_and_3_ramp(
             interval_s=1,
-            pump2_start_flowrate_ml_min=self.cached_pump2_rate_ml_min / 2,
-            pump2_end_flowrate_ml_min=self.cached_pump2_rate_ml_min,
-            pump3_start_flowrate_ml_min=self.cached_pump3_rate_ml_min / 2,
-            pump3_end_flowrate_ml_min=self.cached_pump3_rate_ml_min,
+            oil_pump_start_flowrate_ml_min=self.cached_oil_pump_rate_ml_min / 2,
+            oil_pump_end_flowrate_ml_min=self.cached_oil_pump_rate_ml_min,
+            dilution_pump_start_flowrate_ml_min=self.cached_dilution_pump_rate_ml_min / 2,
+            dilution_pump_end_flowrate_ml_min=self.cached_dilution_pump_rate_ml_min,
             rate_change_interval_s=self._pumps_2_3_ramp_interval_s,
             number_rate_changes=self._pumps_2_3_ramp_number_rate_changes,
             timeout_min=self._pumps_2_3_ramp_timeout_min,
@@ -269,7 +258,7 @@ class LowP3PressureAlarm(Alarm):
     """
     Condition: if P3 < 0.3 psig && P3 >= -3.0
 
-    Handle: Stop PUMP2/PUMP3
+    Handle: Stop OIL_PUMP/DILUTION_PUMP
 
     Restart:
 
@@ -282,9 +271,9 @@ class LowP3PressureAlarm(Alarm):
     min_p3_pressure_psi: float = 0.3
     vacuum_pressure_psi: float = -3.0
 
-    cached_pump1_rate_ml_min: float = 0.
-    cached_pump2_rate_ml_min: float = 0.
-    cached_pump3_rate_ml_min: float = 0.
+    cached_aq_pump_rate_ml_min: float = 0.
+    cached_oil_pump_rate_ml_min: float = 0.
+    cached_dilution_pump_rate_ml_min: float = 0.
 
     # parameters for ramp of Pumps 2 and 3 after restart
     _pumps_2_3_ramp_interval_s: float = 30
@@ -325,23 +314,23 @@ class LowP3PressureAlarm(Alarm):
         """
 
         print("[***ALARM***] Underpressure P3 alarm raised!")
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             print("[ALARM (UNDERPRESSURE)] Stopping Pumps 2 and 3.")
         else:
             print("[ALARM (UNDERPRESSURE)] Stopping Pump 3.")
 
-        self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
-            self.cached_pump2_rate_ml_min = self._data.R2
-        self.cached_pump3_rate_ml_min = self._data.R3
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+        self.cached_aq_pump_rate_ml_min = self._data.R1
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+            self.cached_oil_pump_rate_ml_min = self._data.R2
+        self.cached_dilution_pump_rate_ml_min = self._data.R3
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+            self._devices.OIL_PUMP.stop()
+        self._devices.DILUTION_PUMP.stop()
 
         # small time delay
         time.sleep(5)
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             print(
                 "[ALARM (UNDERPRESSURE)] Ramping Pumps 2 and 3 to 90% of previous rates.")
         else:
@@ -349,10 +338,10 @@ class LowP3PressureAlarm(Alarm):
 
         local.lib.lnp.methods.pumps_2_and_3_ramp(
             interval_s=1,
-            pump2_start_flowrate_ml_min=self.cached_pump2_rate_ml_min / 2,
-            pump2_end_flowrate_ml_min=self.cached_pump2_rate_ml_min * 0.9,
-            pump3_start_flowrate_ml_min=self.cached_pump3_rate_ml_min / 2,
-            pump3_end_flowrate_ml_min=self.cached_pump3_rate_ml_min * 0.9,
+            oil_pump_start_flowrate_ml_min=self.cached_oil_pump_rate_ml_min / 2,
+            oil_pump_end_flowrate_ml_min=self.cached_oil_pump_rate_ml_min * 0.9,
+            dilution_pump_start_flowrate_ml_min=self.cached_dilution_pump_rate_ml_min / 2,
+            dilution_pump_end_flowrate_ml_min=self.cached_dilution_pump_rate_ml_min * 0.9,
             rate_change_interval_s=self._pumps_2_3_ramp_interval_s,
             number_rate_changes=self._pumps_2_3_ramp_number_rate_changes,
             timeout_min=self._pumps_2_3_ramp_timeout_min,
@@ -388,9 +377,9 @@ class VacuumConditionAlarm(Alarm):
     # minimum pressure, pressures below this will trigger alarm
     vacuum_pressure_psi: float = -3.0
 
-    cached_pump1_rate_ml_min: float = 0.
-    cached_pump2_rate_ml_min: float = 0.
-    cached_pump3_rate_ml_min: float = 0.
+    cached_aq_pump_rate_ml_min: float = 0.
+    cached_oil_pump_rate_ml_min: float = 0.
+    cached_dilution_pump_rate_ml_min: float = 0.
 
     # parameters for ramp of Pump 1 after restart
     _pump_1_rate_change_interval_s: float = 30
@@ -440,16 +429,16 @@ class VacuumConditionAlarm(Alarm):
         """
 
         print("[***ALARM***] Vacuum Condition Alarm raised! Stopping all pumps. Dismiss prompt to continue.")
-        self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
-            self.cached_pump2_rate_ml_min = self._data.R2
-        self.cached_pump3_rate_ml_min = self._data.R3
-        self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+        self.cached_aq_pump_rate_ml_min = self._data.R1
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+            self.cached_oil_pump_rate_ml_min = self._data.R2
+        self.cached_dilution_pump_rate_ml_min = self._data.R3
+        self._devices.AQ_PUMP.stop()
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+            self._devices.OIL_PUMP.stop()
+        self._devices.DILUTION_PUMP.stop()
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Vacuum Condition! Ensure proper vessels contain liquid and 
                 feed tubes are submerged. Press <b>continue</b> to resume operation. 
@@ -486,10 +475,10 @@ class VacuumConditionAlarm(Alarm):
 
         local.lib.lnp.methods.pump_ramp(
             interval_s=1,
-            pump=self._devices.PUMP1,
-            pump_name="PUMP1",
-            start_flowrate_ml_min=self.cached_pump1_rate_ml_min / 2,
-            end_flowrate_ml_min=self.cached_pump1_rate_ml_min,
+            pump=self._devices.AQ_PUMP,
+            pump_name="AQ_PUMP",
+            start_flowrate_ml_min=self.cached_aq_pump_rate_ml_min / 2,
+            end_flowrate_ml_min=self.cached_aq_pump_rate_ml_min,
             rate_change_interval_s=self._pump_1_rate_change_interval_s,
             rate_change_pct=self._pump_1_rate_change_pct_inc,
             timeout_min=self._pump_1_rate_change_timeout_min,
@@ -498,10 +487,10 @@ class VacuumConditionAlarm(Alarm):
 
         local.lib.lnp.methods.pumps_2_and_3_ramp(
             interval_s=1,
-            pump2_start_flowrate_ml_min=self.cached_pump2_rate_ml_min / 2,
-            pump2_end_flowrate_ml_min=self.cached_pump2_rate_ml_min,
-            pump3_start_flowrate_ml_min=self.cached_pump3_rate_ml_min / 2,
-            pump3_end_flowrate_ml_min=self.cached_pump3_rate_ml_min,
+            oil_pump_start_flowrate_ml_min=self.cached_oil_pump_rate_ml_min / 2,
+            oil_pump_end_flowrate_ml_min=self.cached_oil_pump_rate_ml_min,
+            dilution_pump_start_flowrate_ml_min=self.cached_dilution_pump_rate_ml_min / 2,
+            dilution_pump_end_flowrate_ml_min=self.cached_dilution_pump_rate_ml_min,
             rate_change_interval_s=self._pumps_2_3_ramp_interval_s,
             number_rate_changes=self._pumps_2_3_ramp_number_rate_changes,
             timeout_min=self._pumps_2_3_ramp_timeout_min,
@@ -526,9 +515,9 @@ class BufferVesselEmptyAlarm(Alarm):
 
     min_buffer_liquid_mass_g: float = 5.
 
-    cached_pump1_rate_ml_min: float = 0.
-    cached_pump2_rate_ml_min: float = 0.
-    cached_pump3_rate_ml_min: float = 0.
+    cached_aq_pump_rate_ml_min: float = 0.
+    cached_oil_pump_rate_ml_min: float = 0.
+    cached_dilution_pump_rate_ml_min: float = 0.
 
     # parameters for ramp of Pumps 2 and 3 after restart
     _pumps_2_3_ramp_interval_s: float = 30
@@ -568,22 +557,22 @@ class BufferVesselEmptyAlarm(Alarm):
 
         :return:
         """
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             print("""[***ALARM***] Low Buffer Vessel Mass alarm raised! 
             Stopping Pumps 2 and 3.""")
         else:
             print("""[***ALARM***] Low Buffer Vessel Mass alarm raised! 
             Stopping Pump 3.""")
 
-        self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
-            self.cached_pump2_rate_ml_min = self._data.R2
-        self.cached_pump3_rate_ml_min = self._data.R3
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+        self.cached_aq_pump_rate_ml_min = self._data.R1
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+            self.cached_oil_pump_rate_ml_min = self._data.R2
+        self.cached_dilution_pump_rate_ml_min = self._data.R3
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+            self._devices.OIL_PUMP.stop()
+        self._devices.DILUTION_PUMP.stop()
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Low Buffer Vessel Mass! Refill vessel. Press <b>continue</b> to resume operation. 
                         Upon resume: 
@@ -615,10 +604,10 @@ class BufferVesselEmptyAlarm(Alarm):
 
         local.lib.lnp.methods.pumps_2_and_3_ramp(
             interval_s=1,
-            pump2_start_flowrate_ml_min=self.cached_pump2_rate_ml_min / 2,
-            pump2_end_flowrate_ml_min=self.cached_pump2_rate_ml_min,
-            pump3_start_flowrate_ml_min=self.cached_pump3_rate_ml_min / 2,
-            pump3_end_flowrate_ml_min=self.cached_pump3_rate_ml_min,
+            oil_pump_start_flowrate_ml_min=self.cached_oil_pump_rate_ml_min / 2,
+            oil_pump_end_flowrate_ml_min=self.cached_oil_pump_rate_ml_min,
+            dilution_pump_start_flowrate_ml_min=self.cached_dilution_pump_rate_ml_min / 2,
+            dilution_pump_end_flowrate_ml_min=self.cached_dilution_pump_rate_ml_min,
             rate_change_interval_s=self._pumps_2_3_ramp_interval_s,
             number_rate_changes=self._pumps_2_3_ramp_number_rate_changes,
             timeout_min=self._pumps_2_3_ramp_timeout_min, adjust_pinch_valve=False,
@@ -645,9 +634,9 @@ class RetentateVesselLowAlarm(Alarm):
     end_expected_retentate_mass_g: float = None
     threshold_g: float = 5
 
-    cached_pump1_rate_ml_min: float = 0.
-    cached_pump2_rate_ml_min: float = 0.
-    cached_pump3_rate_ml_min: float = 0.
+    cached_aq_pump_rate_ml_min: float = 0.
+    cached_oil_pump_rate_ml_min: float = 0.
+    cached_dilution_pump_rate_ml_min: float = 0.
 
     # parameters for ramp of Pump 1 after restart
     _pump_1_rate_change_interval_s: float = 30
@@ -693,7 +682,7 @@ class RetentateVesselLowAlarm(Alarm):
 
         :return:
         """
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             print("""[***ALARM***] Retentate Vessel Mass alarm raised! 
             Stopping Pumps 1, 2, and 3.""")
 
@@ -701,16 +690,16 @@ class RetentateVesselLowAlarm(Alarm):
             print("""[***ALARM***] Retentate Vessel Mass alarm raised! 
             Stopping Pumps 1 and 3.""")
 
-        self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
-            self.cached_pump2_rate_ml_min = self._data.R2
-        self.cached_pump3_rate_ml_min = self._data.R3
-        self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+        self.cached_aq_pump_rate_ml_min = self._data.R1
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+            self.cached_oil_pump_rate_ml_min = self._data.R2
+        self.cached_dilution_pump_rate_ml_min = self._data.R3
+        self._devices.AQ_PUMP.stop()
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+            self._devices.OIL_PUMP.stop()
+        self._devices.DILUTION_PUMP.stop()
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Low Retentate Vessel Mass! Press <b>continue</b> to resume operation. 
                         Upon resume: 
@@ -745,10 +734,10 @@ class RetentateVesselLowAlarm(Alarm):
 
         local.lib.lnp.methods.pump_ramp(
             interval_s=1,
-            pump=self._devices.PUMP1,
-            pump_name="PUMP1",
-            start_flowrate_ml_min=self.cached_pump1_rate_ml_min / 2,
-            end_flowrate_ml_min=self.cached_pump1_rate_ml_min,
+            pump=self._devices.AQ_PUMP,
+            pump_name="AQ_PUMP",
+            start_flowrate_ml_min=self.cached_aq_pump_rate_ml_min / 2,
+            end_flowrate_ml_min=self.cached_aq_pump_rate_ml_min,
             rate_change_interval_s=self._pump_1_rate_change_interval_s,
             rate_change_pct=self._pump_1_rate_change_pct_inc,
             timeout_min=self._pump_1_rate_change_timeout_min,
@@ -758,10 +747,10 @@ class RetentateVesselLowAlarm(Alarm):
 
         local.lib.lnp.methods.pumps_2_and_3_ramp(
             interval_s=1,
-            pump2_start_flowrate_ml_min=self.cached_pump2_rate_ml_min / 2,
-            pump2_end_flowrate_ml_min=self.cached_pump2_rate_ml_min,
-            pump3_start_flowrate_ml_min=self.cached_pump3_rate_ml_min / 2,
-            pump3_end_flowrate_ml_min=self.cached_pump3_rate_ml_min,
+            oil_pump_start_flowrate_ml_min=self.cached_oil_pump_rate_ml_min / 2,
+            oil_pump_end_flowrate_ml_min=self.cached_oil_pump_rate_ml_min,
+            dilution_pump_start_flowrate_ml_min=self.cached_dilution_pump_rate_ml_min / 2,
+            dilution_pump_end_flowrate_ml_min=self.cached_dilution_pump_rate_ml_min,
             rate_change_interval_s=self._pumps_2_3_ramp_interval_s,
             number_rate_changes=self._pumps_2_3_ramp_number_rate_changes,
             timeout_min=self._pumps_2_3_ramp_timeout_min, adjust_pinch_valve=False,
@@ -792,16 +781,16 @@ class VolumeAccumulationAlarm(Alarm):
 
     # maximum dW2/dt deviation from pump 2 setpoint, in mL/min, before throwing
     # an error and stopping the pumps
-    pump2_max_deviation_ml_min = 10
+    oil_pump_max_deviation_ml_min = 10
 
-    # maximum pump2 adjustment, in pct
-    max_pump2_adjustment_pct: float = 0.05
+    # maximum oil_pump adjustment, in pct
+    max_oil_pump_adjustment_pct: float = 0.05
 
-    # floor pump2 adjustment, in mL/min
-    # if the maximum pump2 adjustment is less than this value,
-    # this value will take precedence, ie. if max_pump2_adjustment_pct = 0.05 results
+    # floor oil_pump adjustment, in mL/min
+    # if the maximum oil_pump adjustment is less than this value,
+    # this value will take precedence, ie. if max_oil_pump_adjustment_pct = 0.05 results
     # in a max change of 0.2 mL/min, this value will override it if it's greater
-    floor_pump2_adjustment_ml_min: float = 2
+    floor_oil_pump_adjustment_ml_min: float = 2
 
     # MODE 1 params
 
@@ -818,7 +807,7 @@ class VolumeAccumulationAlarm(Alarm):
     # scale1_target_ml before adjusting pump 2 rate
     max_scale1_ml_dev: float = 0.3
 
-    # target time to hit mass setpoint from pump2 rate adjustment
+    # target time to hit mass setpoint from oil_pump rate adjustment
     scale1_target_time_min: float = 1
 
     # mode
@@ -865,8 +854,8 @@ class VolumeAccumulationAlarm(Alarm):
         if isinstance(rates, local.lib.lnp.data.TrailingRates):
             rates.print()
 
-            # if PUMP2 is present, try to handle the vol. accum
-            if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
+            # if OIL_PUMP is present, try to handle the vol. accum
+            if isinstance(self._devices.OIL_PUMP, aqueduct.devices.mfpp.obj.MFPP):
 
                 try:
 
@@ -936,11 +925,11 @@ class VolumeAccumulationAlarm(Alarm):
             n += 1
 
     def check_max_deviation(self, rates: "TrailingRates") -> None:
-        if abs(abs(rates.W2_ml_min) - abs(rates.R2_ml_min)) > self.pump2_max_deviation_ml_min:
-            print("""[CONTROL] Deviation between PUMP2 rate: {} mL/min, 
+        if abs(abs(rates.W2_ml_min) - abs(rates.R2_ml_min)) > self.oil_pump_max_deviation_ml_min:
+            print("""[CONTROL] Deviation between OIL_PUMP rate: {} mL/min, 
             and buffer removal rate, {} mL/min, 
             exceeds maximum allowable value of {} mL/min.""".format(
-                rates.R2_ml_min, rates.W2_ml_min, self.pump2_max_deviation_ml_min)
+                rates.R2_ml_min, rates.W2_ml_min, self.oil_pump_max_deviation_ml_min)
             )
 
     def handle_mode1(self, rates: "TrailingRates"):
@@ -969,20 +958,20 @@ class VolumeAccumulationAlarm(Alarm):
 
         if sign is not None:
 
-            pump2_new_rate = (sign * abs(rates.W1_ml_min)) + self._data.R2
-            max_adjustment_ml_min = max(self._data.R2 * self.max_pump2_adjustment_pct,
-                                        self.floor_pump2_adjustment_ml_min)
-            pump2_new_rate = min(
-                pump2_new_rate, self._data.R2 + max_adjustment_ml_min)
-            pump2_new_rate = max(
-                pump2_new_rate, self._data.R2 - max_adjustment_ml_min)
-            pump2_new_rate = round(pump2_new_rate, 2)
+            oil_pump_new_rate = (sign * abs(rates.W1_ml_min)) + self._data.R2
+            max_adjustment_ml_min = max(self._data.R2 * self.max_oil_pump_adjustment_pct,
+                                        self.floor_oil_pump_adjustment_ml_min)
+            oil_pump_new_rate = min(
+                oil_pump_new_rate, self._data.R2 + max_adjustment_ml_min)
+            oil_pump_new_rate = max(
+                oil_pump_new_rate, self._data.R2 - max_adjustment_ml_min)
+            oil_pump_new_rate = round(oil_pump_new_rate, 2)
 
-            if pump2_new_rate is not None and pump2_new_rate > 0:
-                print("[CONTROL (MODE {})] changing PUMP2 rate to {} mL/min".format(
+            if oil_pump_new_rate is not None and oil_pump_new_rate > 0:
+                print("[CONTROL (MODE {})] changing OIL_PUMP rate to {} mL/min".format(
                     self.mode,
-                    local.lib.lnp.helpers.format_float(pump2_new_rate, 2)))
-                self._devices.PUMP2.change_speed(pump2_new_rate)
+                    local.lib.lnp.helpers.format_float(oil_pump_new_rate, 2)))
+                self._devices.OIL_PUMP.change_speed(oil_pump_new_rate)
                 clear_cache = True
 
         if clear_cache is True:
@@ -1019,27 +1008,27 @@ class VolumeAccumulationAlarm(Alarm):
         if sign is not None:
             # set rate change magnitude to hit setpoint at next scheduled
             # check in
-            pump2_rate_magnitude_ml_min = (
+            oil_pump_rate_magnitude_ml_min = (
                 abs(self._data.W1 - self.scale1_target_ml) / self.scale1_target_time_min)
-            pump2_new_rate = (sign * pump2_rate_magnitude_ml_min) + \
+            oil_pump_new_rate = (sign * oil_pump_rate_magnitude_ml_min) + \
                 self._data.R2 - rates.W1_ml_min
-            max_adjustment_ml_min = max(self._data.R2 * self.max_pump2_adjustment_pct,
-                                        self.floor_pump2_adjustment_ml_min)
-            pump2_new_rate = min(
-                pump2_new_rate, self._data.R2 + max_adjustment_ml_min)
-            pump2_new_rate = max(
-                pump2_new_rate, self._data.R2 - max_adjustment_ml_min)
-            pump2_new_rate = round(pump2_new_rate, 2)
+            max_adjustment_ml_min = max(self._data.R2 * self.max_oil_pump_adjustment_pct,
+                                        self.floor_oil_pump_adjustment_ml_min)
+            oil_pump_new_rate = min(
+                oil_pump_new_rate, self._data.R2 + max_adjustment_ml_min)
+            oil_pump_new_rate = max(
+                oil_pump_new_rate, self._data.R2 - max_adjustment_ml_min)
+            oil_pump_new_rate = round(oil_pump_new_rate, 2)
 
-            if pump2_new_rate is not None and pump2_new_rate > 0:
-                print("[CONTROL (MODE {})] changing PUMP2 rate to {} mL/min to "
+            if oil_pump_new_rate is not None and oil_pump_new_rate > 0:
+                print("[CONTROL (MODE {})] changing OIL_PUMP rate to {} mL/min to "
                       "hit target SCALE1 setpoint of {} mL".format(
                           self.mode,
                           local.lib.lnp.helpers.format_float(
-                              pump2_new_rate, 2),
+                              oil_pump_new_rate, 2),
                           self.scale1_target_ml
                       ))
-                self._devices.PUMP2.change_speed(pump2_new_rate)
+                self._devices.OIL_PUMP.change_speed(oil_pump_new_rate)
                 clear_cache = True
         else:
             self.handle_mode1(rates)

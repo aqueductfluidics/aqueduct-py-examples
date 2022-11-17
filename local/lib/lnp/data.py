@@ -1,18 +1,10 @@
 import time
 from typing import List, Union
 
-import aqueduct.devices.mfpp.constants
-import aqueduct.devices.mfpp.obj
-import aqueduct.devices.ohsa.constants
-import aqueduct.devices.ohsa.obj
-import aqueduct.devices.pv.constants
-import aqueduct.devices.pv.obj
-import aqueduct.devices.scip.constants
-import aqueduct.devices.scip.obj
-import local.lib.lnp.devices
 from aqueduct.core.aq import Aqueduct
+import local.lib.lnp.helpers
 from local.lib.lnp.definitions import *
-
+from local.lib.lnp.devices import *
 
 class TrailingRates(object):
     """
@@ -287,7 +279,7 @@ class Data(object):
     # interval in seconds between writes to log file
     _logging_interval_s: Union[int, float] = 5
 
-    _devices: local.lib.lnp.devices.Devices = None  # pointer to Devices object
+    _devices: Devices = None  # pointer to Devices object
     _aqueduct: Aqueduct = None  # pointer to Aqueduct object
     _process = None  # pointer to Process object
     _model = None  # pointer to Model object
@@ -359,60 +351,26 @@ class Data(object):
         self.product_pres_psi: Union[float, None] = mass_flows[PRODUCT_PRES_TDCR_INDEX] 
         self.product_temperature_c: Union[float, None] = temperatures[PRODUCT_TEMP_PROBE_INDEX] 
 
-        timestamp: Union[float, None] = None  # timestamp of last update
-
-        self.P1 = pressures[TXDCR1_INDEX]
-        self.P2 = pressures[TXDCR2_INDEX]
-        self.P3 = pressures[TXDCR3_INDEX]
-        self.W1 = weights[SCALE1_INDEX]
-        self.W2 = weights[SCALE2_INDEX]
-        self.W3 = weights[SCALE3_INDEX]
-
-        if any(isinstance(w, type(None)) for w in (self.W1, self.W2, self.W3)):
-            if retries == 0:
-
-                if pause_on_error is True:
-                    # prompt operator to place empty vessel on feed scale
-                    self._aqueduct.prompt(
-                        message="Error updating balance weight reading. Ensure all balances are connected."
-                                " Press <b>continue</b> to resume recipe.",
-                        pause_recipe=True
-                    )
-                return
-
-            else:
-                # add a little time delay before refreshing
-                if debug is True:
-                    print(
-                        f"[DATA (ERROR)] Invalid weight reading...retries left {retries - 1}")
-                time.sleep(0.5)
-                self.update_data(retries=retries - 1)
-
-        self.R1 = self._devices.PUMP1.get_flow_rate()
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
-            self.R2 = self._devices.PUMP2.get_flow_rate()
-        self.R3 = self._devices.PUMP3.get_flow_rate()
-        self.PV = self._devices.PV.position()
         self.timestamp = time.time()
 
-        if not self._is_lab_mode:
-            balance_rocs = [0, 0, 0, 0]
-            # if PUMP2 is present, use this to drive sim value balance
-            if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
-                balance_rocs[SCALE2_INDEX] = (-1 * self.R2) * \
-                    (1. + self._scale2_sim_error_pct)
-            # else, use PUMP3 to drive it
-            else:
-                balance_rocs[SCALE2_INDEX] = (-1 * self.R3) * \
-                    (1. + self._scale2_sim_error_pct)
-            balance_rocs[SCALE3_INDEX] = self.R3 * \
-                (1. + self._scale3_sim_error_pct)
-            balance_rocs[SCALE1_INDEX] = -1 * \
-                (balance_rocs[SCALE2_INDEX] + balance_rocs[SCALE3_INDEX])
-            # mL/min to mL/s
-            balance_rocs = [r / 60. for r in balance_rocs]
-            self._devices.OHSA.set_sim_rates_of_change(balance_rocs)
-            self._model.calc_pressures()
+        # if not self._is_lab_mode:
+        #     balance_rocs = [0, 0, 0, 0]
+        #     # if PUMP2 is present, use this to drive sim value balance
+        #     if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
+        #         balance_rocs[SCALE2_INDEX] = (-1 * self.R2) * \
+        #             (1. + self._scale2_sim_error_pct)
+        #     # else, use PUMP3 to drive it
+        #     else:
+        #         balance_rocs[SCALE2_INDEX] = (-1 * self.R3) * \
+        #             (1. + self._scale2_sim_error_pct)
+        #     balance_rocs[SCALE3_INDEX] = self.R3 * \
+        #         (1. + self._scale3_sim_error_pct)
+        #     balance_rocs[SCALE1_INDEX] = -1 * \
+        #         (balance_rocs[SCALE2_INDEX] + balance_rocs[SCALE3_INDEX])
+        #     # mL/min to mL/s
+        #     balance_rocs = [r / 60. for r in balance_rocs]
+        #     self._devices.OHSA.set_sim_rates_of_change(balance_rocs)
+        #     self._model.calc_pressures()
 
         # save the data to the cache
         self._cache.cache(data=self)
@@ -421,10 +379,6 @@ class Data(object):
         """
         Method to log:
 
-            P1, P2, P3 (in PSI),
-            W1, W2, W3 (in grams)
-            R1, R2, R3 (in mL/min)
-            PV (in pct_open)
 
         at a given time.
 
@@ -558,14 +512,14 @@ class Data(object):
     def init_sim_values(self):
 
         if not self._is_lab_mode:
-            if isinstance(self._devices.OHSA, aqueduct.devices.ohsa.obj.OHSA):
-                self._devices.OHSA.set_sim_noise(0)
-                self._devices.OHSA.set_sim_weights(values=(0, 0, 0, 0))
-                self._devices.OHSA.set_sim_rates_of_change(values=(0, 0, 0, 0))
+            if isinstance(self._devices.TEMP_PROBE, aqueduct.devices.tempx.obj.TEMPX):
+                self._devices.TEMP_PROBE.set_sim_noise(0.1)
+                self._devices.TEMP_PROBE.set_sim_temperatures(values=(25, 25, 25, 25))
+                self._devices.TEMP_PROBE.set_sim_rates_of_change(values=(0, 0, 0, 0))
 
             if isinstance(self._devices.SCIP, aqueduct.devices.scip.obj.SCIP):
                 self._devices.SCIP.set_sim_pressures(
                     values=((5., 5., 5.,) + 9 * (0,)))
                 self._devices.SCIP.set_sim_noise(
                     values=((0.01, 0.01, 0.01,) + 9 * (0,)))
-                self._devices.OHSA.set_sim_rates_of_change(values=(12 * (0,)))
+                self._devices.SCIP.set_sim_rates_of_change(values=(12 * (0,)))
