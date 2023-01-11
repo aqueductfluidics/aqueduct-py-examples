@@ -460,60 +460,11 @@ class Data(object):
             self.log_data()
             self.log_timestamp = t_now
 
-    def extrapolate_balance_values(self) -> tuple:
-        """
-        Extrapolate the new value of the balances based on the nominal flow rates.
-
-        :return:
-        """
-        try:
-            if self._extrapolation_timestamp is not None:
-                scale3_delta_m_g = self.R3 / 60. * \
-                    (self.timestamp - self._extrapolation_timestamp)
-
-                scale3_mass_g = self.W3 + scale3_delta_m_g * \
-                    (1. + self._scale3_sim_error_pct)
-
-                # BUFFER pump, debit this value
-                # if PUMP2 is present, drive with PUMP2
-                if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
-                    scale2_delta_m_g = self.R2 / 60. * \
-                        (self.timestamp - self._extrapolation_timestamp)
-                    scale2_mass_g = self.W2 - scale2_delta_m_g * \
-                        (1. + self._scale2_sim_error_pct)
-
-                else:
-                    scale2_delta_m_g = self.R3 / 60. * \
-                        (self.timestamp - self._extrapolation_timestamp)
-                    scale2_mass_g = self.W2 - scale2_delta_m_g * \
-                        (1. + self._scale2_sim_error_pct)
-
-                # FEED pump, adding from BUFFER, debiting from PERMEATE
-                scale1_mass_g = self.W1 + \
-                    (scale2_delta_m_g - scale3_delta_m_g) * \
-                    (1. + self._scale1_sim_error_pct)
-
-                self._devices.OHSA.set_sim_weights({
-                    SCALE1_INDEX: scale1_mass_g,
-                    SCALE2_INDEX: scale2_mass_g,
-                    SCALE3_INDEX: scale3_mass_g
-                })
-
-                self._extrapolation_timestamp = self.timestamp
-
-                return scale1_mass_g, scale2_mass_g, scale3_mass_g
-
-            else:
-                self._extrapolation_timestamp = self.timestamp
-
-        except BaseException as e:
-            print("[DATA] Extrapolation error: {}".format(e))
-
     def init_sim_values(self):
 
         if not self._is_lab_mode:
             if isinstance(self._devices.TEMP_PROBE, aqueduct.devices.tempx.obj.TEMPX):
-                self._devices.TEMP_PROBE.set_sim_noise(0.1)
+                self._devices.TEMP_PROBE.set_sim_noise(values=(0.1, 0.1, 0.1, 0.1))
                 self._devices.TEMP_PROBE.set_sim_temperatures(values=(25, 25, 25, 25))
                 self._devices.TEMP_PROBE.set_sim_rates_of_change(values=(0, 0, 0, 0))
 

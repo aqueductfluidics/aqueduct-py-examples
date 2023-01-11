@@ -509,7 +509,7 @@ class Data(object):
 
         if not self._is_lab_mode:
             if isinstance(self._devices.OHSA, aqueduct.devices.ohsa.obj.OHSA):
-                self._devices.OHSA.set_sim_noise(0)
+                self._devices.OHSA.set_sim_noise(values=(0, 0, 0))
                 self._devices.OHSA.set_sim_weights(values=(0, 0, 0, 0))
                 self._devices.OHSA.set_sim_rates_of_change(values=(0, 0, 0, 0))
 

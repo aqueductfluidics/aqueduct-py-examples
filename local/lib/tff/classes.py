@@ -1723,7 +1723,7 @@ class Process(object):
 
         def reset_sim_pressures_to_3_psi():
             for tn in [TXDCR1_INDEX, TXDCR2_INDEX, TXDCR3_INDEX]:
-                self._devices.SCIP.set_sim_pressure(value=3, input_num=SCIP_INDEX, txdcr_num=tn)
+                self._devices.SCIP.set_sim_pressures((3, 3, 3))
 
         print("Doing Pump 1 Ramp Up...")
         local.lib.tff.methods.pump_ramp(
@@ -1753,7 +1753,7 @@ class Process(object):
             watchdog=self._watchdog
         )
 
-        self._devices.SCIP.set_sim_noise(active=0)
+        self._devices.SCIP.set_sim_noise((0, 0, 0))
         self._watchdog.over_pressure_alarm.on()
         self._watchdog.low_pressure_alarm.on()
         self._watchdog.vacuum_condition_alarm.on()
@@ -1769,7 +1769,9 @@ class Process(object):
         ]
 
         for tp in pressures:
-            self._devices.SCIP.set_sim_pressure(tp[0], SCIP_INDEX, tp[1])
+            v = SCIP_INDEX * tp[1] * [None]
+            v[SCIP_INDEX * tp[1]] = tp[0]
+            self._devices.SCIP.set_sim_pressures(v)
             time.sleep(1)
 
             while True:
