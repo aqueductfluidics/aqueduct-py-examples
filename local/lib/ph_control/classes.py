@@ -1,22 +1,22 @@
+"""pH control library"""
+
 import time
 import enum
 import json
 import datetime
 import threading
 
-from .definitions import *
-from .models import ReactionModel, PidModel
-from .pid import PID
+from typing import List, Tuple, Callable, Union
 
 from aqueduct.core.aq import Aqueduct
 from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES
 
-import aqueduct.devices.pp.obj
-import aqueduct.devices.pp.constants
-import aqueduct.devices.ph3.obj
-import aqueduct.devices.ph3.constants
+import aqueduct.devices.pump.peristaltic
+import aqueduct.devices.ph_probe
 
-from typing import List, Tuple, Callable, Union
+from .definitions import *
+from .models import ReactionModel, PidModel
+from .pid import PID
 
 from local.lib.ph_control.helpers import format_float
 
@@ -31,16 +31,17 @@ class Devices(object):
     PUMP2 is the peristaltic pump dedicated to the addition of the reagent (device type PP)
     PH_PROBE is the 3 x pH probe with one input active (device type PH3)
 
-    In DEV MODE, we create 3 x `aqueduct.devices.pp.obj` and 1 x 
+    In DEV MODE, we create 3 x `aqueduct.devices.pp.obj` and 1 x
     `aqueduct.devices.ph3.obj` for easy access to the methods & constants for each device type.
 
     In LAB MODE, we associate each Device with the Name for the device
     that is saved on its firmware.
     """
-    PUMP0: aqueduct.devices.pp.obj.PP = None
-    PUMP1: aqueduct.devices.pp.obj.PP = None
-    PUMP2: aqueduct.devices.pp.obj.PP = None
-    PH_PROBE: aqueduct.devices.ph3.obj.PH3 = None
+
+    PUMP0: aqueduct.devices.pump.peristaltic.PeristalticPump = None
+    PUMP1: aqueduct.devices.pump.peristaltic.PeristalticPump = None
+    PUMP2: aqueduct.devices.pump.peristaltic.PeristalticPump = None
+    PH_PROBE: aqueduct.devices.ph_probe.PhProbe = None
 
     def __init__(self, aq: aqueduct.core.aq.Aqueduct):
         self.PUMP0 = aq.devices.get(PUMP0_NAME)
@@ -54,6 +55,7 @@ class DataCacheItem(object):
     A class to structure cached data. Mirrors the structure of the
     Data class.
     """
+
     pH_0: Union[float, None] = None
     pH_1: Union[float, None] = None
     pH_2: Union[float, None] = None
@@ -69,6 +71,7 @@ class TrailingData(object):
     """
     Class used to format trailing rate-of-change and mean pH values.
     """
+
     pH_0_per_min: Union[float, None]
     pH_0_mean: Union[float, None]
     pH_1_per_min: Union[float, None]
@@ -77,13 +80,13 @@ class TrailingData(object):
     pH_2_mean: Union[float, None]
 
     def __init__(
-            self,
-            pH_0_per_min: float,
-            pH_0_mean: float,
-            pH_1_per_min: float,
-            pH_1_mean: float,
-            pH_2_per_min: float,
-            pH_2_mean: float,
+        self,
+        pH_0_per_min: float,
+        pH_0_mean: float,
+        pH_1_per_min: float,
+        pH_1_mean: float,
+        pH_2_per_min: float,
+        pH_2_mean: float,
     ):
         self.pH_0_per_min = pH_0_per_min
         self.pH_0_mean = pH_0_mean
@@ -93,15 +96,17 @@ class TrailingData(object):
         self.pH_2_mean = pH_2_mean
 
     def as_string(self):
-        return "pH[0] roc: {} pH/min., mean: {}\npH[1] roc: {} pH/min., mean: {}\npH[2] roc: {} " \
-               "pH/min., mean: {},".format(
-                    format_float(self.pH_0_per_min, 3),
-                    format_float(self.pH_0_mean, 3),
-                    format_float(self.pH_1_per_min, 3),
-                    format_float(self.pH_1_mean, 3),
-                    format_float(self.pH_2_per_min, 3),
-                    format_float(self.pH_2_mean, 3),
-                )
+        return (
+            "pH[0] roc: {} pH/min., mean: {}\npH[1] roc: {} pH/min., mean: {}\npH[2] roc: {} "
+            "pH/min., mean: {},".format(
+                format_float(self.pH_0_per_min, 3),
+                format_float(self.pH_0_mean, 3),
+                format_float(self.pH_1_per_min, 3),
+                format_float(self.pH_1_mean, 3),
+                format_float(self.pH_2_per_min, 3),
+                format_float(self.pH_2_mean, 3),
+            )
+        )
 
     def print(self):
         print(self.as_string())
@@ -111,6 +116,7 @@ class DataCache(object):
     """
     A Class to store cached data.
     """
+
     # a cache of the the previous data objects, should be cleared after
     # ramps to begin calculating from steady state
     # newest value last
@@ -134,7 +140,7 @@ class DataCache(object):
     _scheduled_time: float = None
 
     # the cache will only accept items with a timestamp delta of this or greater
-    _interval_s: float = 1.
+    _interval_s: float = 1.0
 
     # ref to Devices
     _devices: Devices = None
@@ -162,7 +168,7 @@ class DataCache(object):
             self._cache.append(item)
 
             # trim cache length if it exceeds the _length param
-            self._cache = self._cache[-1 * self._length:]
+            self._cache = self._cache[-1 * self._length :]
 
             # schedule the next recording time
             self._scheduled_time = self._interval_s + data.timestamp
@@ -195,18 +201,23 @@ class DataCache(object):
             # if there are, only iterate through the vals after the break
             for data_index in range(1, iter_len - 1):
 
-                _dt = self._cache[-data_index].timestamp - self._cache[-(data_index + 1)].timestamp
+                _dt = (
+                    self._cache[-data_index].timestamp
+                    - self._cache[-(data_index + 1)].timestamp
+                )
 
                 # if we're on the second+ iteration, we're checking
                 # the time interval tolerance
                 if data_index > 1:
 
                     if not (
-                            delta_t_interval_s - delta_t_interval_tolerance_s <
-                            _dt <
-                            delta_t_interval_s + delta_t_interval_tolerance_s
+                        delta_t_interval_s - delta_t_interval_tolerance_s
+                        < _dt
+                        < delta_t_interval_s + delta_t_interval_tolerance_s
                     ):
-                        print(f"[WARNING calc_trailing_data, interval tolerance exceeded]: {_dt}s")
+                        print(
+                            f"[WARNING calc_trailing_data, interval tolerance exceeded]: {_dt}s"
+                        )
                         break
 
                 # on the first iteration, we're setting the interval tolerance
@@ -214,44 +225,65 @@ class DataCache(object):
                 else:
                     delta_t_interval_s = _dt
 
-                current_pH_0, prev_pH_0 = self._cache[-data_index].pH_0, self._cache[-(data_index + 1)].pH_0
-                current_pH_1, prev_pH_1 = self._cache[-data_index].pH_1, self._cache[-(data_index + 1)].pH_1
-                current_pH_2, prev_pH_2 = self._cache[-data_index].pH_2, self._cache[-(data_index + 1)].pH_2
+                current_pH_0, prev_pH_0 = (
+                    self._cache[-data_index].pH_0,
+                    self._cache[-(data_index + 1)].pH_0,
+                )
+                current_pH_1, prev_pH_1 = (
+                    self._cache[-data_index].pH_1,
+                    self._cache[-(data_index + 1)].pH_1,
+                )
+                current_pH_2, prev_pH_2 = (
+                    self._cache[-data_index].pH_2,
+                    self._cache[-(data_index + 1)].pH_2,
+                )
 
-                pH_0_roc_values.append(((current_pH_0 - prev_pH_0) / _dt) * 60.)
+                pH_0_roc_values.append(((current_pH_0 - prev_pH_0) / _dt) * 60.0)
                 pH_0_values.append(current_pH_0)
 
-                pH_1_roc_values.append(((current_pH_1 - prev_pH_1) / _dt) * 60.)
+                pH_1_roc_values.append(((current_pH_1 - prev_pH_1) / _dt) * 60.0)
                 pH_1_values.append(current_pH_1)
 
-                pH_2_roc_values.append(((current_pH_2 - prev_pH_2) / _dt) * 60.)
+                pH_2_roc_values.append(((current_pH_2 - prev_pH_2) / _dt) * 60.0)
                 pH_2_values.append(current_pH_2)
 
             if len(pH_0_roc_values) < 1:
                 # not enough data to calculate
-                print(f"[ERROR calc_trailing_data, not enough data to calculate]: {pH_0_values}, {pH_0_roc_values}")
+                print(
+                    f"[ERROR calc_trailing_data, not enough data to calculate]: {pH_0_values}, {pH_0_roc_values}"
+                )
                 return None
 
-            pH_0_roc_mean, pH_0_mean, pH_1_roc_mean, pH_1_mean, pH_2_roc_mean, pH_2_mean = 0, 0, 0, 0, 0, 0
+            (
+                pH_0_roc_mean,
+                pH_0_mean,
+                pH_1_roc_mean,
+                pH_1_mean,
+                pH_2_roc_mean,
+                pH_2_mean,
+            ) = (0, 0, 0, 0, 0, 0)
 
-            for measurement_id, measurement_list in enumerate([
-                pH_0_roc_values,
-                pH_0_values,
-                pH_1_roc_values,
-                pH_1_values,
-                pH_2_roc_values,
-                pH_2_values,
-            ]):
+            for measurement_id, measurement_list in enumerate(
+                [
+                    pH_0_roc_values,
+                    pH_0_values,
+                    pH_1_roc_values,
+                    pH_1_values,
+                    pH_2_roc_values,
+                    pH_2_values,
+                ]
+            ):
                 vals = measurement_list
                 vals_mean = sum(vals) / len(vals)
 
                 # check if the ignore tolerances flag is set
                 if not self._ignore_tolerance:
+
                     def _in_tolerance(v):
                         return (
-                                vals_mean - self._tolerances[measurement_id] <
-                                v <
-                                vals_mean + self._tolerances[measurement_id]
+                            vals_mean - self._tolerances[measurement_id]
+                            < v
+                            < vals_mean + self._tolerances[measurement_id]
                         )
 
                     # remove outliers
@@ -297,11 +329,15 @@ class DataCache(object):
                 print("[WARNING calc_trailing_data, ZeroDivisionError]")
             return None
 
-    def calc_trailing_mean(self, index: int = 0, length: int = 3, precision: int = 3) -> Union[float, None]:
+    def calc_trailing_mean(
+        self, index: int = 0, length: int = 3, precision: int = 3
+    ) -> Union[float, None]:
         try:
             length = min(length, len(self._cache))
             key = f"pH_{index}"
-            return round(sum(getattr(a, key) for a in self._cache[-length::]) / length, precision)
+            return round(
+                sum(getattr(a, key) for a in self._cache[-length::]) / length, precision
+            )
         except BaseException as e:
             # don't let this break
             print(f"[ERROR calc_trailing_mean, exception]: {str(e)}")
@@ -322,13 +358,16 @@ class Data(object):
     """
     Class to help with logging and updating data.
     """
+
     pH_0: Union[float, None] = None
     pH_1: Union[float, None] = None
     pH_2: Union[float, None] = None
     timestamp: Union[float, None] = None
 
     log_timestamp: Union[float, None] = None  # timestamp of last write to log file
-    _logging_interval_s: Union[int, float] = 5  # interval in seconds between writes to log file
+    _logging_interval_s: Union[
+        int, float
+    ] = 5  # interval in seconds between writes to log file
 
     _cache: DataCache = None
 
@@ -389,10 +428,10 @@ class Data(object):
         # )
 
     def log_data_at_interval(
-            self,
-            interval_s: float = None,
-            overwrite_file: bool = True,
-            update_before_log: bool = False
+        self,
+        interval_s: float = None,
+        overwrite_file: bool = True,
+        update_before_log: bool = False,
     ) -> None:
         """
         Method to log the data dictionary at a specified interval in seconds.
@@ -438,9 +477,7 @@ class Data(object):
 
 
 class ReactionStation(object):
-    """
-    
-    """
+    """ """
 
     class Enabled(enum.Enum):
         """
@@ -449,6 +486,7 @@ class ReactionStation(object):
         the ReactionProcessHandler will monitor the phases of the ReactionStation and
         execute the required steps sequentially.
         """
+
         DISABLED = 0
         ENABLED = 1
 
@@ -460,12 +498,12 @@ class ReactionStation(object):
         # state upon recipe start
         INITIALIZED = 0
 
-        # before starting the reaction, the output tubing lines for 
-        # the base, acid, and reagent may be primed to ensure 
+        # before starting the reaction, the output tubing lines for
+        # the base, acid, and reagent may be primed to ensure
         # that liquid is drawn all the way to the tubing outlet
         PRIME_TUBING = 1
 
-        # before proceeding with base addition, wait for the 
+        # before proceeding with base addition, wait for the
         # rate of change of pH in the reaction vessel to stabilize
         WAIT_FOR_PH_EQUIL = 2
 
@@ -480,6 +518,7 @@ class ReactionStation(object):
         """
         Track the status of the current phase.
         """
+
         NOT_STARTED = 0
         STARTED = 1
         COMPLETE = 2
@@ -512,7 +551,7 @@ class ReactionStation(object):
 
     # for on/off control
     dose_counter: int = 0
-    dose_totalizer_ml: float = 0.
+    dose_totalizer_ml: float = 0.0
     max_dose_ml: float = 0.5
     min_dose_ml: float = 0.01
 
@@ -534,11 +573,11 @@ class ReactionStation(object):
     _model: ReactionModel = None
 
     def __init__(
-            self,
-            index: int = 0,
-            devices_obj: Devices = None,
-            aqueduct: Aqueduct = None,
-            data: Data = None,
+        self,
+        index: int = 0,
+        devices_obj: Devices = None,
+        aqueduct: Aqueduct = None,
+        data: Data = None,
     ):
 
         self.index = index
@@ -565,19 +604,17 @@ class ReactionStation(object):
         self.enabled_setpoint = self._aqueduct.setpoint(
             name=f"station_{self.index}_enabled",
             value=ReactionStation.Enabled.ENABLED.value,
-            dtype=int.__name__
+            dtype=int.__name__,
         )
 
         self.phase_setpoint = self._aqueduct.setpoint(
             name=f"station_{self.index}_phase",
             value=ReactionStation.Phase.INITIALIZED.value,
-            dtype=int.__name__
+            dtype=int.__name__,
         )
 
         self.pH_setpoint = self._aqueduct.setpoint(
-            name=f"station_{self.index}_pH_setpoint",
-            value=8.5,
-            dtype=float.__name__
+            name=f"station_{self.index}_pH_setpoint", value=8.5, dtype=float.__name__
         )
 
     @staticmethod
@@ -599,18 +636,19 @@ class ReactionStation(object):
     def calc_last_dose_dph_dml(self) -> Union[float, None]:
         try:
             return round(
-                (self._last_dose_end_ph - self._last_dose_start_ph) / self._last_dose_volume_ml,
-                4
+                (self._last_dose_end_ph - self._last_dose_start_ph)
+                / self._last_dose_volume_ml,
+                4,
             )
         except BaseException as e:  # noqa
             print(f"[ERROR calc_last_dose_dpH_dml error]: {str(e)}")
             return None
 
     def _phase_helper(
-            self,
-            do_if_not_started: Callable = None,
-            next_phase: "ReactionStation.Phase" = None,
-            do_if_not_started_kwargs: dict = None
+        self,
+        do_if_not_started: Callable = None,
+        next_phase: "ReactionStation.Phase" = None,
+        do_if_not_started_kwargs: dict = None,
     ) -> None:
         """
         Helper to avoid repeating phase block logic.
@@ -626,7 +664,10 @@ class ReactionStation(object):
         """
         # if the current phase status is NOT_STARTED, mark the phase STARTED and check to see
         # whether there is a `do_if_not_started` function associated with the step
-        if self.current_phase_status == ReactionStation.CurrentPhaseStatus.NOT_STARTED.value:
+        if (
+            self.current_phase_status
+            == ReactionStation.CurrentPhaseStatus.NOT_STARTED.value
+        ):
             self.set_current_phase_status(ReactionStation.CurrentPhaseStatus.STARTED)
             if do_if_not_started is not None:
                 if do_if_not_started_kwargs is not None:
@@ -635,8 +676,13 @@ class ReactionStation(object):
                     do_if_not_started()
         # if the phase has already STARTED, set the current phase back to NOT_STARTED
         # and advance to the next step
-        elif self.current_phase_status == ReactionStation.CurrentPhaseStatus.STARTED.value:
-            self.set_current_phase_status(ReactionStation.CurrentPhaseStatus.NOT_STARTED)
+        elif (
+            self.current_phase_status
+            == ReactionStation.CurrentPhaseStatus.STARTED.value
+        ):
+            self.set_current_phase_status(
+                ReactionStation.CurrentPhaseStatus.NOT_STARTED
+            )
             self.phase_setpoint.update(next_phase.value)
 
     def do_next_phase(self):
@@ -650,27 +696,27 @@ class ReactionStation(object):
         repeat: bool = False
 
         # start of a logging string that tracks the phase and status change
-        log_str: str = f"Station {self.index}: {ReactionStation.phase_to_str(self.phase_setpoint.value)}" \
-                       f"({self.phase_setpoint.value}[{self.current_phase_status}]) -> "
+        log_str: str = (
+            f"Station {self.index}: {ReactionStation.phase_to_str(self.phase_setpoint.value)}"
+            f"({self.phase_setpoint.value}[{self.current_phase_status}]) -> "
+        )
 
         if self.phase_setpoint.value == PC.INITIALIZED.value:
-            self._phase_helper(
-                do_if_not_started=None,
-                next_phase=PC.PRIME_TUBING
-            )
+            self._phase_helper(do_if_not_started=None, next_phase=PC.PRIME_TUBING)
             repeat = True
 
         elif self.phase_setpoint.value == PC.PRIME_TUBING.value:
             self._phase_helper(
-                do_if_not_started=self.prime_tubing,
-                next_phase=PC.WAIT_FOR_PH_EQUIL
+                do_if_not_started=self.prime_tubing, next_phase=PC.WAIT_FOR_PH_EQUIL
             )
 
         elif self.phase_setpoint.value == PC.REACTION_COMPLETE.value:
             self.enabled_setpoint.update(ReactionStation.Enabled.DISABLED.value)
 
-        log_str += f"{ReactionStation.phase_to_str(self.phase_setpoint.value)}" \
-                   f"({self.phase_setpoint.value}[{self.current_phase_status}])"
+        log_str += (
+            f"{ReactionStation.phase_to_str(self.phase_setpoint.value)}"
+            f"({self.phase_setpoint.value}[{self.current_phase_status}])"
+        )
 
         print(log_str)
 
@@ -683,7 +729,7 @@ class ReactionStation(object):
 
     def prime_tubing(self) -> None:
         """
-        Flash a user input asking if the operator wishes to prime the acid, base, and reagent 
+        Flash a user input asking if the operator wishes to prime the acid, base, and reagent
         tubing lines.
 
         :return:
@@ -702,21 +748,21 @@ class ReactionStation(object):
         if do_prime == 1:
 
             for name, pump in zip(
-                    ("base pump", "acid pump", "reagent pump"),
-                    (self._devices.PUMP0, self._devices.PUMP1, self._devices.PUMP2)
+                ("base pump", "acid pump", "reagent pump"),
+                (self._devices.PUMP0, self._devices.PUMP1, self._devices.PUMP2),
             ):
                 input_rows = [
                     dict(
                         hint=f"priming volume (mL)",
                         value=0,
                         dtype=float.__name__,
-                        name="priming_vol_ml"
+                        name="priming_vol_ml",
                     ),
                     dict(
                         hint=f"priming rate (mL/min)",
                         value=0,
                         dtype=float.__name__,
-                        name="priming_rate_ml_min"
+                        name="priming_rate_ml_min",
                     ),
                 ]
 
@@ -733,8 +779,8 @@ class ReactionStation(object):
 
                 confirmed_values = json.loads(input_val)
 
-                priming_vol_ml = confirmed_values[0].get('value')
-                priming_rate_ml_min = confirmed_values[1].get('value')
+                priming_vol_ml = confirmed_values[0].get("value")
+                priming_rate_ml_min = confirmed_values[1].get("value")
 
                 pump.start(
                     mode=pump.FINITE,
@@ -742,12 +788,12 @@ class ReactionStation(object):
                     rate_value=priming_rate_ml_min,
                     rate_units=pump.ML_MIN,
                     finite_value=priming_vol_ml,
-                    finite_units=pump.ML
+                    finite_units=pump.ML,
                 )
 
     def wait_for_ph_equilibrium(self) -> None:
         """
-        Flash a user input asking if the operator wishes to prime the acid, base, and reagent 
+        Flash a user input asking if the operator wishes to prime the acid, base, and reagent
         tubing lines.
 
         :return:
@@ -767,7 +813,9 @@ class ReactionStation(object):
 
         try:
 
-            start_dose_pH: float = self._data.cache.calc_trailing_mean(index=pH_index, length=2)
+            start_dose_pH: float = self._data.cache.calc_trailing_mean(
+                index=pH_index, length=2
+            )
 
             if start_dose_pH is not None and start_dose_pH < pH_setpoint:
                 # we're doing a dose...
@@ -784,15 +832,21 @@ class ReactionStation(object):
                     else:
                         # calculate the new dose volume by targeting the pH setpoint
                         # + 0.1 pH based on the last dpH/dmL ratio
-                        new_dose_ml = ((pH_setpoint + 0.1) - start_dose_pH) / maybe_dpH_dml
+                        new_dose_ml = (
+                            (pH_setpoint + 0.1) - start_dose_pH
+                        ) / maybe_dpH_dml
                         # limit the new dose volume to be at most twice the volume of the last dose
                         dose_ml = min(new_dose_ml, 2 * self._last_dose_volume_ml)
                     # limit the dose volume to be between the min and max dose volumes
-                    dose_ml = round(max(min(self.max_dose_ml, dose_ml), self.min_dose_ml), 4)
+                    dose_ml = round(
+                        max(min(self.max_dose_ml, dose_ml), self.min_dose_ml), 4
+                    )
                     print(f"[Station {index}] adjusting dose to {dose_ml} mL")
 
-                print(f"[Station {index}] Dose {self.dose_counter} of NaOH, "
-                      f"total mL of NaOH added: {self.dose_totalizer_ml:.3f}")
+                print(
+                    f"[Station {index}] Dose {self.dose_counter} of NaOH, "
+                    f"total mL of NaOH added: {self.dose_totalizer_ml:.3f}"
+                )
 
                 pump.start(
                     mode=pump.FINITE,
@@ -831,7 +885,9 @@ class ReactionStation(object):
                     time.sleep(1)
 
                 # record the end dose pH as the mean of the last 2 data points
-                self._last_dose_end_ph = self._data.cache.calc_trailing_max(index=pH_index, length=10)
+                self._last_dose_end_ph = self._data.cache.calc_trailing_max(
+                    index=pH_index, length=10
+                )
 
         except BaseException as e:
             print(f"[ERROR] maybe_dose_base exception: {str(e)}")
@@ -839,30 +895,37 @@ class ReactionStation(object):
         self._is_dosing = False
 
     def maybe_change_rate(
-            self,
-            index,
-            pump: "aqueduct.devices.pp.obj.PP",
-            pH_setpoint: float,
-            pid_controller: PID,
-            pid_model: PidModel,
-            pH_index: int = 0,
+        self,
+        index,
+        pump: "aqueduct.devices.pp.obj.PP",
+        pH_setpoint: float,
+        pid_controller: PID,
+        pid_model: PidModel,
+        pH_index: int = 0,
     ):
 
         self._is_dosing = True
 
         try:
 
-            current_pH: float = self._data.cache.calc_trailing_mean(index=pH_index, length=2)
+            current_pH: float = self._data.cache.calc_trailing_mean(
+                index=pH_index, length=2
+            )
             pid_controller.setpoint = pH_setpoint
 
             target_rate_ml_min = round(pid_controller(current_pH), 5)
 
-            print(f"[Station {index}] target rate: {target_rate_ml_min} (mL/min), target pH: {pH_setpoint}")
-
-            pump.change_speed(
-                rate_value=target_rate_ml_min,
-                rate_units=pump.ML_MIN,
+            print(
+                f"[Station {index}] target rate: {target_rate_ml_min} (mL/min), target pH: {pH_setpoint}"
             )
+
+            commands = pump.make_commands()
+            c = pump.make_change_speed_command(
+                rate_units=pump.RATE_UNITS.MlMin,
+                rate_value=target_rate_ml_min,
+            )
+            pump.set_command(commands, 0, c)
+            pump.change_speed(commands)
 
             pid_model.change_rate(target_rate_ml_min)
 
@@ -902,7 +965,7 @@ class ProcessHandler(object):
 
     # control the period in seconds at which
     # the process prints the status of all stations to screen
-    status_print_interval_s: float = 360.
+    status_print_interval_s: float = 360.0
     last_status_print_time: float = None
 
     # the heartbeat interval in seconds to wait between processing
@@ -919,10 +982,7 @@ class ProcessHandler(object):
     _models: List[Union[ReactionModel, PidModel]] = None
 
     def __init__(
-            self,
-            devices_obj: Devices = None,
-            aqueduct: Aqueduct = None,
-            data: Data = None
+        self, devices_obj: Devices = None, aqueduct: Aqueduct = None, data: Data = None
     ):
 
         if isinstance(devices_obj, Devices):
@@ -976,23 +1036,24 @@ class ProcessHandler(object):
         :return:
         """
 
-        if self.last_status_print_time is None or \
-                (time.time() > self.last_status_print_time + self.status_print_interval_s):
+        if self.last_status_print_time is None or (
+            time.time() > self.last_status_print_time + self.status_print_interval_s
+        ):
             self.print_all_stations()
             self.last_status_print_time = time.time()
 
     def on_off_control(
-            self,
-            pumps: Tuple[
-                "aqueduct.devices.pp.obj.PP",
-                "aqueduct.devices.pp.obj.PP",
-                "aqueduct.devices.pp.obj.PP"
-            ] = (None, None, None),
-            pH_probe_indices: Tuple[int, int, int] = (0, 1, 2),
+        self,
+        pumps: Tuple[
+            "aqueduct.devices.pp.obj.PP",
+            "aqueduct.devices.pp.obj.PP",
+            "aqueduct.devices.pp.obj.PP",
+        ] = (None, None, None),
+        pH_probe_indices: Tuple[int, int, int] = (0, 1, 2),
     ):
 
         self.log_file_name = f"data_{datetime.datetime.now().isoformat()}"
-        
+
         # create a Setpoint to terminate the Recipe
         terminate_sp = self._aqueduct.setpoint(
             name="terminate",
@@ -1001,7 +1062,9 @@ class ProcessHandler(object):
         )
 
         if len(pumps) != len(pH_probe_indices):
-            raise ValueError("Number of `pumps` must equals number of `pH_probe_indices`!")
+            raise ValueError(
+                "Number of `pumps` must equals number of `pH_probe_indices`!"
+            )
 
         self.make_stations(number_stations=len(pumps))
 
@@ -1010,33 +1073,31 @@ class ProcessHandler(object):
         for i in range(0, len(pumps)):
 
             # create a `PidModel` to simulate feedback
-            self._models.append(ReactionModel(
-                devices_obj=self._devices,
-                aqueduct=self._aqueduct,
-                data=self._data,
-            ))
+            self._models.append(
+                ReactionModel(
+                    devices_obj=self._devices,
+                    aqueduct=self._aqueduct,
+                    data=self._data,
+                )
+            )
 
             self._models[i].start_reaction()
 
         self._devices.PH_PROBE.set_sim_values(values=(6, 6, 6))
-        self._devices.PH_PROBE.set_sim_rates_of_change(values=(
-            self._models[0].calc_rate_of_change(),
-            self._models[1].calc_rate_of_change(),
-            self._models[2].calc_rate_of_change()
-        ))
-        self._devices.PH_PROBE.set_sim_noise(values=(0.001, 0.001, 0.001))
-
-        # start recording data from the pH probe
-        self._devices.PH_PROBE.start(
-            interval_s=1,
-            record=True
+        self._devices.PH_PROBE.set_sim_rates_of_change(
+            values=(
+                self._models[0].calc_rate_of_change(),
+                self._models[1].calc_rate_of_change(),
+                self._models[2].calc_rate_of_change(),
+            )
         )
+        self._devices.PH_PROBE.set_sim_noise(values=(0.001, 0.001, 0.001))
 
         # wait 1 s to allow for data
         time.sleep(1)
 
-        # this method, dedicated to acquiring, printing, and 
-        # logging data at a 1 second interval, will be run 
+        # this method, dedicated to acquiring, printing, and
+        # logging data at a 1 second interval, will be run
         # in the `data_thread` Thread
         def update_data(stop: threading.Event):
             while not stop.is_set():
@@ -1047,7 +1108,9 @@ class ProcessHandler(object):
                 except Exception as e:
                     print(e)
 
-                self._data.log_data_at_interval(interval_s=5, overwrite_file=True, update_before_log=False)
+                self._data.log_data_at_interval(
+                    interval_s=5, overwrite_file=True, update_before_log=False
+                )
                 time.sleep(1)
 
         # define an event to signal the data_thread to quit
@@ -1082,19 +1145,19 @@ class ProcessHandler(object):
         data_thread.join()
 
     def pid_control(
-            self,
-            initial_rate_rpm: float = 1,
-            pumps: Tuple[
-                "aqueduct.devices.pp.obj.PP",
-                "aqueduct.devices.pp.obj.PP",
-                "aqueduct.devices.pp.obj.PP"
-            ] = (None, None, None),
-            pH_probe_indices: Tuple[int, int, int] = (0, 1, 2),
-            output_limits: Tuple[Tuple] = (),
+        self,
+        initial_rate_rpm: float = 1,
+        pumps: Tuple[
+            "aqueduct.devices.pump.peristaltic.PeristalticPump",
+            "aqueduct.devices.pump.peristaltic.PeristalticPump",
+            "aqueduct.devices.pump.peristaltic.PeristalticPump",
+        ] = (None, None, None),
+        pH_probe_indices: Tuple[int, int, int] = (0, 1, 2),
+        output_limits: Tuple[Tuple] = (),
     ):
 
         self.log_file_name = f"data_{datetime.datetime.now().isoformat()}"
-        
+
         # create a Setpoint to terminate the Recipe
         terminate_sp = self._aqueduct.setpoint(
             name="terminate",
@@ -1103,7 +1166,9 @@ class ProcessHandler(object):
         )
 
         if len(pumps) != len(pH_probe_indices):
-            raise ValueError("Number of `pumps` must equals number of `pH_probe_indices`!")
+            raise ValueError(
+                "Number of `pumps` must equals number of `pH_probe_indices`!"
+            )
 
         self.make_stations(number_stations=len(pumps))
 
@@ -1134,30 +1199,37 @@ class ProcessHandler(object):
             )
 
             # create a `PidModel` to simulate feedback
-            self._models.append(PidModel(
-                pH_probe_index=pH_probe_indices[i],
-                devices_obj=self._devices,
-                aqueduct=self._aqueduct,
-                data=self._data,
-            ))
+            self._models.append(
+                PidModel(
+                    pH_probe_index=pH_probe_indices[i],
+                    devices_obj=self._devices,
+                    aqueduct=self._aqueduct,
+                    data=self._data,
+                )
+            )
 
             self._models[i].start_reaction()
 
             rates_of_change.append(self._models[i].calc_rate_of_change(0))
 
             if output_limits and output_limits[i]:
-                low, up = output_limits[i][0],  output_limits[i][1]
+                low, up = output_limits[i][0], output_limits[i][1]
             else:
                 low, up = 0, 20
 
-            pid_controllers.append(PID(
-                k_p=kp_sp.value,
-                k_i=ki_sp.value,
-                k_d=kd_sp.value,
-                period_s=1,
-                output_limits=(low, up),  # limit the max rate to 20 mL/min
-                controllable_limits=(0.5, 0.5,)  # controllable range is setpoint +/- 0.5 pH to use integral term
-            ))
+            pid_controllers.append(
+                PID(
+                    k_p=kp_sp.value,
+                    k_i=ki_sp.value,
+                    k_d=kd_sp.value,
+                    period_s=1,
+                    output_limits=(low, up),  # limit the max rate to 20 mL/min
+                    controllable_limits=(
+                        0.5,
+                        0.5,
+                    ),  # controllable range is setpoint +/- 0.5 pH to use integral term
+                )
+            )
 
             # any time a user changes the Kp, Ki, or Kd values from the interface,
             # we want to make sure to update the values in our PID controller
@@ -1169,8 +1241,8 @@ class ProcessHandler(object):
             ki_sp.on_change = handle_update_controller
             kd_sp.on_change = handle_update_controller
 
-        # this method, dedicated to acquiring, printing, and 
-        # logging data at a 1 second interval, will be run 
+        # this method, dedicated to acquiring, printing, and
+        # logging data at a 1 second interval, will be run
         # in the `data_thread` Thread
         def update_data(stop: threading.Event):
             while not stop.is_set():
@@ -1181,7 +1253,9 @@ class ProcessHandler(object):
                 except Exception as e:
                     print(e)
 
-                self._data.log_data_at_interval(interval_s=5, overwrite_file=True, update_before_log=False)
+                self._data.log_data_at_interval(
+                    interval_s=5, overwrite_file=True, update_before_log=False
+                )
                 time.sleep(1)
 
         self._devices.PH_PROBE.set_sim_values(values=(6, 6, 6))
@@ -1189,12 +1263,6 @@ class ProcessHandler(object):
         self._devices.PH_PROBE.set_sim_noise(values=(0.0001, 0.0001, 0.0001))
         self._devices.PH_PROBE.clear_recorded()
         self._devices.PH_PROBE.update_record(True)
-
-        # start recording data from the pH probe
-        self._devices.PH_PROBE.start(
-            interval_s=1,
-            record=True
-        )
 
         # define an event to signal the data_thread to quit
         stop_data_thread = threading.Event()
@@ -1205,27 +1273,29 @@ class ProcessHandler(object):
         time.sleep(1)
 
         # start the pumps at 1 rpm in the forward (clockwise) direction
-        for p in pumps:
-            p.start(
-                direction=p.FORWARD,
-                mode=p.CONTINUOUS,
+        for pump in pumps:
+            commands = pump.make_commands()
+            command = pump.make_start_command(
+                mode=pump.MODE.Continuous,
+                rate_units=pump.RATE_UNITS.Rpm,
                 rate_value=initial_rate_rpm,
-                rate_units=p.RPM,
-                record=True,
+                direction=pump.STATUS.Clockwise,
             )
+            pump.set_command(commands, 0, command)
+            pump.start(commands)
 
         while not terminate_sp.value:
 
-            for i, s in enumerate(self.stations):
+            for i, station in enumerate(self.stations):
 
-                s: ReactionStation
-                if not s._is_dosing and s.enabled_setpoint.value:  # noqa
+                station: ReactionStation
+                if not station._is_dosing and station.enabled_setpoint.value:  # noqa
                     t = threading.Thread(
-                        target=s.maybe_change_rate,
+                        target=station.maybe_change_rate,
                         args=(
                             i,
                             pumps[i],
-                            s.pH_setpoint.value,
+                            station.pH_setpoint.value,
                             pid_controllers[i],
                             self._models[i],
                             i,
