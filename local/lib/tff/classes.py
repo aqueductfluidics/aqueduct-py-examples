@@ -10,14 +10,8 @@ from aqueduct.core.setpoint import Setpoint
 
 from aqueduct.devices.pump import PeristalticPump
 from aqueduct.devices.balance import Balance
-
-
-import aqueduct.devices.ohsa.obj
-import aqueduct.devices.ohsa.constants
-import aqueduct.devices.scip.obj
-import aqueduct.devices.scip.constants
-import aqueduct.devices.pv.obj
-import aqueduct.devices.pv.constants
+from aqueduct.devices.pressure import PressureTransducer
+from aqueduct.devices.valve import PinchValve
 
 import local.lib.tff.helpers
 import local.lib.tff.methods
@@ -59,11 +53,11 @@ class Devices(object):
     PUMP1: PeristalticPump = None
     PUMP2: PeristalticPump = None
     PUMP3: PeristalticPump = None
-    SCIP: aqueduct.devices.scip.obj.SCIP = None
+    SCIP: PressureTransducer = None
     OHSA: Balance = None
-    PV: aqueduct.devices.pv.obj.PV = None
+    PV: PinchValve = None
 
-    def __init__(self, aq: aqueduct.core.aq.Aqueduct):
+    def __init__(self, aq: Aqueduct):
         self.PUMP1 = aq.devices.get(PUMP1_NAME)
         self.PUMP2 = aq.devices.get(PUMP2_NAME)
         self.PUMP3 = aq.devices.get(PUMP3_NAME)
@@ -670,11 +664,15 @@ class Process(object):
         print("[PHASE (INIT)] Stopping all Pumps.")
 
         self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
-        self._devices.PV.set_position(pct_open=self.pinch_valve_init_pct_open, record=True)
+        commands = self._devices.PV.make_commands()
+        command = self._devices.PV.make_set_poisition_command(pct_open=self.pinch_valve_init_pct_open)
+        print(commands)
+        self._devices.PV.set_command(commands, 0, command)
+        self._devices.PV.set_position(commands, record=True)
 
         # start reading the outputs of the Parker SciLog
         # at an interval of once per second
@@ -809,7 +807,7 @@ class Process(object):
 
     def do_init_transfer(self):
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
 
             if self.do_prompts:
                 ipt = self._aqueduct.input(
@@ -851,12 +849,18 @@ class Process(object):
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
             self._devices.OHSA.tare(SCALE1_INDEX)
-
+            
+            commands = self._devices.PUMP2.make_commands()
+            command = self._devices.PUMP2.make_start_command(
+                mode=self._devices.PUMP2.MODE.Continuous,
+                direction=self._devices.PUMP2.STATUS.Clockwise,
+                rate_value=50.,
+                rate_units=self._devices.PUMP2.RATE_UNITS.MlMin,
+            )
+            self._devices.PUMP2.set_command(commands, 0, command)
+            
             self._devices.PUMP2.start(
-                mode="continuous",
-                direction="forward",
-                rate_value=50,
-                record=True,
+                commands, record=True
             )
 
             self._data.update_data(debug=True, pause_on_error=True)
@@ -978,7 +982,7 @@ class Process(object):
         Increase Pump 2, Pump 3 flowrate once per minute, reaching target flowrate after 5 minutes
         Will adjust pinch valve position during ramp to maintain setpoint bounds in `monitor` method
         """
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
             print("[PHASE (INIT)] Beginning Initial Concentration Step 2: Pump 2 and Pump 3 Ramp Up.")
         else:
             print("[PHASE (INIT)] Beginning Initial Concentration Step 2: Pump 3 Ramp Up.")
@@ -1099,7 +1103,7 @@ class Process(object):
 
         # Set PUMP2 (if present) and PUMP3 to no flow. Pump 1 will continue to operate at
         # target flowrate between Concentration and Diafiltration
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
             print("[PHASE (INIT)] Stopping PUMP2 and PUMP3.")
             self._devices.PUMP2.stop()
         else:
@@ -1329,7 +1333,7 @@ class Process(object):
 
         # Set PUMP2 (if present) and PUMP3 to no flow. Pump 1 will continue to operate at
         # target flowrate between Diafiltration and Final Conc.
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
             print("[PHASE (DIA)] Stopping PUMP2 and PUMP3.")
             self._devices.PUMP2.stop()
         else:
@@ -1534,7 +1538,7 @@ class Process(object):
         print("[PHASE (FINAL)] Final Concentration Step complete.")
 
         # stop Pumps 2 (if present) and 3
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
             print("[PHASE (FINAL)] Stopping PUMP2 and PUMP3.")
             self._devices.PUMP2.stop()
         else:

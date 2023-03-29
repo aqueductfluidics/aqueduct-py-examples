@@ -1,19 +1,16 @@
 import time
 
-from local.lib.tff.definitions import *
-
 from aqueduct.core.aq import Aqueduct
-import aqueduct.devices.mfpp.obj
-import aqueduct.devices.mfpp.constants
-import aqueduct.devices.ohsa.obj
-import aqueduct.devices.ohsa.constants
-import aqueduct.devices.scip.obj
-import aqueduct.devices.scip.constants
-import aqueduct.devices.pv.obj
-import aqueduct.devices.pv.constants
+
+from aqueduct.devices.pump import PeristalticPump
+from aqueduct.devices.balance import Balance
+from aqueduct.devices.pressure import PressureTransducer
+from aqueduct.devices.valve import PinchValve
 
 import local.lib.tff.classes
 from typing import List, Union
+
+from local.lib.tff.definitions import *
 
 
 class TrailingRates(object):
@@ -168,7 +165,7 @@ class DataCache(object):
             delta_t_interval_s = 0
             delta_t_interval_tolerance_s = 1
 
-            if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
+            if isinstance(self._devices.PUMP2, PeristalticPump):
                 enum_keys = (('W1', 'R1'), ('W2', 'R2'), ('W3', 'R3'))
             else:
                 # have to use R3 in lieu of R2 when PUMP2 is absent
@@ -228,7 +225,7 @@ class DataCache(object):
                 pump_nominal_rate_mean_ml_min[i] = sum(good_rates) / len(good_rates)
 
             if counts > 0:
-                if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
+                if isinstance(self._devices.PUMP2, PeristalticPump):
                     R2_ml_min = round(pump_nominal_rate_mean_ml_min[1], 4)
                 else:
                     R2_ml_min = None
@@ -324,8 +321,8 @@ class Data(object):
         :param debug: bool, if True will print out error info
         :return:
         """
-        pressures = self._devices.SCIP.get_all_pressures()
-        weights = self._devices.OHSA.get_all_weights()
+        pressures = self._devices.SCIP.get_all_values()
+        weights = self._devices.OHSA.get_all_values()
         self.P1 = pressures[TXDCR1_INDEX]
         self.P2 = pressures[TXDCR2_INDEX]
         self.P3 = pressures[TXDCR3_INDEX]
@@ -353,7 +350,7 @@ class Data(object):
                 self.update_data(retries=retries - 1)
 
         self.R1 = self._devices.PUMP1.get_flow_rate()
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
+        if isinstance(self._devices.PUMP2, PeristalticPump):
             self.R2 = self._devices.PUMP2.get_flow_rate()
         self.R3 = self._devices.PUMP3.get_flow_rate()
         self.PV = self._devices.PV.position()
@@ -362,7 +359,7 @@ class Data(object):
         if not self._is_lab_mode:
             balance_rocs = [0, 0, 0, 0]
             # if PUMP2 is present, use this to drive sim value balance
-            if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
+            if isinstance(self._devices.PUMP2, PeristalticPump):
                 balance_rocs[SCALE2_INDEX] = (-1 * self.R2) * (1. + self._scale2_sim_error_pct)
             # else, use PUMP3 to drive it
             else:
@@ -478,7 +475,7 @@ class Data(object):
 
                 # BUFFER pump, debit this value
                 # if PUMP2 is present, drive with PUMP2
-                if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
+                if isinstance(self._devices.PUMP2, PeristalticPump):
                     scale2_delta_m_g = self.R2 / 60. * (self.timestamp - self._extrapolation_timestamp)
                     scale2_mass_g = self.W2 - scale2_delta_m_g * (1. + self._scale2_sim_error_pct)
 
@@ -508,13 +505,13 @@ class Data(object):
     def init_sim_values(self):
 
         if not self._is_lab_mode:
-            if isinstance(self._devices.OHSA, aqueduct.devices.ohsa.obj.OHSA):
-                self._devices.OHSA.set_sim_noise(values=(0, 0, 0))
-                self._devices.OHSA.set_sim_weights(values=(0, 0, 0, 0))
-                self._devices.OHSA.set_sim_rates_of_change(values=(0, 0, 0, 0))
+            if isinstance(self._devices.OHSA, Balance):
+                self._devices.OHSA.set_sim_noise(noise=(0, 0, 0))
+                self._devices.OHSA.set_sim_values(values=(0, 0, 0, 0))
+                self._devices.OHSA.set_sim_rates_of_change(roc=(0, 0, 0, 0))
 
-            if isinstance(self._devices.SCIP, aqueduct.devices.scip.obj.SCIP):
-                self._devices.SCIP.set_sim_pressures(values=((5., 5., 5.,) + 9 * (0,)))
-                self._devices.SCIP.set_sim_noise(values=((0.01, 0.01, 0.01,) + 9 * (0,)))
-                self._devices.OHSA.set_sim_rates_of_change(values=(12 * (0,)))
+            if isinstance(self._devices.SCIP, PressureTransducer):
+                self._devices.SCIP.set_sim_values(values=((5., 5., 5.,) + 9 * (0,)))
+                self._devices.SCIP.set_sim_noise(noise=((0.01, 0.01, 0.01,) + 9 * (0,)))
+                self._devices.OHSA.set_sim_rates_of_change(roc=(12 * (0,)))
 
