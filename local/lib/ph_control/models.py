@@ -103,7 +103,7 @@ class PidModel(object):
             vals = [None, None, None]
             vals[self.pH_probe_index] = roc
             self._devices.PH_PROBE.set_sim_rates_of_change(
-                values=vals
+                roc=vals
             )
 
         t = threading.Thread(target=target, daemon=True)

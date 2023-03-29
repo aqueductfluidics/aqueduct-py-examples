@@ -8,11 +8,11 @@ import threading
 
 from typing import List, Tuple, Callable, Union
 
-from aqueduct.core.aq import Aqueduct
-from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES
+from aqueduct.core.aq import Aqueduct, UserInputTypes
+from aqueduct.core.setpoint import Setpoint
 
-import aqueduct.devices.pump.peristaltic
-import aqueduct.devices.ph_probe
+from aqueduct.devices.pump import PeristalticPump
+from aqueduct.devices.ph_probe import PhProbe
 
 from .definitions import *
 from .models import ReactionModel, PidModel
@@ -38,10 +38,10 @@ class Devices(object):
     that is saved on its firmware.
     """
 
-    PUMP0: aqueduct.devices.pump.peristaltic.PeristalticPump = None
-    PUMP1: aqueduct.devices.pump.peristaltic.PeristalticPump = None
-    PUMP2: aqueduct.devices.pump.peristaltic.PeristalticPump = None
-    PH_PROBE: aqueduct.devices.ph_probe.PhProbe = None
+    PUMP0: PeristalticPump = None
+    PUMP1: PeristalticPump = None
+    PUMP2: PeristalticPump = None
+    PH_PROBE: PhProbe = None
 
     def __init__(self, aq: aqueduct.core.aq.Aqueduct):
         self.PUMP0 = aq.devices.get(PUMP0_NAME)
@@ -1259,8 +1259,8 @@ class ProcessHandler(object):
                 time.sleep(1)
 
         self._devices.PH_PROBE.set_sim_values(values=(6, 6, 6))
-        self._devices.PH_PROBE.set_sim_rates_of_change(values=rates_of_change)
-        self._devices.PH_PROBE.set_sim_noise(values=(0.0001, 0.0001, 0.0001))
+        self._devices.PH_PROBE.set_sim_rates_of_change(roc=rates_of_change)
+        self._devices.PH_PROBE.set_sim_noise(noise=(0.0001, 0.0001, 0.0001))
         self._devices.PH_PROBE.clear_recorded()
         self._devices.PH_PROBE.update_record(True)
 

@@ -3,19 +3,15 @@ import time
 import pprint
 import inspect
 
-import local.lib.tff.helpers
-import local.lib.tff.methods
-import local.lib.tff.models
-import local.lib.tff.alarms
-import local.lib.tff.data
-import local.lib.tff.pid
-from local.lib.tff.definitions import *
+from typing import Union
 
 from aqueduct.core.aq import Aqueduct
-from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES
+from aqueduct.core.setpoint import Setpoint
 
-import aqueduct.devices.mfpp.obj
-import aqueduct.devices.mfpp.constants
+from aqueduct.devices.pump import PeristalticPump
+from aqueduct.devices.balance import Balance
+
+
 import aqueduct.devices.ohsa.obj
 import aqueduct.devices.ohsa.constants
 import aqueduct.devices.scip.obj
@@ -23,7 +19,13 @@ import aqueduct.devices.scip.constants
 import aqueduct.devices.pv.obj
 import aqueduct.devices.pv.constants
 
-from typing import Union
+import local.lib.tff.helpers
+import local.lib.tff.methods
+import local.lib.tff.models
+import local.lib.tff.alarms
+import local.lib.tff.data
+import local.lib.tff.pid
+from local.lib.tff.definitions import *
 
 
 class Devices(object):
@@ -54,11 +56,11 @@ class Devices(object):
     that is saved on its firmware.
 
     """
-    PUMP1: aqueduct.devices.mfpp.obj.MFPP = None
-    PUMP2: aqueduct.devices.mfpp.obj.MFPP = None
-    PUMP3: aqueduct.devices.mfpp.obj.MFPP = None
+    PUMP1: PeristalticPump = None
+    PUMP2: PeristalticPump = None
+    PUMP3: PeristalticPump = None
     SCIP: aqueduct.devices.scip.obj.SCIP = None
-    OHSA: aqueduct.devices.ohsa.obj.OHSA = None
+    OHSA: Balance = None
     PV: aqueduct.devices.pv.obj.PV = None
 
     def __init__(self, aq: aqueduct.core.aq.Aqueduct):
@@ -676,11 +678,11 @@ class Process(object):
 
         # start reading the outputs of the Parker SciLog
         # at an interval of once per second
-        self._devices.SCIP.start(interval_s=1., record=True)
+        self._devices.SCIP.update_record(True)
 
         # start reading the outputs of the OHSA balance device
         # at an interval of once per second
-        self._devices.OHSA.start(interval_s=1., record=True)
+        self._devices.OHSA.update_record(True)
 
     def do_initial_conc_prompts(self):
         """
