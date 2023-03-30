@@ -1,3 +1,6 @@
+"""TFF Classes Module"""
+# pylint: disable=pointless-string-statement
+
 import datetime
 import time
 import pprint
@@ -669,8 +672,8 @@ class Process(object):
         self._devices.PUMP3.stop()
 
         commands = self._devices.PV.make_commands()
-        command = self._devices.PV.make_set_poisition_command(pct_open=self.pinch_valve_init_pct_open)
-        print(commands)
+        command = self._devices.PV.make_set_poisition_command(
+            pct_open=self.pinch_valve_init_pct_open)
         self._devices.PV.set_command(commands, 0, command)
         self._devices.PV.set_position(commands, record=True)
 
@@ -802,7 +805,8 @@ class Process(object):
             )
 
             print("[PHASE (INIT)] Initial Concentration target mass (g) for Scale 3 (permeate scale): {}".format(
-                local.lib.tff.helpers.format_float(self.init_conc_target_mass_g, 2)
+                local.lib.tff.helpers.format_float(
+                    self.init_conc_target_mass_g, 2)
             ))
 
     def do_init_transfer(self):
@@ -849,7 +853,7 @@ class Process(object):
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
             self._devices.OHSA.tare(SCALE1_INDEX)
-            
+
             commands = self._devices.PUMP2.make_commands()
             command = self._devices.PUMP2.make_start_command(
                 mode=self._devices.PUMP2.MODE.Continuous,
@@ -858,7 +862,7 @@ class Process(object):
                 rate_units=self._devices.PUMP2.RATE_UNITS.MlMin,
             )
             self._devices.PUMP2.set_command(commands, 0, command)
-            
+
             self._devices.PUMP2.start(
                 commands, record=True
             )
@@ -877,7 +881,8 @@ class Process(object):
                     self._data.update_data()
                     print("[PHASE (INIT)] Transfer complete.")
                     time.sleep(2)
-                    print("[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(self._data.W1))
+                    print("[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(
+                        self._data.W1))
                     break
 
                 if isinstance(self._data.W1, float) and self._data.W1 > self.initial_transfer_volume:
@@ -885,7 +890,8 @@ class Process(object):
                     self._data.update_data()
                     print("[PHASE (INIT)] Transfer complete.")
                     time.sleep(2)
-                    print("[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(self._data.W1))
+                    print("[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(
+                        self._data.W1))
                     break
 
                 local.lib.tff.methods.monitor(
@@ -898,7 +904,8 @@ class Process(object):
                 )
 
                 if loops == 5:
-                    print("[PHASE (INIT)] Waiting for {} more seconds...".format(int((timeout - time.time()))))
+                    print("[PHASE (INIT)] Waiting for {} more seconds...".format(
+                        int((timeout - time.time()))))
                     loops = 0
 
                 # increment loops by 1
@@ -938,7 +945,6 @@ class Process(object):
                 )
 
     def do_init_conc(self):
-
         """
         ************************
             Initial Concentration
@@ -982,17 +988,21 @@ class Process(object):
         Increase Pump 2, Pump 3 flowrate once per minute, reaching target flowrate after 5 minutes
         Will adjust pinch valve position during ramp to maintain setpoint bounds in `monitor` method
         """
+
         if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
-            print("[PHASE (INIT)] Beginning Initial Concentration Step 2: Pump 2 and Pump 3 Ramp Up.")
+            print(
+                "[PHASE (INIT)] Beginning Initial Concentration Step 2: Pump 2 and Pump 3 Ramp Up.")
         else:
-            print("[PHASE (INIT)] Beginning Initial Concentration Step 2: Pump 3 Ramp Up.")
+            print(
+                "[PHASE (INIT)] Beginning Initial Concentration Step 2: Pump 3 Ramp Up.")
 
         # ***UPDATE 1/30/2021 this is the point where we not want to cache the scale1 target mass
         # force an update of data to make sure the reading is latest before caching
         self._data.update_data()
         self._watchdog.volume_accumulation_alarm.set_scale1_target_mass()
 
-        self._devices.SCIP.set_sim_rates_of_change(values=((0.01, 0.01, -0.01,) + 9 * (0,)))
+        self._devices.SCIP.set_sim_rates_of_change(
+            roc=((0.01, 0.01, -0.01,) + 9 * (0,)))
 
         status = local.lib.tff.methods.pumps_2_and_3_ramp(
             interval_s=1,
@@ -1019,7 +1029,8 @@ class Process(object):
         # if we hit the target mass during the ramp, skip the pinch valve lock in
         if status != STATUS_TARGET_MASS_HIT:
             time.sleep(5)
-            print("[PHASE (INIT)] Beginning Initial Concentration Step 3: Pinch Valve Lock-In.")
+            print(
+                "[PHASE (INIT)] Beginning Initial Concentration Step 3: Pinch Valve Lock-In.")
             status = local.lib.tff.methods.pinch_valve_lock_in_pid(
                 interval=0.2,
                 timeout_min=self.pinch_valve_lock_in_min,
@@ -1047,7 +1058,8 @@ class Process(object):
 
             # find the timeout time to break from loop
             time_start = datetime.datetime.utcnow()
-            timeout = time_start + datetime.timedelta(seconds=self.init_conc_timeout_min * 60)
+            timeout = time_start + \
+                datetime.timedelta(seconds=self.init_conc_timeout_min * 60)
 
             # turn on the overpressure, low pressure, vacuum condition, and volume accumulation alarms
             self._watchdog.over_pressure_alarm.on()
@@ -1072,7 +1084,8 @@ class Process(object):
 
                 # check to see whether we've timed out
                 if datetime.datetime.utcnow() > timeout:
-                    print("[PHASE (INIT)] Timed out waiting for initial concentration SCALE3 target mass.")
+                    print(
+                        "[PHASE (INIT)] Timed out waiting for initial concentration SCALE3 target mass.")
                     break
 
                 local.lib.tff.methods.monitor(
@@ -1119,13 +1132,13 @@ class Process(object):
         self._data.log_data_at_interval(5)
         self.init_conc_actual_mass_g = self._data.W3
 
-        print("[PHASE (INIT)] End Initial Concentration SCALE3 mass: {}g".format(self.init_conc_actual_mass_g))
+        print("[PHASE (INIT)] End Initial Concentration SCALE3 mass: {}g".format(
+            self.init_conc_actual_mass_g))
 
         # log end time for init conc
         self.init_conc_end_time = datetime.datetime.utcnow().isoformat()
 
     def do_init_conc_to_diafilt_transition(self):
-
         """
         ************************
             Initial Concentration to
@@ -1144,7 +1157,12 @@ class Process(object):
 
         # open pinch valve
         print("[PHASE (INIT->DIA)] Opening pinch valve.")
-        self._devices.PV.set_position(pct_open=0.3)
+
+        commands = self._devices.PV.make_commands()
+        command = self._devices.PV.make_set_poisition_command(
+            pct_open=0.3)
+        self._devices.PV.set_command(commands, 0, command)
+        self._devices.PV.set_position(commands, record=True)
 
         if self.do_prompts:
 
@@ -1203,7 +1221,8 @@ class Process(object):
             )
 
             print("[PHASE (INIT->DIA)] Diafiltration 1 target mass (g) for SCALE3: {}".format(
-                local.lib.tff.helpers.format_float(self.diafilt_target_mass_g, 2)
+                local.lib.tff.helpers.format_float(
+                    self.diafilt_target_mass_g, 2)
             ))
 
     def do_diafiltration(self):
@@ -1289,7 +1308,8 @@ class Process(object):
 
             # find the timeout time to break from loop
             time_start = datetime.datetime.utcnow()
-            timeout = time_start + datetime.timedelta(seconds=self.diafilt_timeout_min * 60)
+            timeout = time_start + \
+                datetime.timedelta(seconds=self.diafilt_timeout_min * 60)
 
             self._setpoints.pinch_valve_control_active.update(False)
 
@@ -1304,7 +1324,8 @@ class Process(object):
 
                 # check to see whether we've timed out
                 if datetime.datetime.utcnow() > timeout:
-                    print("[PHASE (DIA)] Timed out waiting for diafiltration SCALE3 target mass.")
+                    print(
+                        "[PHASE (DIA)] Timed out waiting for diafiltration SCALE3 target mass.")
                     break
 
                 local.lib.tff.methods.monitor(
@@ -1349,7 +1370,8 @@ class Process(object):
         self._data.log_data_at_interval(5)
         self.diafilt_actual_mass_g = self._data.W3
 
-        print("[PHASE (DIA)] End Diafiltration SCALE3 mass: {}g".format(self.diafilt_actual_mass_g))
+        print("[PHASE (DIA)] End Diafiltration SCALE3 mass: {}g".format(
+            self.diafilt_actual_mass_g))
 
         # log end time for diafilt
         self.diafilt_end_time = datetime.datetime.utcnow().isoformat()
@@ -1372,7 +1394,11 @@ class Process(object):
 
         # open pinch valve
         print("[PHASE (DIA->FINAL)] Opening pinch valve.")
-        self._devices.PV.set_position(pct_open=0.4)
+        commands = self._devices.PV.make_commands()
+        command = self._devices.PV.make_set_poisition_command(
+            pct_open=0.4)
+        self._devices.PV.set_command(commands, 0, command)
+        self._devices.PV.set_position(commands, record=True)
 
         if self.do_prompts:
             # Aqueduct input for final concentration target
@@ -1410,7 +1436,8 @@ class Process(object):
         )
 
         print("[PHASE (DIA->FINAL)] Final Concentration target mass (g) for SCALE3: {}".format(
-            local.lib.tff.helpers.format_float(self.final_conc_target_mass_g, 2)
+            local.lib.tff.helpers.format_float(
+                self.final_conc_target_mass_g, 2)
         ))
 
     def do_final_concentration(self):
@@ -1457,9 +1484,14 @@ class Process(object):
         """
         if status != STATUS_TARGET_MASS_HIT:
             print("[PHASE (FINAL)] Setting pinch valve.")
-            self._devices.PV.set_position(pct_open=0.3)
+            commands = self._devices.PV.make_commands()
+            command = self._devices.PV.make_set_poisition_command(
+                pct_open=0.3)
+            self._devices.PV.set_command(commands, 0, command)
+            self._devices.PV.set_position(commands, record=True)
             time.sleep(5)
-            print("[PHASE (FINAL)] Beginning Final Concentration Step 2: Pinch Valve Lock-In.")
+            print(
+                "[PHASE (FINAL)] Beginning Final Concentration Step 2: Pinch Valve Lock-In.")
             status = local.lib.tff.methods.pinch_valve_lock_in(
                 interval=1,
                 target_p3_psi=self._setpoints.P3_target_pressure.value,
@@ -1495,7 +1527,8 @@ class Process(object):
 
             # find the timeout time to break from loop
             time_start = datetime.datetime.utcnow()
-            timeout = time_start + datetime.timedelta(seconds=self.final_conc_timeout_min * 60)
+            timeout = time_start + \
+                datetime.timedelta(seconds=self.final_conc_timeout_min * 60)
 
             self._setpoints.pinch_valve_control_active.update(False)
 
@@ -1510,7 +1543,8 @@ class Process(object):
 
                 # check to see whether we've timed out
                 if datetime.datetime.utcnow() > timeout:
-                    print("[PHASE (FINAL)] Timed out waiting for final concentration SCALE3 target mass.")
+                    print(
+                        "[PHASE (FINAL)] Timed out waiting for final concentration SCALE3 target mass.")
                     break
 
                 local.lib.tff.methods.monitor(
@@ -1553,7 +1587,8 @@ class Process(object):
         self._data.log_data_at_interval(5)
         self.final_conc_actual_mass_g = self._data.W3
 
-        print("[PHASE (FINAL)] End Final Concentration SCALE3 mass: {}g".format(self.final_conc_actual_mass_g))
+        print("[PHASE (FINAL)] End Final Concentration SCALE3 mass: {}g".format(
+            self.final_conc_actual_mass_g))
 
         # log final conc end time
         self.final_conc_end_time = datetime.datetime.utcnow().isoformat()
@@ -1570,7 +1605,8 @@ class Process(object):
         """
 
         # slowly open pinch valve to 30%
-        print(f"[PHASE (CLN)] Beginning clean-up, open pinch valve to {self.pinch_valve_init_pct_open * 100}%")
+        print(
+            f"[PHASE (CLN)] Beginning clean-up, open pinch valve to {self.pinch_valve_init_pct_open * 100}%")
         local.lib.tff.methods.open_pinch_valve(
             target_pct_open=self.pinch_valve_init_pct_open,
             increment_pct_open=0.005,
@@ -1609,7 +1645,8 @@ class Process(object):
         )
 
         # start Pump !
-        self._devices.PUMP1.start(rate_value=self.init_conc_pump_1_target_flowrate_ml_min)
+        self._devices.PUMP1.start(
+            rate_value=self.init_conc_pump_1_target_flowrate_ml_min)
 
         # clear the trailing rates cache
         self._data._cache.clear_cache()
@@ -1645,7 +1682,8 @@ class Process(object):
                     (timeout - datetime.datetime.utcnow()).total_seconds(),
                     1
                 )
-                print(f"[PHASE (WASH)] Washing for {seconds_left} more seconds...")
+                print(
+                    f"[PHASE (WASH)] Washing for {seconds_left} more seconds...")
                 counter = 0
 
         # stop Pump 1

@@ -1,30 +1,19 @@
-import argparse
 import sys
 from pathlib import Path
 
-import aqueduct.core.aq
+from aqueduct.core.aq import Aqueduct, InitParams
 
-path = Path(__file__).parent.resolve().parent.resolve().parent.resolve().parent.resolve()
+path = Path(__file__).parent.resolve(
+).parent.resolve().parent.resolve().parent.resolve()
 sys.path.extend([str(path)])
 
-import local.lib.tff.helpers
-import local.lib.tff.classes
 import local.lib.tff.data
+import local.lib.tff.classes
+import local.lib.tff.helpers
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-u", "--user_id", type=str, help="user_id (either int or 'L')", default="1")
-parser.add_argument("-a", "--addr", type=str, help="IP address (no port, like 127.0.0.1)", default="127.0.0.1")
-parser.add_argument("-p", "--port", type=int, help="port (like 59000)", default=59000)
-parser.add_argument("-i", "--init", type=int, help="initialize (1 for true, 0 for false)", default=1)
-args = parser.parse_args()
-
-user_id = args.user_id
-ip_address = args.addr
-port = args.port
-init = bool(args.init)
-
-aq = aqueduct.core.aq.Aqueduct(user_id, ip_address, port)
-aq.initialize(init)
+params = InitParams.parse()
+aq = Aqueduct(params.user_id, params.ip_address, params.port)
+aq.initialize(params.init)
 
 # pass the globals dictionary, which will have the
 # objects for the Devices already instantiated
@@ -53,7 +42,7 @@ process = local.lib.tff.classes.Process(
 )
 
 
-process.set_quick_run_params(speed="medium")
+process.set_quick_run_params(speed="fast")
 
 # process.two_pump_config = True
 

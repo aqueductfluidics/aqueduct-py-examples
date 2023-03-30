@@ -349,11 +349,11 @@ class Data(object):
                 time.sleep(0.5)
                 self.update_data(retries=retries - 1)
 
-        self.R1 = self._devices.PUMP1.get_flow_rate()
+        self.R1 = self._devices.PUMP1.get_ml_min()[0]
         if isinstance(self._devices.PUMP2, PeristalticPump):
-            self.R2 = self._devices.PUMP2.get_flow_rate()
-        self.R3 = self._devices.PUMP3.get_flow_rate()
-        self.PV = self._devices.PV.position()
+            self.R2 = self._devices.PUMP2.get_ml_min()[0]
+        self.R3 = self._devices.PUMP3.get_ml_min()[0]
+        self.PV = self._devices.PV.get_pct_open()[0]
         self.timestamp = time.time()
 
         if not self._is_lab_mode:
@@ -507,7 +507,7 @@ class Data(object):
         if not self._is_lab_mode:
             if isinstance(self._devices.OHSA, Balance):
                 self._devices.OHSA.set_sim_noise(noise=(0, 0, 0))
-                self._devices.OHSA.set_sim_values(values=(0, 0, 0, 0))
+                self._devices.OHSA.set_sim_values(values=(0.01, 0.01, 0.01, 0))
                 self._devices.OHSA.set_sim_rates_of_change(roc=(0, 0, 0, 0))
 
             if isinstance(self._devices.SCIP, PressureTransducer):
