@@ -43,7 +43,7 @@ class Devices(object):
     PUMP2: PeristalticPump = None
     PH_PROBE: PhProbe = None
 
-    def __init__(self, aq: aqueduct.core.aq.Aqueduct):
+    def __init__(self, aq: Aqueduct):
         self.PUMP0 = aq.devices.get(PUMP0_NAME)
         self.PUMP1 = aq.devices.get(PUMP1_NAME)
         self.PUMP2 = aq.devices.get(PUMP2_NAME)
