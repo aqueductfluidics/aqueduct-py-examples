@@ -1,14 +1,10 @@
 import time
 
 from aqueduct.core.aq import Aqueduct
-import aqueduct.devices.mfpp.obj
-import aqueduct.devices.mfpp.constants
-import aqueduct.devices.ohsa.obj
-import aqueduct.devices.ohsa.constants
-import aqueduct.devices.scip.obj
-import aqueduct.devices.scip.constants
-import aqueduct.devices.pv.obj
-import aqueduct.devices.pv.constants
+from aqueduct.devices.pump import PeristalticPump
+from aqueduct.devices.balance import Balance
+from aqueduct.devices.pressure import PressureTransducer
+from aqueduct.devices.valve import PinchValve
 
 import local.lib.tff.classes
 from typing import Union
@@ -199,15 +195,15 @@ class OverPressureAlarm(Alarm):
 
         print("[***ALARM***] Overpressure alarm raised! Stopping all pumps. Dismiss prompt to continue.")
         self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
         self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Overpressure! Press <b>continue</b> to resume operation. 
                         Upon resume: 
@@ -327,23 +323,23 @@ class LowP3PressureAlarm(Alarm):
         """
 
         print("[***ALARM***] Underpressure P3 alarm raised!")
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             print("[ALARM (UNDERPRESSURE)] Stopping Pumps 2 and 3.")
         else:
             print("[ALARM (UNDERPRESSURE)] Stopping Pump 3.")
 
         self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
         # small time delay
         time.sleep(5)
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             print("[ALARM (UNDERPRESSURE)] Ramping Pumps 2 and 3 to 90% of previous rates.")
         else:
             print("[ALARM (UNDERPRESSURE)] Ramping Pump 3 to 90% of previous rates.")
@@ -442,15 +438,15 @@ class VacuumConditionAlarm(Alarm):
 
         print("[***ALARM***] Vacuum Condition Alarm raised! Stopping all pumps. Dismiss prompt to continue.")
         self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
         self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Vacuum Condition! Ensure proper vessels contain liquid and 
                 feed tubes are submerged. Press <b>continue</b> to resume operation. 
@@ -569,7 +565,7 @@ class BufferVesselEmptyAlarm(Alarm):
 
         :return:
         """
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             print("""[***ALARM***] Low Buffer Vessel Mass alarm raised! 
             Stopping Pumps 2 and 3.""")
         else:
@@ -577,14 +573,14 @@ class BufferVesselEmptyAlarm(Alarm):
             Stopping Pump 3.""")
 
         self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Low Buffer Vessel Mass! Refill vessel. Press <b>continue</b> to resume operation. 
                         Upon resume: 
@@ -694,7 +690,7 @@ class RetentateVesselLowAlarm(Alarm):
 
         :return:
         """
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             print("""[***ALARM***] Retentate Vessel Mass alarm raised! 
             Stopping Pumps 1, 2, and 3.""")
 
@@ -703,15 +699,15 @@ class RetentateVesselLowAlarm(Alarm):
             Stopping Pumps 1 and 3.""")
 
         self.cached_pump1_rate_ml_min = self._data.R1
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
         self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
-        if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP) and self._process.two_pump_config is False:
+        if isinstance(self._devices.PUMP2, PeristalticPump.MFPP) and self._process.two_pump_config is False:
             prompt = self._aqueduct.prompt(
                 message="""ALARM: Low Retentate Vessel Mass! Press <b>continue</b> to resume operation. 
                         Upon resume: 
@@ -867,7 +863,7 @@ class VolumeAccumulationAlarm(Alarm):
             rates.print()
 
             # if PUMP2 is present, try to handle the vol. accum
-            if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
+            if isinstance(self._devices.PUMP2, PeristalticPump.MFPP):
 
                 try:
 
