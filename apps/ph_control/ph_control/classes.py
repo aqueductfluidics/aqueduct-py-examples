@@ -11,7 +11,7 @@ from aqueduct.core.aq import Aqueduct, UserInputTypes
 from aqueduct.core.setpoint import Setpoint
 
 from aqueduct.devices.pump import PeristalticPump
-from aqueduct.devices.ph_probe import PhProbe
+from aqueduct.devices.ph import PhProbe
 
 from .definitions import *
 from .models import ReactionModel, PidModel
@@ -31,7 +31,7 @@ class Devices(object):
     PH_PROBE is the 3 x pH probe with one input active (device type PH3)
 
     In DEV MODE, we create 3 x `aqueduct.devices.pp.obj` and 1 x
-    `aqueduct.devices.ph3.obj` for easy access to the methods & constants for each device type.
+    `PhProbe` for easy access to the methods & constants for each device type.
 
     In LAB MODE, we associate each Device with the Name for the device
     that is saved on its firmware.
