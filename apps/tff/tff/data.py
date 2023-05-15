@@ -387,28 +387,28 @@ class Data(object):
 
         :return: None
         """
-        # self._aqueduct.log(
-        #     "P1: {0}, "
-        #     "P2: {1}, "
-        #     "P3: {2}, "
-        #     "W1: {3}, "
-        #     "W2: {4}, "
-        #     "W3: {5}, "
-        #     "R1: {6}, "
-        #     "R2: {7}, "
-        #     "R3: {8}, "
-        #     "PV: {9}".format(
-        #         tff.helpers.format_float(self.P1, 3),
-        #         tff.helpers.format_float(self.P2, 3),
-        #         tff.helpers.format_float(self.P3, 3),
-        #         tff.helpers.format_float(self.W1, 3),
-        #         tff.helpers.format_float(self.W2, 3),
-        #         tff.helpers.format_float(self.W3, 3),
-        #         tff.helpers.format_float(self.R1, 3),
-        #         tff.helpers.format_float(self.R2, 3),
-        #         tff.helpers.format_float(self.R3, 3),
-        #         tff.helpers.format_float(self.PV, 4)
-        #     ))
+        self._aqueduct.log(
+            "P1: {0}, "
+            "P2: {1}, "
+            "P3: {2}, "
+            "W1: {3}, "
+            "W2: {4}, "
+            "W3: {5}, "
+            "R1: {6}, "
+            "R2: {7}, "
+            "R3: {8}, "
+            "PV: {9}".format(
+                tff.helpers.format_float(self.P1, 3),
+                tff.helpers.format_float(self.P2, 3),
+                tff.helpers.format_float(self.P3, 3),
+                tff.helpers.format_float(self.W1, 3),
+                tff.helpers.format_float(self.W2, 3),
+                tff.helpers.format_float(self.W3, 3),
+                tff.helpers.format_float(self.R1, 3),
+                tff.helpers.format_float(self.R2, 3),
+                tff.helpers.format_float(self.R3, 3),
+                tff.helpers.format_float(self.PV, 4)
+            ))
 
     def as_dict(self) -> dict:
         """

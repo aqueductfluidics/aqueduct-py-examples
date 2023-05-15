@@ -193,7 +193,7 @@ def pumps_2_and_3_ramp(
         devices_obj.PUMP2.start(commands, record=True)
 
     print(
-        "[DUAL RAMP] Starting PUMP3 at {pump3_start_flowrate_ml_min:.2f} mL/min")
+        f"[DUAL RAMP] Starting PUMP3 at {pump3_start_flowrate_ml_min:.2f} mL/min")
 
     commands = devices_obj.PUMP3.make_commands()
     command = PeristalticPump.make_start_command(

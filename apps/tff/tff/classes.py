@@ -453,9 +453,9 @@ class Process(object):
         self._data = data
         self._data._process = self
         self._aqueduct = aqueduct
-        # if isinstance(self._aqueduct, Aqueduct):
-        # self.hub_sn = self._aqueduct.hub_sn
-        # self.lab_mode = self._aqueduct.is_lab_mode()
+        if isinstance(self._aqueduct, Aqueduct):
+            # self.hub_sn = self._aqueduct.hub_sn
+            self.lab_mode = self._aqueduct.is_lab_mode()
 
         self._setpoints = setpoints
         self._watchdog = watchdog
@@ -649,7 +649,7 @@ class Process(object):
         """
         log_dict = self.log_info_to_dict()
         log_info = pprint.pformat(log_dict)
-        # self._aqueduct.log("\n" + log_info)
+        self._aqueduct.log("\n" + log_info)
 
     def initialize(self):
         """
@@ -724,6 +724,7 @@ class Process(object):
             )
 
             self.log_file_name = ipt.get_value()
+            self.aqueduct.set_log_file_name(self.log_file_name)
 
             # prompt operator to place empty vessel on buffer scale
             self._aqueduct.prompt(
@@ -1692,7 +1693,6 @@ class Process(object):
 
         # save log file
         self.add_process_info_to_log()
-        # self._aqueduct.save_log_file(self.log_file_name, timestamp=True)
 
         # stop balance and pressure A/D
         self._devices.OHSA.stop()
