@@ -1646,8 +1646,18 @@ class Process(object):
         )
 
         # start Pump !
+        commands = self._devices.PUMP1.make_commands()
+        command = self._devices.PUMP1.make_start_command(
+            mode=self._devices.PUMP2.MODE.Continuous,
+            direction=self._devices.PUMP2.STATUS.Clockwise,
+            rate_value=self.init_conc_pump_1_target_flowrate_ml_min,
+            rate_units=self._devices.PUMP2.RATE_UNITS.MlMin,
+        )
+        self._devices.PUMP1.set_command(commands, 0, command)
+
         self._devices.PUMP1.start(
-            rate_value=self.init_conc_pump_1_target_flowrate_ml_min)
+            commands, record=True
+        )
 
         # clear the trailing rates cache
         self._data._cache.clear_cache()
@@ -1694,10 +1704,6 @@ class Process(object):
         # save log file
         self.add_process_info_to_log()
 
-        # stop balance and pressure A/D
-        self._devices.OHSA.stop()
-        self._devices.SCIP.stop()
-
         print("[PHASE (WASH)] TFF Full Operation complete!")
 
     def check_alarms(self):
@@ -1713,10 +1719,6 @@ class Process(object):
 
         :return: None
         """
-
-        # start the balances and pressure transducers
-        self._devices.OHSA.start(record=True)
-        self._devices.SCIP.start(record=True)
 
         self._watchdog.over_pressure_alarm.on()
         self._watchdog.low_pressure_alarm.on()
