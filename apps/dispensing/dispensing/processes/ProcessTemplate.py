@@ -3,10 +3,10 @@ import time
 import enum
 import json
 
-import local.lib.dispensing.helpers
-import local.lib.dispensing.methods
-from local.lib.dispensing.classes import Devices
-from local.lib.dispensing.definitions import *
+import dispensing.helpers
+import dispensing.methods
+from dispensing.classes import Devices
+from dispensing.definitions import *
 
 from aqueduct.core.aq import Aqueduct
 from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES

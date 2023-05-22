@@ -12,9 +12,9 @@ from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES
 
 from aqueduct.devices.pump import SyringePump
 
-import local.lib.dispensing.helpers
-import local.lib.dispensing.methods
-from local.lib.dispensing.definitions import *
+import dispensing.helpers
+import dispensing.methods
+from dispensing.definitions import *
 
 class Devices(object):
     """

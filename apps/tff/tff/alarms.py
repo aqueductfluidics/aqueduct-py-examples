@@ -976,7 +976,15 @@ class VolumeAccumulationAlarm(Alarm):
                 print("[CONTROL (MODE {})] changing PUMP2 rate to {} mL/min".format(
                     self.mode,
                     tff.helpers.format_float(pump2_new_rate, 2)))
-                self._devices.PUMP2.change_speed(pump2_new_rate)
+                
+                commands = self._devices.PUMP2.make_commands()
+                command = PeristalticPump.make_change_speed_command(
+                    rate_value=pump2_new_rate,
+                    rate_units=self._devices.PUMP2.RATE_UNITS.MlMin,
+                )
+                self._devices.PUMP2.set_command(commands, 0, command)
+                self._devices.PUMP2.change_speed(commands)
+
                 clear_cache = True
 
         if clear_cache is True:
@@ -1028,7 +1036,15 @@ class VolumeAccumulationAlarm(Alarm):
                     tff.helpers.format_float(pump2_new_rate, 2),
                     self.scale1_target_ml
                 ))
-                self._devices.PUMP2.change_speed(pump2_new_rate)
+                
+                commands = self._devices.PUMP2.make_commands()
+                command = PeristalticPump.make_change_speed_command(
+                    rate_value=pump2_new_rate,
+                    rate_units=self._devices.PUMP2.RATE_UNITS.MlMin,
+                )
+                self._devices.PUMP2.set_command(commands, 0, command)
+                self._devices.PUMP2.change_speed(commands)
+
                 clear_cache = True
         else:
             self.handle_mode1(rates)
