@@ -1,5 +1,7 @@
 import time
 
+from typing import Union
+
 from aqueduct.core.aq import Aqueduct
 from aqueduct.devices.pump import PeristalticPump
 from aqueduct.devices.balance import Balance
@@ -7,13 +9,7 @@ from aqueduct.devices.pressure import PressureTransducer
 from aqueduct.devices.valve import PinchValve
 
 import tff.classes
-from typing import Union
-
-
-"""
-ALARM & WATCHDOG CLASSES
-"""
-
+import tff.methods
 
 class Alarm(object):
     """
@@ -155,16 +151,6 @@ class OverPressureAlarm(Alarm):
     _pumps_2_3_ramp_number_rate_changes: int = 6
     _pumps_2_3_ramp_timeout_min: float = 60
 
-    def __init__(self, data_obj, devices_obj, aqueduct_obj):
-        """
-        Instantiation method.
-
-        :param data_obj:
-        :param devices_obj:
-        :param aqueduct_obj:
-        """
-        super().__init__(data_obj, devices_obj, aqueduct_obj)
-
     def condition(self) -> bool:
         """
         If P1 > max_pressure_psi || P2 > max_pressure_psi || P3 > max_pressure_psi, raise alarm
@@ -289,16 +275,6 @@ class LowP3PressureAlarm(Alarm):
     _pumps_2_3_ramp_number_rate_changes: int = 6
     _pumps_2_3_ramp_timeout_min: float = 60
 
-    def __init__(self, data_obj, devices_obj, aqueduct_obj):
-        """
-        Instantiation method.
-
-        :param data_obj:
-        :param devices_obj:
-        :param aqueduct_obj:
-        """
-        super().__init__(data_obj, devices_obj, aqueduct_obj)
-
     def condition(self) -> bool:
         """
         If P3 < min_pressure_psi and P3 >= vacuum_pressure_psi, raise alarm
@@ -399,16 +375,6 @@ class VacuumConditionAlarm(Alarm):
     _pumps_2_3_ramp_interval_s: float = 30
     _pumps_2_3_ramp_number_rate_changes: int = 6
     _pumps_2_3_ramp_timeout_min: float = 60
-
-    def __init__(self, data_obj, devices_obj, aqueduct_obj):
-        """
-        Instantiation method.
-
-        :param data_obj:
-        :param devices_obj:
-        :param aqueduct_obj:
-        """
-        super().__init__(data_obj, devices_obj, aqueduct_obj)
 
     def condition(self) -> bool:
         """
@@ -531,16 +497,6 @@ class BufferVesselEmptyAlarm(Alarm):
     _pumps_2_3_ramp_interval_s: float = 30
     _pumps_2_3_ramp_number_rate_changes: int = 6
     _pumps_2_3_ramp_timeout_min: float = 60
-
-    def __init__(self, data_obj, devices_obj, aqueduct_obj):
-        """
-        Instantiation method.
-
-        :param data_obj:
-        :param devices_obj:
-        :param aqueduct_obj:
-        """
-        super().__init__(data_obj, devices_obj, aqueduct_obj)
 
     def condition(self) -> bool:
         """
@@ -822,16 +778,6 @@ class VolumeAccumulationAlarm(Alarm):
     # 1 == adjust buffer pump to force delta_m/delta_t on feed balance to 0
     # 2 == adjust buffer pump to force m on feed balance to setpoint at specified rate
     mode = 2
-
-    def __init__(self, data_obj, devices_obj, aqueduct_obj):
-        """
-        Instantiation method.
-
-        :param data_obj:
-        :param devices_obj:
-        :param aqueduct_obj:
-        """
-        super().__init__(data_obj, devices_obj, aqueduct_obj)
 
     def condition(self) -> bool:
         """

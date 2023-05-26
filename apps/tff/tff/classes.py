@@ -27,30 +27,20 @@ from tff.definitions import *
 
 class Devices(object):
     """
-    Class with members to contain each Aqueduct Device
-    Object in the TFF Setup.
+    Class representing the devices in the Aqueduct system.
 
-    PUMP1 is the MasterFlex pump between scale 1 and the TFF cartridge input, feed pump
+    The `Devices` class provides access to the different devices
+    in the Aqueduct system, such as pumps, pressure transducers,
+    balances, and pinch valves. Each device is represented by a 
+    class attribute in the `Devices` class.
 
-    PUMP2 is the MasterFlex pump between scale 2 and scale 1, buffer pump
-    ** CAN BE NONE IN 2 PUMP CONFIG **
-
-    PUMP3 is the MasterFlex pump between the TFF outlet and scale 3, retentate pump
-
-    PV is the pinch valve that controls the backpressure across the
-        TFF membrane
-
-    OHSA is the Aqueduct Device that interfaces with 3 Ohaus Adventurer
-        balances
-
-    SCIP is the Aqueduct Device that interfaces with 3 Parker SciLog
-        SciPres transducers
-
-    In DEV MODE, we create `devices.aqueduct.mfpp.obj` for easy access to
-    the methods for each device type.
-
-    In LAB MODE, we associate each Device with the Name for the device
-    that is saved on its firmware.
+    Attributes:
+        - `PUMP1`: MasterFlex pump between scale 1 and the TFF cartridge input (feed pump).
+        - `PUMP2`: MasterFlex pump between scale 2 and scale 1 (buffer pump). Can be `None` in the 2 pump config.
+        - `PUMP3`: MasterFlex pump between the TFF outlet and scale 3 (retentate pump).
+        - `PV`: Pinch valve that controls the backpressure across the TFF membrane.
+        - `OHSA`: Aqueduct Device that interfaces with 3 Ohaus Adventurer balances.
+        - `SCIP`: Aqueduct Device that interfaces with 3 Parker SciLog SciPres transducers.
 
     """
     PUMP1: PeristalticPump = None
@@ -61,6 +51,12 @@ class Devices(object):
     PV: PinchValve = None
 
     def __init__(self, aq: Aqueduct):
+        """
+        Initialize the Devices class with the Aqueduct instance.
+
+        Args:
+            aq (Aqueduct): The Aqueduct instance.
+        """
         self.PUMP1 = aq.devices.get(PUMP1_NAME)
         self.PUMP2 = aq.devices.get(PUMP2_NAME)
         self.PUMP3 = aq.devices.get(PUMP3_NAME)
@@ -71,13 +67,17 @@ class Devices(object):
 
 class Setpoints(object):
     """
-    Class that will contain all Aqueduct Setpoints
-    for the TFF setup.
+    Class representing the setpoints in the Aqueduct system.
 
-    Setpoints will display as User Params on the
-    Recipe Editor screen and can be edited
-    by a user.
+    The `Setpoints` class provides access to the different setpoints in the Aqueduct system, such as pinch valve control,
+    target pressure, and PID constants.
 
+    Attributes:
+        pinch_valve_control_active (Setpoint): Setpoint for pinch valve control activation.
+        P3_target_pressure (Setpoint): Setpoint for target pressure in P3.
+        k_p (Setpoint): Setpoint for the proportional PID constant.
+        k_i (Setpoint): Setpoint for the integral PID constant.
+        k_d (Setpoint): Setpoint for the derivative PID constant.
     """
     pinch_valve_control_active: Setpoint = None
     P3_target_pressure: Setpoint = None
@@ -88,11 +88,7 @@ class Setpoints(object):
     _aqueduct: Aqueduct = None
 
     def __init__(self, aqueduct_obj: Aqueduct):
-        """
-        Instantiation method.
 
-        :param aqueduct_obj:
-        """
         self._aqueduct = aqueduct_obj
 
         self.pinch_valve_control_active = self._aqueduct.setpoint(
@@ -131,11 +127,22 @@ class Setpoints(object):
 
 class Watchdog(object):
     """
-    The Watchdog class will have access to all of the Alarm
-    classes.
+    Class representing the watchdog functionality in the Aqueduct system.
 
+    The `Watchdog` class monitors and handles various alarms in the system. It provides methods to assign a process to
+    the alarms, turn all alarms off, check the alarms, and set quick run parameters.
+
+    Attributes:
+        over_pressure_alarm (tff.alarms.OverPressureAlarm): Alarm for over pressure condition.
+        low_pressure_alarm (tff.alarms.LowP3PressureAlarm): Alarm for low P3 pressure condition.
+        vacuum_condition_alarm (tff.alarms.VacuumConditionAlarm): Alarm for vacuum condition.
+        low_buffer_vessel_alarm (tff.alarms.BufferVesselEmptyAlarm): Alarm for low buffer vessel condition.
+        low_retentate_vessel_alarm (tff.alarms.RetentateVesselLowAlarm): Alarm for low retentate vessel condition.
+        volume_accumulation_alarm (tff.alarms.VolumeAccumulationAlarm): Alarm for volume accumulation condition.
+        _devices (Devices): The devices object.
+        _aqueduct (Aqueduct): The Aqueduct instance.
+        _data (tff.data.Data): The data object.
     """
-
     over_pressure_alarm: tff.alarms.OverPressureAlarm
     low_pressure_alarm: tff.alarms.LowP3PressureAlarm
     vacuum_condition_alarm: tff.alarms.VacuumConditionAlarm
@@ -149,11 +156,12 @@ class Watchdog(object):
 
     def __init__(self, data_obj: "tff.data.Data", devices_obj: Devices, aqueduct_obj: Aqueduct):
         """
-        Instantiation method.
+        Initialize the Watchdog class with the data, devices, and Aqueduct instance.
 
-        :param data_obj:
-        :param devices_obj:
-        :param aqueduct_obj:
+        Args:
+            data_obj (tff.data.Data): The data object.
+            devices_obj (Devices): The devices object.
+            aqueduct_obj (Aqueduct): The Aqueduct instance.
         """
         self._data: "tff.data.Data" = data_obj
         self._devices: Devices = devices_obj
@@ -174,10 +182,10 @@ class Watchdog(object):
 
     def assign_process_to_alarms(self, process):
         """
-        Set the reference to the Process instance for all of the Watchdog's alarms.
+        Assign a process to all the alarms.
 
-        :param process:
-        :return:
+        Args:
+            process: The process to assign to the alarms.
         """
         for n, m in self.__dict__.items():
             a = getattr(self, n)
@@ -186,12 +194,8 @@ class Watchdog(object):
 
     def turn_all_alarms_off(self):
         """
-        Make all alarms inactive by setting their `active`
-        attribute to False.
-
-        :return:
+        Turn off all alarms.
         """
-
         self.over_pressure_alarm.active = False
         self.low_pressure_alarm.active = False
         self.vacuum_condition_alarm.active = False
@@ -201,10 +205,7 @@ class Watchdog(object):
 
     def check_alarms(self):
         """
-        Method to run the `check` method of each Alarm
-        type.
-
-        :return:
+        Check all alarms.
         """
         try:
             self.over_pressure_alarm.check()
@@ -218,12 +219,8 @@ class Watchdog(object):
 
     def set_quick_run_params(self):
         """
-        Method to set all Member Alarms to
-        restart with accelerated ramp intervals
-
-        :return: None
+        Set quick run parameters for the alarms.
         """
-
         for n, m in self.__dict__.items():
             a = getattr(self, n)
             if isinstance(a, tff.alarms.Alarm):
@@ -523,7 +520,15 @@ class Process(object):
                     setattr(self, a, getattr(self, _r))
 
     def get_target_flowrate(self, pump_name: str) -> Union[float, None]:
+        """
+        Get the target flow rate for a specific pump during the current phase.
 
+        :param pump_name: The name of the pump to retrieve the target flow rate for.
+        :type pump_name: str
+        :return: The target flow rate in milliliters per minute (mL/min) for the specified pump
+            during the current phase. Returns None if the target flow rate is not available for the pump or phase.
+        :rtype: Union[float, None]
+        """
         if self.current_phase == self.INITIAL_CONC_PHASE:
             if pump_name == PUMP1_NAME:
                 return self.init_conc_pump_1_target_flowrate_ml_min
@@ -811,7 +816,19 @@ class Process(object):
             ))
 
     def do_init_transfer(self):
+        """
+        Perform the initial solution transfer to the retentate vessel prior to the initial concentration phase.
 
+        If a two-pump configuration is used and `two_pump_config` is False, it prompts the operator to enter
+        the volume of the solution to transfer and to place an empty vessel on Scale 1 (feed scale). It then starts
+        Pump 2 with the specified flow rate and continuously monitors the transfer process until completion.
+
+        If a two-pump configuration is not used or `two_pump_config` is True, it prompts the operator to place an empty
+        vessel on Scale 1 (feed scale) and connect all lines. It then tares Scale 1 and prompts the operator to pour
+        the product solution into the vessel on Scale 1.
+
+        :return: None
+        """
         if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
 
             if self.do_prompts:
@@ -1141,15 +1158,13 @@ class Process(object):
 
     def do_init_conc_to_diafilt_transition(self):
         """
-        ************************
-            Initial Concentration to
-            Diafiltration Transition
-        ************************
-        tare scale 3 in software
-        prompt to place an empty bottle on buffer scale
-        tare buffer scale
-        prompt to confirm liquid added to buffer scale bottle
-        input to enter number of diafiltrations required for Diafilt 1
+        Perform the transition from the initial concentration phase to the diafiltration phase.
+
+        Tares Scale 3 in software and prompts the operator to place an empty bottle on the buffer scale.
+        Tares the buffer scale and prompts the operator to confirm the liquid added to the buffer scale bottle.
+        Asks the operator to enter the number of diafiltrations required for Diafiltration 1.
+
+        :return: None
         """
         # tare scale 3
         print("[PHASE (INIT->DIA)] Taring SCALE3.")
