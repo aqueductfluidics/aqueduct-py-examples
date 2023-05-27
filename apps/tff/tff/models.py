@@ -1,5 +1,4 @@
 """Simulated Process Model Module"""
-import tff.classes
 
 
 class PressureModel(object):
@@ -35,6 +34,21 @@ class PressureModel(object):
     TXDCR1_INDEX = 0                    # inline between Pump1 and TFF feed
     TXDCR2_INDEX = 1                    # inline between TFF retentate and pinch valve
     TXDCR3_INDEX = 2                    # inline between TFF Perm2 and Pump3
+
+    :ivar filtration_start_time: Start time of the filtration process.
+    :vartype filtration_start_time: float
+
+    :ivar filter_cv_retentate: Cv value of the retentate leg of the TFF filter.
+    :vartype filter_cv_retentate: float
+
+    :param devices_obj: The Devices object containing the Aqueduct devices.
+    :type devices_obj: tff.classes.Devices
+
+    :param aqueduct: The Aqueduct object for communication with the Aqueduct system.
+    :type aqueduct: tff.classes.Aqueduct
+
+    :param data: The Data object for storing and retrieving data.
+    :type data: tff.classes.Data
     """
 
     filtration_start_time: float = None
@@ -52,6 +66,15 @@ class PressureModel(object):
         self._data = data
 
     def calc_delta_p_feed_rententate(self, R1) -> float:
+        """
+        Calculate the pressure drop between feed and retentate.
+
+        :param R1: Flow rate in the pass-through leg of the TFF filter.
+        :type R1: float
+
+        :return: Pressure drop between feed and retentate.
+        :rtype: float
+        """
         try:
             return 1 / (self.filter_cv_retentate * 0.865 / R1)**2
         except ZeroDivisionError:
@@ -59,6 +82,15 @@ class PressureModel(object):
 
     @staticmethod
     def calc_pv_cv(PV) -> float:
+        """
+        Calculate the Cv of the pinch valve.
+
+        :param PV: Pinch valve position.
+        :type PV: float
+
+        :return: Cv of the pinch valve.
+        :rtype: float
+        """
         if PV < .30:
             return max(100 - (1/PV**2), 1)
         else:
@@ -66,24 +98,78 @@ class PressureModel(object):
 
     @staticmethod
     def calc_delta_p_rententate(R1, PV) -> float:
+        """
+        Calculate the pressure drop between retentate and permeate.
+
+        :param R1: Flow rate in the pass-through leg of the TFF filter.
+        :type R1: float
+
+        :param PV: Pinch valve position.
+        :type PV: float
+
+        :return: Pressure drop between retentate and permeate.
+        :rtype: float
+        """
         try:
             return 1 / (PressureModel.calc_pv_cv(PV) * 0.865 / R1)**2
         except ZeroDivisionError:
             return 0
 
     def calc_p1(self, R1, PV, P2) -> float:
+        """
+        Calculate the P1 pressure.
+
+        :param R1: Flow rate in the pass-through leg of the TFF filter.
+        :type R1: float
+
+        :param PV: Pinch valve position.
+        :type PV: float
+
+        :param P2: P2 pressure.
+        :type P2: float
+
+        :return: P1 pressure.
+        :rtype: float
+        """
         return P2 + self.calc_delta_p_rententate(R1, PV)
 
     @staticmethod
     def calc_p2(R1, PV) -> float:
+        """
+        Calculate the P2 pressure.
+
+        :param R1: Flow rate in the pass-through leg of the TFF filter.
+        :type R1: float
+
+        :param PV: Pinch valve position.
+        :type PV: float
+
+        :return: P2 pressure.
+        :rtype: float
+        """
         return PressureModel.calc_delta_p_rententate(R1, PV)
 
     @staticmethod
     def calc_p3(P1, P2, R1, R3) -> float:
         """
+        Calculate the P3 pressure.
+
         https://aiche.onlinelibrary.wiley.com/doi/epdf/10.1002/btpr.3084
 
-        P1: 9.500, P2: 6.840, P3: 3.360, W1: -0.800, W2: -1.300, W3: 1.200, R1: 19.975, R2: 4.991, R3: 4.986, PV: 0.2575
+        :param P1: P1 pressure.
+        :type P1: float
+
+        :param P2: P2 pressure.
+        :type P2: float
+
+        :param R1: Flow rate in the pass-through leg of the TFF filter.
+        :type R1: float
+
+        :param R3: Flow rate in the permeate leg of the TFF filter.
+        :type R3: float
+
+        :return: P3 pressure.
+        :rtype: float
         """
         try:
             return (P1 + P2) / 2 - R3**2 / R1 * 3.9
@@ -91,6 +177,9 @@ class PressureModel(object):
             return 0
 
     def calc_pressures(self):
+        """
+        Calculate and update the pressures using the model equations.
+        """
         p2 = PressureModel.calc_p2(self._data.R1, self._data.PV)
         p1 = self.calc_p1(self._data.R1, self._data.PV, p2)
         p3 = PressureModel.calc_p3(p1, p2, self._data.R1, self._data.R3)

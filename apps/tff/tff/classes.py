@@ -1634,8 +1634,19 @@ class Process(object):
         # prompt operator to confirm that the retentate line is blown down (wait here)
         p = self._aqueduct.prompt(
             message="Confirm that the retentate line is blown down. Press <b>continue</b> to continue.",
-            pause_recipe=True
+            pause_recipe=False
         )
+
+        # while the prompt hasn't been executed, log data and monitor alarms
+        while p:
+            tff.methods.monitor(
+                interval_s=1,
+                adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
+                devices_obj=self._devices,
+                data=self._data,
+                watchdog=self._watchdog,
+                process=self,
+            )
 
         # stop Pump 1
         print("[PHASE (CLN)] Stopping PUMP1.")

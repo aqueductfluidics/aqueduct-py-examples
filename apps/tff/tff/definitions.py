@@ -1,4 +1,5 @@
 """Definitions Module"""
+
 PUMP1_NAME = "MFPP000001"           # feed pump, Scale1 container to TFF feed
 PUMP2_NAME = "MFPP000002"           # buffer pump, Scale2 container to Scale1 container
 PUMP3_NAME = "MFPP000003"           # permeate pump, TFF Perm2 output to Scale3 container
