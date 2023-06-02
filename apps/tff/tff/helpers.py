@@ -15,12 +15,18 @@ def format_float(value: Union[float, int, str], precision: int = 2) -> str:
     :return:
     """
     try:
-        return INVALID_CHAR if value is None else format(float(value), '.{}f'.format(precision))
+        return (
+            INVALID_CHAR
+            if value is None
+            else format(float(value), ".{}f".format(precision))
+        )
     except ValueError:
         return INVALID_CHAR
 
 
-def get_flowrate_range(start_flow_rate: float, end_flow_rate: float, steps: int) -> list:
+def get_flowrate_range(
+    start_flow_rate: float, end_flow_rate: float, steps: int
+) -> list:
     """
     Return a list of flowrates starting at `start_flow_rate` and ending at
     `end_flow_rate` of length steps with equal intervals between them.
@@ -37,7 +43,9 @@ def get_flowrate_range(start_flow_rate: float, end_flow_rate: float, steps: int)
     return [round(start_flow_rate + i * interval, 2) for i in range(0, steps)]
 
 
-def calc_product_target_mass_g(input_mass: float, concentration: float, product_density: float = 1000.) -> float:
+def calc_product_target_mass_g(
+    input_mass: float, concentration: float, product_density: float = 1000.0
+) -> float:
     """
     Calculate the target product mass, in grams, based on the input mass, in MILLIgrams, and the
     desired concentration, in g/L.
@@ -55,11 +63,14 @@ def calc_product_target_mass_g(input_mass: float, concentration: float, product_
     :return: target_mass, grams
     :rtype: float
     """
-    return input_mass / 1000. / concentration * product_density
+    return input_mass / 1000.0 / concentration * product_density
 
 
-def calc_init_conc_target_mass_g(init_conc_volume_ml: float, polysaccharide_mass_mg: float,
-                                 init_conc_target_g_l: float) -> float:
+def calc_init_conc_target_mass_g(
+    init_conc_volume_ml: float,
+    polysaccharide_mass_mg: float,
+    init_conc_target_g_l: float,
+) -> float:
     """
     Calculate the initial concentration target mass in grams.
 
@@ -80,8 +91,11 @@ def calc_init_conc_target_mass_g(init_conc_volume_ml: float, polysaccharide_mass
     return init_conc_volume_ml - (polysaccharide_mass_mg / init_conc_target_g_l)
 
 
-def calc_diafilt_target_mass_g(number_diafiltrations: float, polysaccharide_mass_mg: float,
-                               init_conc_target_g_l: float) -> float:
+def calc_diafilt_target_mass_g(
+    number_diafiltrations: float,
+    polysaccharide_mass_mg: float,
+    init_conc_target_g_l: float,
+) -> float:
     """
     Calculate the diafiltration target mass in grams.
 
@@ -103,8 +117,11 @@ def calc_diafilt_target_mass_g(number_diafiltrations: float, polysaccharide_mass
     return number_diafiltrations * (polysaccharide_mass_mg / init_conc_target_g_l)
 
 
-def calc_final_conc_target_mass_g(polysaccharide_mass_mg: float, init_conc_target_g_l: float,
-                                  final_conc_target_g_l: float) -> float:
+def calc_final_conc_target_mass_g(
+    polysaccharide_mass_mg: float,
+    init_conc_target_g_l: float,
+    final_conc_target_g_l: float,
+) -> float:
     """
     Calculate the final concentration target mass in grams.
 
@@ -123,4 +140,6 @@ def calc_final_conc_target_mass_g(polysaccharide_mass_mg: float, init_conc_targe
     :return: final_conc_target_mass_g, grams
     :rtype: float
     """
-    return (polysaccharide_mass_mg/init_conc_target_g_l) - (polysaccharide_mass_mg/final_conc_target_g_l)
+    return (polysaccharide_mass_mg / init_conc_target_g_l) - (
+        polysaccharide_mass_mg / final_conc_target_g_l
+    )

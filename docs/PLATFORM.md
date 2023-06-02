@@ -9,16 +9,16 @@
     - [Base Addition Rate Dependent](#pid-control)
 - [Contribution Opportunities](#contribution-opportunities)
 
-Aqueduct Fluidics' mission is to make automation more accessible 
-for benchtop applications in research and development and 
+Aqueduct Fluidics' mission is to make automation more accessible
+for benchtop applications in research and development and
 small scale production.
 
-Our platform enables users to conceive of, design, simulate, and 
-deploy complex systems with confidence. 
+Our platform enables users to conceive of, design, simulate, and
+deploy complex systems with confidence.
 
 ## Envisioning Your Solution ##
 
-We believe that an expansive selection of 
+We believe that an expansive selection of
 
 ## Designing Your System and Protocols ##
 
@@ -31,13 +31,13 @@ We believe that an expansive selection of
 # Platform Architecture #
 
 The core of the platform is a single-board computer that runs Aqueduct's
-core software. The Hub can be connected to a local network via ethernet 
-or Wifi or directly to a PC/Mac via ethernet. 
+core software. The Hub can be connected to a local network via ethernet
+or Wifi or directly to a PC/Mac via ethernet.
 
 
 Current Nodes:
-4 x RS232 
-    Compatible with 
+4 x RS232
+    Compatible with
         Ohaus Adventurer/Scout balances
         Parker SciLog pressure transducers
         New Era Syringe Pumps
@@ -45,25 +45,25 @@ Current Nodes:
 
 
 Mixed Signal Digital/Analog
-    Compatible with 
+    Compatible with
         MasterFlex 07552 peristaltic pump
 
 
 2 x CANBus, 2 x RS485
-    Compatible with 
+    Compatible with
         Aqueduct 6 x Peristaltic Pump, Aqueduct 12 x Peristaltic Pump
         TriContinent C(X) Series Syringe Pumps
 
 
 Motor Driver +
-    Compatible with 
+    Compatible with
         Aqueduct Peristaltic Pump
         Aqueduct Rotary Selector Valve
         Aqueduct Pinch Valve
 
 
 3 x pH Probe
-    Compatible with 
+    Compatible with
         Aqueduct 3x pH Probe (compatible with most BNC termintated electrodes)
 
 # FAQ #
@@ -72,9 +72,9 @@ Motor Driver +
 
 * What is a Setup?
 
-    A: A **Setup** file contains the type and number of Devices (such as pumps, valves, or sensors), 
-    Containers (such as beakers, vials, or other labware), Connections (a representation of tubing, 
-    both external and internal to Devices or Containers), and Inserts (alignment guides for 
+    A: A **Setup** file contains the type and number of Devices (such as pumps, valves, or sensors),
+    Containers (such as beakers, vials, or other labware), Connections (a representation of tubing,
+    both external and internal to Devices or Containers), and Inserts (alignment guides for
     robotic arms). It also contains the layout of the Device icons to generate the user interface.
 
 * What is a Recipe?
@@ -86,14 +86,14 @@ Motor Driver +
 
 * What is a Layout?
 
-    A: A **Layout** file contains arrangement of Widgets and Widget metadata that generate the 
-    user interface. For instance, which data series are plotted on the Chart Widget on Tab 1 
-    is stored in the Layout file. 
+    A: A **Layout** file contains arrangement of Widgets and Widget metadata that generate the
+    user interface. For instance, which data series are plotted on the Chart Widget on Tab 1
+    is stored in the Layout file.
 
 * What is a Library?
 
-    A: A **Library** is a collection of related Python classes and methods. We've grouped the 
-    libraries by application (for instance, `ph_control` or `filtration`). Libraries 
+    A: A **Library** is a collection of related Python classes and methods. We've grouped the
+    libraries by application (for instance, `ph_control` or `filtration`). Libraries
     are intended to allow for reuse of common methods and classes across multiple Recipes.
 
 * What is the Hub?
@@ -120,9 +120,9 @@ Motor Driver +
 
 * What is the Hub?
 
-    The Aqueduct Hub houses a computer and the electronics necessary to communicate with Device Nodes. 
+    The Aqueduct Hub houses a computer and the electronics necessary to communicate with Device Nodes.
     The Hub computer runs a server that can be accessed from a browser like Google Chrome, Mozilla Firefox, or Apple Safari.
-    To access the Aqueduct application, the Hub computer needs to be 
+    To access the Aqueduct application, the Hub computer needs to be
     powered-on and connected to a local network, computer, or monitor.
 
 * What types of Device Nodes are available?

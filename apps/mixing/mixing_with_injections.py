@@ -5,7 +5,11 @@ import json
 import threading
 
 from aqueduct.aqueduct import (
-    Aqueduct, Setpoint, Recordable, UserInputTypes, ALLOWED_DTYPES
+    Aqueduct,
+    Setpoint,
+    Recordable,
+    UserInputTypes,
+    ALLOWED_DTYPES,
 )
 
 import devices.aqueduct.trcx.obj
@@ -28,17 +32,20 @@ def format_float(value: Union[float, int, str], precision: int = 2) -> str:
     :return:
     """
     try:
-        return "~" if value is None else float(format(float(value), '.{}f'.format(precision)))
+        return (
+            "~"
+            if value is None
+            else float(format(float(value), ".{}f".format(precision)))
+        )
     except ValueError:
         return "~"
-
 
 
 PUMP_NAME = "TRCX000001"
 MIXER_NAME = "EUST000001"
 
 
-class Devices(object):
+class Devices:
     """
     Class with members to contain each Aqueduct Device
     Object in the Setup.
@@ -51,6 +58,7 @@ class Devices(object):
     In LAB MODE, we associate each Device with the Name for the device
     that is saved on its firmware.
     """
+
     PUMP: devices.aqueduct.trcx.obj.TRCX = None
     MIXER: devices.aqueduct.eust.obj.EUST = None
 
@@ -61,18 +69,23 @@ class Devices(object):
     @classmethod
     def generate_dev_devices(cls):
         dev = Devices()
-        dev.PUMP = devices.aqueduct.trcx.obj.TRCX(**devices.aqueduct.trcx.constants.BASE)
-        dev.MIXER = devices.aqueduct.eust.obj.EUST(**devices.aqueduct.eust.constants.BASE)
+        dev.PUMP = devices.aqueduct.trcx.obj.TRCX(
+            **devices.aqueduct.trcx.constants.BASE
+        )
+        dev.MIXER = devices.aqueduct.eust.obj.EUST(
+            **devices.aqueduct.eust.constants.BASE
+        )
 
         return dev
 
 
-class DataCacheItem(object):
+class DataCacheItem:
     """
     A class to structure cached data. Mirrors the structure of the
     Data class.
     """
-    temperature_C: Union[float, None] = None  
+
+    temperature_C: Union[float, None] = None
     timestamp: Union[float, None] = None  # timestamp of last update
 
     def __init__(self, **kwargs):
@@ -81,10 +94,11 @@ class DataCacheItem(object):
                 setattr(self, k, v)
 
 
-class TrailingData(object):
+class TrailingData:
     """
     Class used to format trailing rate-of-change and mean pH values.
     """
+
     temperature_per_min: Union[float, None]
     temperature_mean: Union[float, None]
 
@@ -105,10 +119,11 @@ class TrailingData(object):
         print(self.as_string())
 
 
-class DataCache(object):
+class DataCache:
     """
     A Class to store cached data.
     """
+
     # a cache of the the previous data objects, should be cleared after
     # ramps to begin calculating from steady state
     # newest value last
@@ -130,7 +145,7 @@ class DataCache(object):
     _scheduled_time: float = None
 
     # the cache will only accept items with a timestamp delta of this or greater
-    _interval_s: float = 1.
+    _interval_s: float = 1.0
 
     # ref to Devices
     _devices: Devices = None
@@ -158,7 +173,7 @@ class DataCache(object):
             self._cache.append(item)
 
             # trim cache length if it exceeds the _length param
-            self._cache = self._cache[-1 * self._length:]
+            self._cache = self._cache[-1 * self._length :]
 
             # schedule the next recording time
             self._scheduled_time = self._interval_s + data.timestamp
@@ -190,16 +205,19 @@ class DataCache(object):
             # if there are, only iterate through the vals after the break
             for data_index in range(1, iter_len - 1):
 
-                _dt = self._cache[-data_index].timestamp - self._cache[-(data_index + 1)].timestamp
+                _dt = (
+                    self._cache[-data_index].timestamp
+                    - self._cache[-(data_index + 1)].timestamp
+                )
 
                 # if we're on the second+ iteration, we're checking
                 # the time interval tolerance
                 if data_index > 1:
 
                     if not (
-                        delta_t_interval_s - delta_t_interval_tolerance_s < 
-                        _dt <
-                        delta_t_interval_s + delta_t_interval_tolerance_s
+                        delta_t_interval_s - delta_t_interval_tolerance_s
+                        < _dt
+                        < delta_t_interval_s + delta_t_interval_tolerance_s
                     ):
                         print(f"time interval tolerance exceeded: {_dt}s")
                         break
@@ -212,18 +230,24 @@ class DataCache(object):
                 current_temperature = self._cache[-data_index].temperature_C
                 previous_temperature = self._cache[-(data_index + 1)].temperature_C
 
-                temperature_roc_values.append(((current_temperature - previous_temperature) / _dt) * 60.)
+                temperature_roc_values.append(
+                    ((current_temperature - previous_temperature) / _dt) * 60.0
+                )
                 temperature_values.append(current_temperature)
 
             if len(temperature_roc_values) < 1:
                 # not enough data to calculate
-                print(f"Trailing calc exception, not enough data to calculate: {temperature_values}, {temperature_roc_values}")
+                print(
+                    f"Trailing calc exception, not enough data to calculate: {temperature_values}, {temperature_roc_values}"
+                )
                 return None
 
-            temperature_roc_mean = 0            
+            temperature_roc_mean = 0
             temperature_mean = 0
-          
-            for measurement_id, measurement_list in enumerate([temperature_roc_values, temperature_values]):
+
+            for measurement_id, measurement_list in enumerate(
+                [temperature_roc_values, temperature_values]
+            ):
                 vals = measurement_list
                 vals_mean = sum(vals) / len(vals)
 
@@ -232,14 +256,14 @@ class DataCache(object):
 
                     def _in_tolerance(v):
                         return (
-                            vals_mean - self._tolerances[measurement_id] < 
-                            v <
-                            vals_mean + self._tolerances[measurement_id]
+                            vals_mean - self._tolerances[measurement_id]
+                            < v
+                            < vals_mean + self._tolerances[measurement_id]
                         )
 
                     # remove outliers
                     vals = list(filter(_in_tolerance, vals))
-                    
+
                     # recalc the mean less outliers
                     vals_mean = sum(vals) / len(vals)
 
@@ -264,7 +288,9 @@ class DataCache(object):
                 print("No values within tolerances")
             return None
 
-    def calc_trailing_mean(self, length: int = 3, precision: int = 3) -> Union[float, None]:
+    def calc_trailing_mean(
+        self, length: int = 3, precision: int = 3
+    ) -> Union[float, None]:
         try:
             length = min(length, len(self._cache))
             return round(sum(a.pH for a in self._cache[-length::]) / length, precision)
@@ -283,15 +309,18 @@ class DataCache(object):
             return None
 
 
-class Data(object):
+class Data:
     """
     Class to help with logging and updating data.
     """
-    temperature_C: Union[float, None] = None  
+
+    temperature_C: Union[float, None] = None
     timestamp: Union[float, None] = None
-    
+
     log_timestamp: Union[float, None] = None  # timestamp of last write to log file
-    _logging_interval_s: Union[int, float] = 5  # interval in seconds between writes to log file
+    _logging_interval_s: Union[
+        int, float
+    ] = 5  # interval in seconds between writes to log file
 
     _cache: DataCache = None
 
@@ -315,7 +344,7 @@ class Data(object):
 
         self._cache: DataCache = DataCache(self._devices)
 
-    def update_data(self, mixer_index = 0) -> None:
+    def update_data(self, mixer_index=0) -> None:
         """
         Method to update the global data dictionary.
 
@@ -341,15 +370,17 @@ class Data(object):
         :return: None
         """
         self._aqueduct.log(
-            "temp: {0}".format(format_float(self.temperature_C, 2),)
+            "temp: {}".format(
+                format_float(self.temperature_C, 2),
+            )
         )
 
     def log_data_at_interval(
-            self, 
-            interval_s: float = None,
-            overwrite_file: bool = True,
-            update_before_log: bool = False
-        ) -> None:
+        self,
+        interval_s: float = None,
+        overwrite_file: bool = True,
+        update_before_log: bool = False,
+    ) -> None:
         """
         Method to log the data dictionary at a specified interval in seconds.
 
@@ -365,14 +396,14 @@ class Data(object):
             interval_s = self._logging_interval_s
 
         now = time.time()
-        
+
         if self.log_timestamp is not None:
             if now > (self.log_timestamp + interval_s):
                 self.update_data()
                 self.log_data()
                 self._process.save_log_file()
                 self.log_timestamp = now
-        
+
         else:
             self.update_data()
             self.log_data()
@@ -386,8 +417,8 @@ class Data(object):
         :return: dictionary
         """
         keys = [
-            ('temperature_C', 3),
-            ('timestamp', 3),
+            ("temperature_C", 3),
+            ("timestamp", 3),
         ]
         d = {}
         for k in keys:
@@ -402,12 +433,13 @@ class Data(object):
             print("No object returned.")
 
 
-class ProcessHandler(object):
+class ProcessHandler:
     """
     Class to handle processing each of the reaction stations
     as they proceed through the forumulation steps.
 
     """
+
     terminate: Setpoint = None
 
     pump0_dose_ml: Setpoint = None
@@ -428,7 +460,7 @@ class ProcessHandler(object):
 
     # control the period in seconds at which
     # the process prints the status of all stations to screen
-    status_print_interval_s: float = 360.
+    status_print_interval_s: float = 360.0
     last_status_print_time: float = None
 
     # the heartbeat interval in seconds to wait between processing
@@ -443,7 +475,9 @@ class ProcessHandler(object):
     _data: Data = None
     _aqueduct: Aqueduct = None
 
-    def __init__(self, devices_obj: Devices = None, aqueduct: Aqueduct = None, data: Data = None):
+    def __init__(
+        self, devices_obj: Devices = None, aqueduct: Aqueduct = None, data: Data = None
+    ):
 
         if isinstance(devices_obj, Devices):
             self._devices = devices_obj
@@ -475,8 +509,9 @@ class ProcessHandler(object):
         :return:
         """
 
-        if self.last_status_print_time is None or \
-                (time.time() > self.last_status_print_time + self.status_print_interval_s):
+        if self.last_status_print_time is None or (
+            time.time() > self.last_status_print_time + self.status_print_interval_s
+        ):
             self.print_all_stations()
             self.last_status_print_time = time.time()
 
@@ -513,7 +548,7 @@ class ProcessHandler(object):
 
         self.temperature_ramp_C_min = self._aqueduct.setpoint(
             name="temperature_ramp_C_min",
-            value=.5,
+            value=0.5,
             dtype=float.__name__,
         )
 
@@ -529,7 +564,7 @@ class ProcessHandler(object):
             dtype=float.__name__,
         )
 
-    def make_recordables(self): 
+    def make_recordables(self):
         for n in [
             "pump0_mL_added",
             "pump1_mL_added",
@@ -547,26 +582,28 @@ class ProcessHandler(object):
 
         vc = self._devices.PUMP.make_valve_command(position=4)
         self._devices.PUMP.set_valves(**{f"pump{pump_index}": vc})
-        
+
         time.sleep(1)
-        
+
         wdrw_c = self._devices.PUMP.make_command(
             direction=self._devices.PUMP.WITHDRAW,
             rate_value=5,
             rate_units=self._devices.PUMP.ML_MIN,
             finite_value=3,
-            finite_units=self._devices.PUMP.ML_MIN
+            finite_units=self._devices.PUMP.ML_MIN,
         )
-        self._devices.PUMP.pump(wait_for_complete=False, **{f"pump{pump_index}": wdrw_c})
-        
+        self._devices.PUMP.pump(
+            wait_for_complete=False, **{f"pump{pump_index}": wdrw_c}
+        )
+
         while self._devices.PUMP.is_active(**{f"pump{pump_index}": True}):
             time.sleep(1)
-        
+
         vc = self._devices.PUMP.make_valve_command(position=3)
         self._devices.PUMP.set_valves(**{f"pump{pump_index}": vc})
-        
+
         time.sleep(1)
-        
+
         wdrw_c = self._devices.PUMP.make_command(
             direction=self._devices.PUMP.INFUSE,
             rate_value=1,
@@ -575,7 +612,9 @@ class ProcessHandler(object):
             finite_units=self._devices.PUMP.ML_MIN,
             record=True,
         )
-        self._devices.PUMP.pump(wait_for_complete=False, **{f"pump{pump_index}": wdrw_c})
+        self._devices.PUMP.pump(
+            wait_for_complete=False, **{f"pump{pump_index}": wdrw_c}
+        )
 
         time.sleep(1)
 
@@ -593,7 +632,9 @@ class ProcessHandler(object):
 
         self._devices.MIXER.set_sim_temperatures(values=(30,))
         self._devices.MIXER.set_sim_noise(values=(0.2,))
-        self._devices.MIXER.set_sim_rates_of_change(values=(self.temperature_ramp_C_min.value,))
+        self._devices.MIXER.set_sim_rates_of_change(
+            values=(self.temperature_ramp_C_min.value,)
+        )
 
         self._devices.MIXER.start(record=True)
 
@@ -606,7 +647,9 @@ class ProcessHandler(object):
                 except Exception as e:
                     print(e)
 
-                self._data.log_data_at_interval(interval_s=5, overwrite_file=True, update_before_log=False)
+                self._data.log_data_at_interval(
+                    interval_s=5, overwrite_file=True, update_before_log=False
+                )
                 time.sleep(1)
 
         stop_data_thread = threading.Event()
@@ -622,20 +665,21 @@ class ProcessHandler(object):
 
         print(f"Starting mixer...")
         mc = self._devices.MIXER.make_command(
-            direction=self._devices.MIXER.CLOCKWISE, 
-            rpm=600
+            direction=self._devices.MIXER.CLOCKWISE, rpm=600
         )
         self._devices.MIXER.start_mixers(mixer0=mc)
 
         while not self.terminate.value:
 
-            for i, s in enumerate([
-                self.pump0_dose_delay_s,
-                self.pump1_dose_delay_s,
-                self.pump2_dose_delay_s,
-            ]):
+            for i, s in enumerate(
+                [
+                    self.pump0_dose_delay_s,
+                    self.pump1_dose_delay_s,
+                    self.pump2_dose_delay_s,
+                ]
+            ):
                 if (
-                    time.time() - start_time > s.value 
+                    time.time() - start_time > s.value
                     and pump_threads[i] is None
                     and temperature_setpoint_reached
                 ):
@@ -645,27 +689,29 @@ class ProcessHandler(object):
                     time.sleep(0.5)
 
             if (
-                self._data.temperature_C >= self.temperature_setpoint_C.value 
+                self._data.temperature_C >= self.temperature_setpoint_C.value
                 and not temperature_setpoint_reached
             ):
-                print(f"Temperature setpoint {self.temperature_setpoint_C.value} C reached.")
+                print(
+                    f"Temperature setpoint {self.temperature_setpoint_C.value} C reached."
+                )
                 temperature_setpoint_reached = True
                 temperature_hold_start_time = time.time()
                 self._devices.MIXER.set_sim_rates_of_change(values=(0,))
 
             if (
-                temperature_setpoint_reached 
+                temperature_setpoint_reached
                 and not temperature_rampdown_started
-                and time.time() - temperature_hold_start_time > self.temperature_hold_min.value * 60
+                and time.time() - temperature_hold_start_time
+                > self.temperature_hold_min.value * 60
             ):
                 print(f"Temperature hold completed, beginning ramp down...")
                 temperature_rampdown_started = True
-                self._devices.MIXER.set_sim_rates_of_change(values=(-1 * self.temperature_ramp_C_min.value,))
+                self._devices.MIXER.set_sim_rates_of_change(
+                    values=(-1 * self.temperature_ramp_C_min.value,)
+                )
 
-            if (
-                temperature_rampdown_started
-                and self._data.temperature_C <= 30
-            ):
+            if temperature_rampdown_started and self._data.temperature_C <= 30:
                 print("Temperature rampdown complete...recipe completing.")
                 self.terminate.value = True
 
@@ -677,17 +723,17 @@ class ProcessHandler(object):
 
         stop_data_thread.set()
         data_thread.join()
-            
 
 
 if __name__ == "__main__":
     import config
+
     # local imports
     if not config.LAB_MODE_ENABLED:
 
         from aqueduct.aqueduct import Aqueduct
 
-        aqueduct = Aqueduct('G', None, None, None)
+        aqueduct = Aqueduct("G", None, None, None)
 
         # make the Devices object
         devices = Devices.generate_dev_devices()
@@ -695,7 +741,7 @@ if __name__ == "__main__":
     else:
 
         # pass the aqueduct object
-        aqueduct = globals().get('aqueduct')
+        aqueduct = globals().get("aqueduct")
 
         # pass the globals dictionary, which will have the
         # objects for the Devices already instantiated

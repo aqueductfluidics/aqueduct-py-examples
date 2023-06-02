@@ -13,11 +13,12 @@ from typing import List, Union
 from tff.definitions import *
 
 
-class TrailingRates(object):
+class TrailingRates:
     """
     Class used to format trailing rate-of-change values for the
     balances and pump rates.
     """
+
     R1_ml_min: Union[float, None]
     W1_ml_min: Union[float, None]
     R2_ml_min: Union[float, None]
@@ -25,8 +26,15 @@ class TrailingRates(object):
     R3_ml_min: Union[float, None]
     W3_ml_min: Union[float, None]
 
-    def __init__(self, R1_ml_min: float, W1_ml_min: float, R2_ml_min: float,
-                 W2_ml_min: float, R3_ml_min: float, W3_ml_min: float):
+    def __init__(
+        self,
+        R1_ml_min: float,
+        W1_ml_min: float,
+        R2_ml_min: float,
+        W2_ml_min: float,
+        R3_ml_min: float,
+        W3_ml_min: float,
+    ):
         """
 
         :param R1_ml_min:
@@ -44,21 +52,24 @@ class TrailingRates(object):
         self.W3_ml_min = W3_ml_min
 
     def print(self):
-        print("[DATA] W1: {} mL/min, R1: {} mL/min, W2: {} mL/min, R2: {} mL/min, W3: {} mL/min, R3: {} mL/min".format(
-            tff.helpers.format_float(self.W1_ml_min, 3),
-            tff.helpers.format_float(self.R1_ml_min, 2),
-            tff.helpers.format_float(self.W2_ml_min, 3),
-            tff.helpers.format_float(self.R2_ml_min, 2),
-            tff.helpers.format_float(self.W3_ml_min, 3),
-            tff.helpers.format_float(self.R3_ml_min, 2),
-        ))
+        print(
+            "[DATA] W1: {} mL/min, R1: {} mL/min, W2: {} mL/min, R2: {} mL/min, W3: {} mL/min, R3: {} mL/min".format(
+                tff.helpers.format_float(self.W1_ml_min, 3),
+                tff.helpers.format_float(self.R1_ml_min, 2),
+                tff.helpers.format_float(self.W2_ml_min, 3),
+                tff.helpers.format_float(self.R2_ml_min, 2),
+                tff.helpers.format_float(self.W3_ml_min, 3),
+                tff.helpers.format_float(self.R3_ml_min, 2),
+            )
+        )
 
 
-class DataCacheItem(object):
+class DataCacheItem:
     """
     A class to structure cached data. Mirrors the structure of the
     Data class.
     """
+
     P1: Union[float, None] = None  # transducer 1 pressure reading, psi
     P2: Union[float, None] = None  # transducer 2 pressure reading, psi
     P3: Union[float, None] = None  # transducer 3 pressure reading, psi
@@ -68,7 +79,9 @@ class DataCacheItem(object):
     R1: Union[float, None] = None  # PUMP1 flowrate, mL/min
     R2: Union[float, None] = None  # PUMP2 flowrate, mL/min
     R3: Union[float, None] = None  # PUMP3 flowrate, mL/min
-    PV: Union[float, None] = None  # pinch valve percent open, 1. == fully open, 0. == fully closed
+    PV: Union[
+        float, None
+    ] = None  # pinch valve percent open, 1. == fully open, 0. == fully closed
     timestamp: Union[float, None] = None  # timestamp of last update
 
     def __init__(self, **kwargs):
@@ -77,10 +90,11 @@ class DataCacheItem(object):
                 setattr(self, k, v)
 
 
-class DataCache(object):
+class DataCache:
     """
     A Class to store cached data.
     """
+
     # a cache of the the previous data objects, should be cleared after
     # ramps to begin calculating from steady state
     # newest value last
@@ -96,7 +110,7 @@ class DataCache(object):
     _scheduled_time: float = None
 
     # the period in seconds of addition to the list
-    _interval_s: float = 5.
+    _interval_s: float = 5.0
 
     # ref to Devices
     _devices: "Devices" = None
@@ -127,7 +141,7 @@ class DataCache(object):
             self._cache.append(item)
 
             # trim cache length if it exceeds the set length
-            self._cache = self._cache[-1 * self._length:]
+            self._cache = self._cache[-1 * self._length :]
 
             # schedule the next recording time
             self._scheduled_time = self._interval_s + data.timestamp
@@ -166,10 +180,10 @@ class DataCache(object):
             delta_t_interval_tolerance_s = 1
 
             if isinstance(self._devices.PUMP2, PeristalticPump):
-                enum_keys = (('W1', 'R1'), ('W2', 'R2'), ('W3', 'R3'))
+                enum_keys = (("W1", "R1"), ("W2", "R2"), ("W3", "R3"))
             else:
                 # have to use R3 in lieu of R2 when PUMP2 is absent
-                enum_keys = (('W1', 'R1'), ('W2', 'R3'), ('W3', 'R3'))
+                enum_keys = (("W1", "R1"), ("W2", "R3"), ("W3", "R3"))
 
             # loop through the cache in reverse
             for i in range(1, len(self._cache) - 1):
@@ -181,8 +195,11 @@ class DataCache(object):
                 if i > 1:
                     # check for aperiodicity in logging interval, break if the interval is outside the last interval
                     # +/- delta_t_interval_tolerance_s
-                    if not (delta_t_interval_s - delta_t_interval_tolerance_s < _dt <
-                            delta_t_interval_s + delta_t_interval_tolerance_s):
+                    if not (
+                        delta_t_interval_s - delta_t_interval_tolerance_s
+                        < _dt
+                        < delta_t_interval_s + delta_t_interval_tolerance_s
+                    ):
                         break
 
                 # update the interval
@@ -191,14 +208,19 @@ class DataCache(object):
                 for jj, k in enumerate(enum_keys):
                     # calculate the rate of change in mL/min on the balances
                     balance_delta_mass_g_delta_t_s = (
-                            (getattr(self._cache[-i], k[0]) - getattr(self._cache[-(i + 1)], k[0])) / _dt
-                    )
+                        getattr(self._cache[-i], k[0])
+                        - getattr(self._cache[-(i + 1)], k[0])
+                    ) / _dt
 
                     # multiply by 60 to convert to g/min
-                    balance_accumulation_list_g_min[jj].append(balance_delta_mass_g_delta_t_s * 60.)
+                    balance_accumulation_list_g_min[jj].append(
+                        balance_delta_mass_g_delta_t_s * 60.0
+                    )
 
-                    pump_nominal_rate_ml_min = (getattr(self._cache[-i], k[1]) + getattr(self._cache[-(i + 1)],
-                                                                                         k[1])) / 2.
+                    pump_nominal_rate_ml_min = (
+                        getattr(self._cache[-i], k[1])
+                        + getattr(self._cache[-(i + 1)], k[1])
+                    ) / 2.0
 
                     pump_nominal_rate_list_ml_min[jj].append(pump_nominal_rate_ml_min)
 
@@ -210,7 +232,11 @@ class DataCache(object):
                 rate_mean = rate_sum / len(rate_list)
                 # threshold deviation for determining an outlier
                 threshold_ml_min = 5
-                good_rates = [r for r in rate_list if (rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)]
+                good_rates = [
+                    r
+                    for r in rate_list
+                    if (rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)
+                ]
                 # set the mean with the good values
                 balance_accumulation_mean_g_min[i] = sum(good_rates) / len(good_rates)
 
@@ -220,7 +246,11 @@ class DataCache(object):
                 rate_mean = rate_sum / len(rate_list)
                 # threshold deviation for determining an outlier
                 threshold_ml_min = 5
-                good_rates = [r for r in rate_list if (rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)]
+                good_rates = [
+                    r
+                    for r in rate_list
+                    if (rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)
+                ]
                 # set the mean with the good values
                 pump_nominal_rate_mean_ml_min[i] = sum(good_rates) / len(good_rates)
 
@@ -251,11 +281,12 @@ class DataCache(object):
             return None
 
 
-class Data(object):
+class Data:
     """
     Class to help with logging and updating data for the
     TFF setup.
     """
+
     P1: Union[float, None] = None  # transducer 1 pressure reading, psi
     P2: Union[float, None] = None  # transducer 2 pressure reading, psi
     P3: Union[float, None] = None  # transducer 3 pressure reading, psi
@@ -265,11 +296,15 @@ class Data(object):
     R1: Union[float, None] = None  # PUMP1 flowrate, mL/min
     R2: Union[float, None] = None  # PUMP2 flowrate, mL/min
     R3: Union[float, None] = None  # PUMP3 flowrate, mL/min
-    PV: Union[float, None] = None  # pinch valve percent open, 1. == fully open, 0. == fully closed
+    PV: Union[
+        float, None
+    ] = None  # pinch valve percent open, 1. == fully open, 0. == fully closed
 
     timestamp: Union[float, None] = None  # timestamp of last update
     log_timestamp: Union[float, None] = None  # timestamp of last write to log file
-    _logging_interval_s: Union[int, float] = 5  # interval in seconds between writes to log file
+    _logging_interval_s: Union[
+        int, float
+    ] = 5  # interval in seconds between writes to log file
 
     _devices: "Devices" = None  # pointer to Devices object
     _aqueduct: Aqueduct = None  # pointer to Aqueduct object
@@ -304,10 +339,7 @@ class Data(object):
         self.init_sim_values()
 
     def update_data(
-            self,
-            retries: int = 5,
-            debug: bool = False,
-            pause_on_error: bool = False
+        self, retries: int = 5, debug: bool = False, pause_on_error: bool = False
     ) -> None:
         """
         Method to update the global data dictionary.
@@ -337,15 +369,17 @@ class Data(object):
                     # prompt operator to place empty vessel on feed scale
                     self._aqueduct.prompt(
                         message="Error updating balance weight reading. Ensure all balances are connected."
-                                " Press <b>continue</b> to resume recipe.",
-                        pause_recipe=True
+                        " Press <b>continue</b> to resume recipe.",
+                        pause_recipe=True,
                     )
                 return
 
             else:
                 # add a little time delay before refreshing
                 if debug is True:
-                    print(f"[DATA (ERROR)] Invalid weight reading...retries left {retries - 1}")
+                    print(
+                        f"[DATA (ERROR)] Invalid weight reading...retries left {retries - 1}"
+                    )
                 time.sleep(0.5)
                 self.update_data(retries=retries - 1)
 
@@ -360,14 +394,20 @@ class Data(object):
             balance_rocs = [0, 0, 0, 0]
             # if PUMP2 is present, use this to drive sim value balance
             if isinstance(self._devices.PUMP2, PeristalticPump):
-                balance_rocs[SCALE2_INDEX] = (-1 * self.R2) * (1. + self._scale2_sim_error_pct)
+                balance_rocs[SCALE2_INDEX] = (-1 * self.R2) * (
+                    1.0 + self._scale2_sim_error_pct
+                )
             # else, use PUMP3 to drive it
             else:
-                balance_rocs[SCALE2_INDEX] = (-1 * self.R3) * (1. + self._scale2_sim_error_pct)
-            balance_rocs[SCALE3_INDEX] = self.R3 * (1. + self._scale3_sim_error_pct)
-            balance_rocs[SCALE1_INDEX] = -1 * (balance_rocs[SCALE2_INDEX] + balance_rocs[SCALE3_INDEX])
+                balance_rocs[SCALE2_INDEX] = (-1 * self.R3) * (
+                    1.0 + self._scale2_sim_error_pct
+                )
+            balance_rocs[SCALE3_INDEX] = self.R3 * (1.0 + self._scale3_sim_error_pct)
+            balance_rocs[SCALE1_INDEX] = -1 * (
+                balance_rocs[SCALE2_INDEX] + balance_rocs[SCALE3_INDEX]
+            )
             # mL/min to mL/s
-            balance_rocs = [r / 60. for r in balance_rocs]
+            balance_rocs = [r / 60.0 for r in balance_rocs]
             self._devices.OHSA.set_sim_rates_of_change(balance_rocs)
             self._model.calc_pressures()
 
@@ -388,16 +428,16 @@ class Data(object):
         :return: None
         """
         self._aqueduct.log(
-            "P1: {0}, "
-            "P2: {1}, "
-            "P3: {2}, "
-            "W1: {3}, "
-            "W2: {4}, "
-            "W3: {5}, "
-            "R1: {6}, "
-            "R2: {7}, "
-            "R3: {8}, "
-            "PV: {9}".format(
+            "P1: {}, "
+            "P2: {}, "
+            "P3: {}, "
+            "W1: {}, "
+            "W2: {}, "
+            "W3: {}, "
+            "R1: {}, "
+            "R2: {}, "
+            "R3: {}, "
+            "PV: {}".format(
                 tff.helpers.format_float(self.P1, 3),
                 tff.helpers.format_float(self.P2, 3),
                 tff.helpers.format_float(self.P3, 3),
@@ -407,8 +447,9 @@ class Data(object):
                 tff.helpers.format_float(self.R1, 3),
                 tff.helpers.format_float(self.R2, 3),
                 tff.helpers.format_float(self.R3, 3),
-                tff.helpers.format_float(self.PV, 4)
-            ))
+                tff.helpers.format_float(self.PV, 4),
+            )
+        )
 
     def as_dict(self) -> dict:
         """
@@ -418,24 +459,28 @@ class Data(object):
         :return: dictionary
         """
         keys = [
-            ('P1', 3),
-            ('P2', 3),
-            ('P3', 3),
-            ('W1', 3),
-            ('W2', 3),
-            ('W3', 3),
-            ('R1', 3),
-            ('R2', 3),
-            ('R3', 3),
-            ('PV', 4),
-            ('timestamp',),
+            ("P1", 3),
+            ("P2", 3),
+            ("P3", 3),
+            ("W1", 3),
+            ("W2", 3),
+            ("W3", 3),
+            ("R1", 3),
+            ("R2", 3),
+            ("R3", 3),
+            ("PV", 4),
+            ("timestamp",),
         ]
         d = {}
         for k in keys:
-            if k[0] == 'timestamp':
-                d.update({k[0]: getattr(self, k[0], None).strftime('%Y-%m-%dT%H:%M:%S.%f')})
+            if k[0] == "timestamp":
+                d.update(
+                    {k[0]: getattr(self, k[0], None).strftime("%Y-%m-%dT%H:%M:%S.%f")}
+                )
             else:
-                d.update({k[0]: tff.helpers.format_float(getattr(self, k[0], None), k[1])})
+                d.update(
+                    {k[0]: tff.helpers.format_float(getattr(self, k[0], None), k[1])}
+                )
         return d
 
     def log_data_at_interval(self, interval_s: float = None) -> None:
@@ -469,28 +514,48 @@ class Data(object):
         """
         try:
             if self._extrapolation_timestamp is not None:
-                scale3_delta_m_g = self.R3 / 60. * (self.timestamp - self._extrapolation_timestamp)
+                scale3_delta_m_g = (
+                    self.R3 / 60.0 * (self.timestamp - self._extrapolation_timestamp)
+                )
 
-                scale3_mass_g = self.W3 + scale3_delta_m_g * (1. + self._scale3_sim_error_pct)
+                scale3_mass_g = self.W3 + scale3_delta_m_g * (
+                    1.0 + self._scale3_sim_error_pct
+                )
 
                 # BUFFER pump, debit this value
                 # if PUMP2 is present, drive with PUMP2
                 if isinstance(self._devices.PUMP2, PeristalticPump):
-                    scale2_delta_m_g = self.R2 / 60. * (self.timestamp - self._extrapolation_timestamp)
-                    scale2_mass_g = self.W2 - scale2_delta_m_g * (1. + self._scale2_sim_error_pct)
+                    scale2_delta_m_g = (
+                        self.R2
+                        / 60.0
+                        * (self.timestamp - self._extrapolation_timestamp)
+                    )
+                    scale2_mass_g = self.W2 - scale2_delta_m_g * (
+                        1.0 + self._scale2_sim_error_pct
+                    )
 
                 else:
-                    scale2_delta_m_g = self.R3 / 60. * (self.timestamp - self._extrapolation_timestamp)
-                    scale2_mass_g = self.W2 - scale2_delta_m_g * (1. + self._scale2_sim_error_pct)
+                    scale2_delta_m_g = (
+                        self.R3
+                        / 60.0
+                        * (self.timestamp - self._extrapolation_timestamp)
+                    )
+                    scale2_mass_g = self.W2 - scale2_delta_m_g * (
+                        1.0 + self._scale2_sim_error_pct
+                    )
 
                 # FEED pump, adding from BUFFER, debiting from PERMEATE
-                scale1_mass_g = self.W1 + (scale2_delta_m_g - scale3_delta_m_g) * (1. + self._scale1_sim_error_pct)
+                scale1_mass_g = self.W1 + (scale2_delta_m_g - scale3_delta_m_g) * (
+                    1.0 + self._scale1_sim_error_pct
+                )
 
-                self._devices.OHSA.set_sim_weights({
-                    SCALE1_INDEX: scale1_mass_g,
-                    SCALE2_INDEX: scale2_mass_g,
-                    SCALE3_INDEX: scale3_mass_g
-                })
+                self._devices.OHSA.set_sim_weights(
+                    {
+                        SCALE1_INDEX: scale1_mass_g,
+                        SCALE2_INDEX: scale2_mass_g,
+                        SCALE3_INDEX: scale3_mass_g,
+                    }
+                )
 
                 self._extrapolation_timestamp = self.timestamp
 
@@ -511,7 +576,24 @@ class Data(object):
                 self._devices.OHSA.set_sim_rates_of_change(roc=(0, 0, 0, 0))
 
             if isinstance(self._devices.SCIP, PressureTransducer):
-                self._devices.SCIP.set_sim_values(values=((5., 5., 5.,) + 9 * (0,)))
-                self._devices.SCIP.set_sim_noise(noise=((0.01, 0.01, 0.01,) + 9 * (0,)))
+                self._devices.SCIP.set_sim_values(
+                    values=(
+                        (
+                            5.0,
+                            5.0,
+                            5.0,
+                        )
+                        + 9 * (0,)
+                    )
+                )
+                self._devices.SCIP.set_sim_noise(
+                    noise=(
+                        (
+                            0.01,
+                            0.01,
+                            0.01,
+                        )
+                        + 9 * (0,)
+                    )
+                )
                 self._devices.OHSA.set_sim_rates_of_change(roc=(12 * (0,)))
-

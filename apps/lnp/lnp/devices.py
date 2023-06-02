@@ -11,12 +11,12 @@ import aqueduct.devices.sol4.constants
 import aqueduct.devices.sol4.obj
 import aqueduct.devices.tempx.constants
 import aqueduct.devices.tempx.obj
-from local.lib.lnp.definitions import *
+from lnp.definitions import *
 
-class Devices(object):
-    """
 
-    """
+class Devices:
+    """ """
+
     AQ_PUMP: aqueduct.devices.mfpp.obj.MFPP = None
     OIL_PUMP: aqueduct.devices.mfpp.obj.MFPP = None
     DILUTION_PUMP: aqueduct.devices.mfpp.obj.MFPP = None

@@ -20,7 +20,7 @@ from .pid import PID
 from ph_control.helpers import format_float
 
 
-class Devices(object):
+class Devices:
     """
     Class with members to contain each Aqueduct Device
     Object in the Setup.
@@ -49,7 +49,7 @@ class Devices(object):
         self.PH_PROBE = aq.devices.get(PH_PROBE_NAME)
 
 
-class DataCacheItem(object):
+class DataCacheItem:
     """
     A class to structure cached data. Mirrors the structure of the
     Data class.
@@ -66,7 +66,7 @@ class DataCacheItem(object):
                 setattr(self, k, v)
 
 
-class TrailingData(object):
+class TrailingData:
     """
     Class used to format trailing rate-of-change and mean pH values.
     """
@@ -111,7 +111,7 @@ class TrailingData(object):
         print(self.as_string())
 
 
-class DataCache(object):
+class DataCache:
     """
     A Class to store cached data.
     """
@@ -353,7 +353,7 @@ class DataCache(object):
             return None
 
 
-class Data(object):
+class Data:
     """
     Class to help with logging and updating data.
     """
@@ -475,7 +475,7 @@ class Data(object):
         return self._cache
 
 
-class ReactionStation(object):
+class ReactionStation:
     """ """
 
     class Enabled(enum.Enum):
@@ -767,7 +767,7 @@ class ReactionStation(object):
 
                 tabular_ipt = self._aqueduct.input(
                     message=f"""
-                    Place the outlet of the tubing for the {name} in a collection vessel. 
+                    Place the outlet of the tubing for the {name} in a collection vessel.
                     Enter the volume (in mL) and rate (in mL/min) that you wish to prime.""",
                     input_type="table",
                     dtype="str",
@@ -955,7 +955,7 @@ class ReactionStation(object):
         self._is_dosing = False
 
 
-class ProcessHandler(object):
+class ProcessHandler:
     """
     Class to handle processing each of the reaction stations.
     """

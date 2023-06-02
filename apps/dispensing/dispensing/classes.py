@@ -16,7 +16,8 @@ import dispensing.helpers
 import dispensing.methods
 from dispensing.definitions import *
 
-class Devices(object):
+
+class Devices:
     """
     PUMP is the TriContinent C(X) series of pumps with up to 12 inputs
 
@@ -26,21 +27,25 @@ class Devices(object):
     In LAB MODE, we associate each Device with the Name for the device
     that is saved on its firmware.
     """
+
     PUMP: SyringePump = None
 
     def __init__(self, aq: Aqueduct):
         self.PUMP = aq.devices.get(PUMP_NAME)
 
 
-class Data(object):
+class Data:
     """
     Class to help with logging and updating data for the dosing setup.
     """
+
     W1: Union[float, None] = None  # weight on the SCALE, in grams
 
     timestamp: Union[float, None] = None
     log_timestamp: Union[float, None] = None  # timestamp of last write to log file
-    _logging_interval_s: Union[int, float] = 5  # interval in seconds between writes to log file
+    _logging_interval_s: Union[
+        int, float
+    ] = 5  # interval in seconds between writes to log file
 
     _devices: Devices = None  # pointer to Devices object
     _aqueduct: Aqueduct = None  # pointer to Aqueduct object
@@ -83,9 +88,10 @@ class Data(object):
         :return: None
         """
         self._aqueduct.log(
-            "W1: {0}".format(
+            "W1: {}".format(
                 local.lib.dispensing.helpers.format_float(self.W1, 3),
-            ))
+            )
+        )
 
     def log_data_at_interval(self, interval_s: float = None) -> None:
         """
@@ -122,16 +128,22 @@ class Data(object):
         :return: dictionary
         """
         keys = [
-            ('W1', 3),
-            ('timestamp', 3),
+            ("W1", 3),
+            ("timestamp", 3),
         ]
         d = {}
         for k in keys:
-            d.update({k[0]: local.lib.dispensing.helpers.format_float(getattr(self, k[0], None), k[1])})
+            d.update(
+                {
+                    k[0]: local.lib.dispensing.helpers.format_float(
+                        getattr(self, k[0], None), k[1]
+                    )
+                }
+            )
         return d
 
 
-class PumpInput(object):
+class PumpInput:
     # index should correspond to the TRCX device pump input, 0-11 (12 in total)
     index: int = None
 
@@ -156,6 +168,7 @@ class MonomerPumpInput(PumpInput):
     """
     Class to represent a Monomer Pump Input as part of a Reaction Station.
     """
+
     monomer_A_input_port: int = 1
     monomer_B_input_port: int = 2
     output_port: int = 3
@@ -165,13 +178,13 @@ class MonomerPumpInput(PumpInput):
     # length and inner diameter
     # in house testing tubing length = 300 mm, 0.8 mm ID = 151 uL volume
     # update 8/11/21 - add 200 uL to default priming volumes
-    monomer_a_priming_volume_ul: float = 151. + 300. + 200.
-    monomer_b_priming_volume_ul: float = 151. + 300. + 200.
+    monomer_a_priming_volume_ul: float = 151.0 + 300.0 + 200.0
+    monomer_b_priming_volume_ul: float = 151.0 + 300.0 + 200.0
 
     # output tubing volume
     # in house testing tubing length = 600 mm, 0.8 mm ID = 302 uL volume
     # empirically set to 350 uL
-    output_tubing_volume_ul: float = 350.
+    output_tubing_volume_ul: float = 350.0
 
     def __init__(self, index: int = None, devices_obj: Devices = None):
         """
@@ -187,6 +200,7 @@ class InitiatorPumpInput(PumpInput):
     """
     Class to represent an Initiator Pump Input as part of a Reaction Station.
     """
+
     initiator_input_port: int = 1
     output_port: int = 2
     waste_port: int = 3
@@ -195,12 +209,12 @@ class InitiatorPumpInput(PumpInput):
     # length and inner diameter
     # in house testing tubing length = 300 mm, 0.8 mm ID = 151 uL volume
     # update 8/11/21 - add 200 uL to default priming volume
-    initiator_priming_volume_ul: float = 151. + 300. + 200.
+    initiator_priming_volume_ul: float = 151.0 + 300.0 + 200.0
 
     # output tubing volume
     # in house testing tubing length = 600 mm, 0.8 mm ID = 302 uL volume
     # empirically set to 350 uL
-    output_tubing_volume_ul: float = 350.
+    output_tubing_volume_ul: float = 350.0
 
     def __init__(self, index: int = None, devices_obj: Devices = None):
         """
@@ -212,7 +226,7 @@ class InitiatorPumpInput(PumpInput):
         super().__init__(index, devices_obj)
 
 
-class ReactionStation(object):
+class ReactionStation:
     """
     Class to contain all relevant parameters for executing a 2 Phase Monomer A / Initiator A +
     Monomer B / Initiator B reaction.
@@ -230,6 +244,7 @@ class ReactionStation(object):
         the ReactionProcessHandler will monitor the phases of the ReactionStation and
         execute the required steps sequentially.
         """
+
         DISABLED = 0
         ENABLED = 1
 
@@ -259,7 +274,7 @@ class ReactionStation(object):
         # output tubing volume
         PHASE_1_MONOMER_A_WITHDRAW = 4
 
-        # now we set the monomer valve to output and 
+        # now we set the monomer valve to output and
         # begin infusing to quickly run the
         # liquid slug to almost the end of the tubing
         PHASE_1_OUTPUT_PRIMING = 5
@@ -316,6 +331,7 @@ class ReactionStation(object):
         """
         Track the status of the current phase.
         """
+
         NOT_STARTED = 0
         STARTED = 1
         COMPLETE = 2
@@ -351,34 +367,34 @@ class ReactionStation(object):
 
     # monomer A process params
     monomer_a_volume_to_dispense_ul: float = 1000
-    monomer_a_dispense_rate_ul_min: float = 16.
+    monomer_a_dispense_rate_ul_min: float = 16.0
 
     # volume and rate used to quickly prime to the end of the output
     # tubing line for the first dispense
-    monomer_a_output_tubing_prime_volume_ul: float = 315.
-    monomer_a_output_tubing_prime_rate_ul_min: float = 2000.
+    monomer_a_output_tubing_prime_volume_ul: float = 315.0
+    monomer_a_output_tubing_prime_rate_ul_min: float = 2000.0
 
     # rate to use when withdrawing monomer A
-    monomer_a_withdraw_rate_ul_min: float = 25000.
+    monomer_a_withdraw_rate_ul_min: float = 25000.0
 
-    _monomer_a_dispensed_ul_counter: float = 0.
+    _monomer_a_dispensed_ul_counter: float = 0.0
     _monomer_a_infusions_counter: int = 0
 
     # MONOMER B PARAMS
 
     # monomer B process params
     monomer_b_volume_to_dispense_ul: float = 20000
-    monomer_b_dispense_rate_ul_min: float = 100.
+    monomer_b_dispense_rate_ul_min: float = 100.0
 
     # volume and rate used to quickly prime to the end of the output
     # tubing line for the first dispense
-    monomer_b_output_tubing_prime_volume_ul: float = 315.
-    monomer_b_output_tubing_prime_rate_ul_min: float = 2000.
+    monomer_b_output_tubing_prime_volume_ul: float = 315.0
+    monomer_b_output_tubing_prime_rate_ul_min: float = 2000.0
 
     # rate to use when withdrawing monomer B
-    monomer_b_withdraw_rate_ul_min: float = 25000.
+    monomer_b_withdraw_rate_ul_min: float = 25000.0
 
-    _monomer_b_dispensed_ul_counter: float = 0.
+    _monomer_b_dispensed_ul_counter: float = 0.0
     _monomer_b_infusions_counter: int = 0
     _monomer_b_dispense_volume_ul: float = 0
 
@@ -387,18 +403,18 @@ class ReactionStation(object):
     # initiator B process params
     initiator_b_dispense_rate_ul_min: float = 10
 
-    initiator_b_output_tubing_prime_volume_ul: float = 315.
-    initiator_b_output_tubing_prime_rate_ul_min: float = 2000.
+    initiator_b_output_tubing_prime_volume_ul: float = 315.0
+    initiator_b_output_tubing_prime_rate_ul_min: float = 2000.0
 
     # rate to use when withdrawing initiator B
-    initiator_b_withdraw_rate_ul_min: float = 25000.
+    initiator_b_withdraw_rate_ul_min: float = 25000.0
 
-    _initiator_b_dispensed_ul_counter: float = 0.
+    _initiator_b_dispensed_ul_counter: float = 0.0
     _initiator_b_infusions_counter: int = 0
     _initiator_b_dispense_volume_ul: float = 0
 
-    _last_monomer_withdraw_volume_ul: float = 0.
-    _last_initiator_withdraw_volume_ul: float = 0.
+    _last_monomer_withdraw_volume_ul: float = 0.0
+    _last_initiator_withdraw_volume_ul: float = 0.0
 
     _repeat: bool = False
 
@@ -407,10 +423,7 @@ class ReactionStation(object):
     _aqueduct: Aqueduct = None
 
     def __init__(
-            self,
-            index: int = 0,
-            devices_obj: Devices = None,
-            aqueduct: Aqueduct = None
+        self, index: int = 0, devices_obj: Devices = None, aqueduct: Aqueduct = None
     ):
 
         self.index = index
@@ -422,8 +435,10 @@ class ReactionStation(object):
             self._aqueduct = aqueduct
 
     def __str__(self):
-        return f"Station {self.index} (mon. {self.monomer_input.index}, init. {self.initiator_input.index}): " \
-               f"enabled={self.enabled_setpoint.value}, phase={self.phase_setpoint.value}"
+        return (
+            f"Station {self.index} (mon. {self.monomer_input.index}, init. {self.initiator_input.index}): "
+            f"enabled={self.enabled_setpoint.value}, phase={self.phase_setpoint.value}"
+        )
 
     def make_setpoints(self) -> None:
         """
@@ -435,13 +450,13 @@ class ReactionStation(object):
         self.enabled_setpoint = self._aqueduct.setpoint(
             name=f"station_{self.index}_enabled",
             value=ReactionStation.Enabled.ENABLED.value,
-            dtype=int.__name__
+            dtype=int.__name__,
         )
 
         self.phase_setpoint = self._aqueduct.setpoint(
             name=f"station_{self.index}_phase",
             value=ReactionStation.Phase.PHASE_1_INITIALIZED.value,
-            dtype=int.__name__
+            dtype=int.__name__,
         )
 
     def calc_initiator_b_volume_to_dispense_ul(self) -> float:
@@ -450,15 +465,21 @@ class ReactionStation(object):
 
         :return: volume of Initiator B to dispense, in uL
         """
-        return round((self.initiator_b_dispense_rate_ul_min / self.monomer_b_dispense_rate_ul_min)
-                     * self.monomer_b_volume_to_dispense_ul, 3)
+        return round(
+            (
+                self.initiator_b_dispense_rate_ul_min
+                / self.monomer_b_dispense_rate_ul_min
+            )
+            * self.monomer_b_volume_to_dispense_ul,
+            3,
+        )
 
     def reset_phase_1(self) -> None:
         """
         Reset the dispense counter for monomer A.
 
         """
-        self._monomer_a_dispensed_ul_counter: float = 0.
+        self._monomer_a_dispensed_ul_counter: float = 0.0
         self._monomer_a_infusions_counter: int = 0
 
     def reset_phase_2(self) -> None:
@@ -466,8 +487,8 @@ class ReactionStation(object):
         Reset the dispense counters for monomer B and initiator B.
 
         """
-        self._monomer_b_dispensed_ul_counter: float = 0.
-        self._initiator_b_dispensed_ul_counter: float = 0.
+        self._monomer_b_dispensed_ul_counter: float = 0.0
+        self._initiator_b_dispensed_ul_counter: float = 0.0
         self._monomer_b_infusions_counter: int = 0
         self._initiator_b_infusions_counter: int = 0
 
@@ -479,7 +500,13 @@ class ReactionStation(object):
         self.reset_phase_1()
         self.reset_phase_2()
 
-    def set_plunger_mode(self, pump_input: PumpInput, target_mode: int, pump_name: str, force: bool = False):
+    def set_plunger_mode(
+        self,
+        pump_input: PumpInput,
+        target_mode: int,
+        pump_name: str,
+        force: bool = False,
+    ):
         """
         Helper method to change the plunger stepping mode of a given input.
 
@@ -493,12 +520,18 @@ class ReactionStation(object):
         :return:
         """
 
-        if int(self._devices.PUMP.config[pump_input.index].plgr_mode) != int(target_mode) or force is True:
+        if (
+            int(self._devices.PUMP.config[pump_input.index].plgr_mode)
+            != int(target_mode)
+            or force is True
+        ):
             _ = f"Station {self.index}: setting {pump_name} plunger resolution to {target_mode}"
             print(_)
             if self.logging_enabled:
                 self._aqueduct.log(_)
-            self._devices.PUMP.set_plunger_resolution(**{f"pump{pump_input.index}": target_mode})
+            self._devices.PUMP.set_plunger_resolution(
+                **{f"pump{pump_input.index}": target_mode}
+            )
             self._devices.PUMP.config[pump_input.index].plgr_mode = target_mode
             time.sleep(0.5)
 
@@ -551,10 +584,11 @@ class ReactionStation(object):
         self.current_phase_status = phase_status.value
 
     def _phase_helper(
-            self,
-            do_if_not_started: Callable = None,
-            next_phase: "ReactionStation.Phase" = None,
-            do_if_not_started_kwargs: dict = None) -> None:
+        self,
+        do_if_not_started: Callable = None,
+        next_phase: "ReactionStation.Phase" = None,
+        do_if_not_started_kwargs: dict = None,
+    ) -> None:
         """
         Helper to avoid repeating phase block logic.
 
@@ -567,15 +601,23 @@ class ReactionStation(object):
         :param do_if_not_started_kwargs:
         :return:
         """
-        if self.current_phase_status == ReactionStation.CurrentPhaseStatus.NOT_STARTED.value:
+        if (
+            self.current_phase_status
+            == ReactionStation.CurrentPhaseStatus.NOT_STARTED.value
+        ):
             self.set_current_phase_status(ReactionStation.CurrentPhaseStatus.STARTED)
             if do_if_not_started is not None:
                 if do_if_not_started_kwargs is not None:
                     do_if_not_started(**do_if_not_started_kwargs)
                 else:
                     do_if_not_started()
-        elif self.current_phase_status == ReactionStation.CurrentPhaseStatus.STARTED.value:
-            self.set_current_phase_status(ReactionStation.CurrentPhaseStatus.NOT_STARTED)
+        elif (
+            self.current_phase_status
+            == ReactionStation.CurrentPhaseStatus.STARTED.value
+        ):
+            self.set_current_phase_status(
+                ReactionStation.CurrentPhaseStatus.NOT_STARTED
+            )
             self.phase_setpoint.update(next_phase.value)
 
     def do_next_phase(self):
@@ -589,116 +631,178 @@ class ReactionStation(object):
         repeat: bool = False
 
         # start of a logging string that tracks the phase and status change
-        log_str: str = f"Station {self.index}: {ReactionStation.phase_to_str(self.phase_setpoint.value)}" \
-                       f"({self.phase_setpoint.value}[{self.current_phase_status}]) -> "
+        log_str: str = (
+            f"Station {self.index}: {ReactionStation.phase_to_str(self.phase_setpoint.value)}"
+            f"({self.phase_setpoint.value}[{self.current_phase_status}]) -> "
+        )
 
         if self.phase_setpoint.value == PC.PHASE_1_INITIALIZED.value:
-            self._phase_helper(do_if_not_started=None,
-                               next_phase=PC.PHASE_1_PRIMING_INIT_PURGE_TO_WASTE)
+            self._phase_helper(
+                do_if_not_started=None,
+                next_phase=PC.PHASE_1_PRIMING_INIT_PURGE_TO_WASTE,
+            )
             repeat = True
 
         elif self.phase_setpoint.value == PC.PHASE_1_PRIMING_INIT_PURGE_TO_WASTE.value:
-            self._phase_helper(do_if_not_started=self.do_initial_purge_to_waste,
-                               next_phase=PC.PHASE_1_PRIMING_WITHDRAW)
+            self._phase_helper(
+                do_if_not_started=self.do_initial_purge_to_waste,
+                next_phase=PC.PHASE_1_PRIMING_WITHDRAW,
+            )
 
         elif self.phase_setpoint.value == PC.PHASE_1_PRIMING_WITHDRAW.value:
-            self._phase_helper(do_if_not_started=self.do_phase_1_priming_withdraw,
-                               next_phase=PC.PHASE_1_PRIMING_FINAL_PURGE_TO_WASTE)
+            self._phase_helper(
+                do_if_not_started=self.do_phase_1_priming_withdraw,
+                next_phase=PC.PHASE_1_PRIMING_FINAL_PURGE_TO_WASTE,
+            )
 
         elif self.phase_setpoint.value == PC.PHASE_1_PRIMING_FINAL_PURGE_TO_WASTE.value:
-            self._phase_helper(do_if_not_started=self.do_phase_1_priming_final_purge_to_waste,
-                               next_phase=PC.PHASE_1_MONOMER_A_WITHDRAW)
+            self._phase_helper(
+                do_if_not_started=self.do_phase_1_priming_final_purge_to_waste,
+                next_phase=PC.PHASE_1_MONOMER_A_WITHDRAW,
+            )
 
         elif self.phase_setpoint.value == PC.PHASE_1_MONOMER_A_WITHDRAW.value:
-            self._phase_helper(do_if_not_started=self.do_phase_1_monomer_a_withdraw,
-                               next_phase=PC.PHASE_1_OUTPUT_PRIMING)
+            self._phase_helper(
+                do_if_not_started=self.do_phase_1_monomer_a_withdraw,
+                next_phase=PC.PHASE_1_OUTPUT_PRIMING,
+            )
 
         elif self.phase_setpoint.value == PC.PHASE_1_OUTPUT_PRIMING.value:
             # on the first dispense we need to prime,
             # otherwise straight to dispense at dispense_rate
             if self._monomer_a_dispensed_ul_counter == 0:
-                self._phase_helper(do_if_not_started=self.do_phase_1_output_tubing_prime,
-                                   next_phase=PC.PHASE_1_INFUSING_MONOMER_A)
+                self._phase_helper(
+                    do_if_not_started=self.do_phase_1_output_tubing_prime,
+                    next_phase=PC.PHASE_1_INFUSING_MONOMER_A,
+                )
             else:
-                self._phase_helper(do_if_not_started=None,
-                                   next_phase=PC.PHASE_1_INFUSING_MONOMER_A)
+                self._phase_helper(
+                    do_if_not_started=None, next_phase=PC.PHASE_1_INFUSING_MONOMER_A
+                )
                 repeat = True
 
         elif self.phase_setpoint.value == PC.PHASE_1_INFUSING_MONOMER_A.value:
-            if self.current_phase_status == ReactionStation.CurrentPhaseStatus.NOT_STARTED.value:
-                self._phase_helper(do_if_not_started=self.do_phase_1_monomer_a_dispense,
-                                   next_phase=PC.PHASE_1_INFUSING_MONOMER_A)
+            if (
+                self.current_phase_status
+                == ReactionStation.CurrentPhaseStatus.NOT_STARTED.value
+            ):
+                self._phase_helper(
+                    do_if_not_started=self.do_phase_1_monomer_a_dispense,
+                    next_phase=PC.PHASE_1_INFUSING_MONOMER_A,
+                )
             else:
                 # if self._monomer_a_dispensed_ul_counter >= self.monomer_a_volume_to_dispense_ul
                 # then we should continue to purge to waste, otherwise reload
-                if self._monomer_a_dispensed_ul_counter >= self.monomer_a_volume_to_dispense_ul:
-                    self._phase_helper(do_if_not_started=None,
-                                       next_phase=PC.PHASE_1_OUTPUT_PURGE)
+                if (
+                    self._monomer_a_dispensed_ul_counter
+                    >= self.monomer_a_volume_to_dispense_ul
+                ):
+                    self._phase_helper(
+                        do_if_not_started=None, next_phase=PC.PHASE_1_OUTPUT_PURGE
+                    )
                 # reload
                 else:
-                    self._phase_helper(do_if_not_started=None,
-                                       next_phase=PC.PHASE_1_MONOMER_A_WITHDRAW)
+                    self._phase_helper(
+                        do_if_not_started=None, next_phase=PC.PHASE_1_MONOMER_A_WITHDRAW
+                    )
 
         elif self.phase_setpoint.value == PC.PHASE_1_OUTPUT_PURGE.value:
-            self._phase_helper(do_if_not_started=self.do_phase_1_output_purge,
-                               next_phase=PC.PHASE_1_COMPLETE)
+            self._phase_helper(
+                do_if_not_started=self.do_phase_1_output_purge,
+                next_phase=PC.PHASE_1_COMPLETE,
+            )
 
         elif self.phase_setpoint.value == PC.PHASE_1_COMPLETE.value:
-            self._phase_helper(do_if_not_started=None,
-                               next_phase=PC.PHASE_2_INITIALIZED)
+            self._phase_helper(
+                do_if_not_started=None, next_phase=PC.PHASE_2_INITIALIZED
+            )
             repeat = True
 
         elif self.phase_setpoint.value == PC.PHASE_2_INITIALIZED.value:
-            self._phase_helper(do_if_not_started=None,
-                               next_phase=PC.PHASE_2_PRIMING_INIT_PURGE_TO_WASTE)
+            self._phase_helper(
+                do_if_not_started=None,
+                next_phase=PC.PHASE_2_PRIMING_INIT_PURGE_TO_WASTE,
+            )
             repeat = True
 
         elif self.phase_setpoint.value == PC.PHASE_2_PRIMING_INIT_PURGE_TO_WASTE.value:
-            self._phase_helper(do_if_not_started=self.do_initial_purge_to_waste,
-                               next_phase=PC.PHASE_2_PRIMING_WITHDRAW)
+            self._phase_helper(
+                do_if_not_started=self.do_initial_purge_to_waste,
+                next_phase=PC.PHASE_2_PRIMING_WITHDRAW,
+            )
 
         elif self.phase_setpoint.value == PC.PHASE_2_PRIMING_WITHDRAW.value:
-            self._phase_helper(do_if_not_started=self.do_phase_2_priming_withdraw,
-                               next_phase=PC.PHASE_2_PRIMING_FINAL_PURGE_TO_WASTE)
+            self._phase_helper(
+                do_if_not_started=self.do_phase_2_priming_withdraw,
+                next_phase=PC.PHASE_2_PRIMING_FINAL_PURGE_TO_WASTE,
+            )
 
         elif self.phase_setpoint.value == PC.PHASE_2_PRIMING_FINAL_PURGE_TO_WASTE.value:
-            self._phase_helper(do_if_not_started=self.do_phase_2_priming_final_purge_to_waste,
-                               next_phase=PC.PHASE_2_MONOMER_B_AND_INIT_B_WITHDRAW)
+            self._phase_helper(
+                do_if_not_started=self.do_phase_2_priming_final_purge_to_waste,
+                next_phase=PC.PHASE_2_MONOMER_B_AND_INIT_B_WITHDRAW,
+            )
 
-        elif self.phase_setpoint.value == PC.PHASE_2_MONOMER_B_AND_INIT_B_WITHDRAW.value:
-            self._phase_helper(do_if_not_started=self.do_phase_2_monomer_b_and_initiator_b_withdraw,
-                               next_phase=PC.PHASE_2_OUTPUT_PRIMING)
+        elif (
+            self.phase_setpoint.value == PC.PHASE_2_MONOMER_B_AND_INIT_B_WITHDRAW.value
+        ):
+            self._phase_helper(
+                do_if_not_started=self.do_phase_2_monomer_b_and_initiator_b_withdraw,
+                next_phase=PC.PHASE_2_OUTPUT_PRIMING,
+            )
 
         elif self.phase_setpoint.value == PC.PHASE_2_OUTPUT_PRIMING.value:
             # on the first dispense we need to prime,
             # otherwise straight to dispense at dispense_rate
-            if self._monomer_b_dispensed_ul_counter == 0 or self._initiator_b_dispensed_ul_counter == 0:
-                self._phase_helper(do_if_not_started=self.do_phase_2_output_tubing_prime,
-                                   next_phase=PC.PHASE_2_INFUSING_MONOMER_B_AND_INIT_B)
+            if (
+                self._monomer_b_dispensed_ul_counter == 0
+                or self._initiator_b_dispensed_ul_counter == 0
+            ):
+                self._phase_helper(
+                    do_if_not_started=self.do_phase_2_output_tubing_prime,
+                    next_phase=PC.PHASE_2_INFUSING_MONOMER_B_AND_INIT_B,
+                )
             else:
-                self._phase_helper(do_if_not_started=None,
-                                   next_phase=PC.PHASE_2_INFUSING_MONOMER_B_AND_INIT_B)
+                self._phase_helper(
+                    do_if_not_started=None,
+                    next_phase=PC.PHASE_2_INFUSING_MONOMER_B_AND_INIT_B,
+                )
                 repeat = True
 
-        elif self.phase_setpoint.value == PC.PHASE_2_INFUSING_MONOMER_B_AND_INIT_B.value:
-            if self.current_phase_status == ReactionStation.CurrentPhaseStatus.NOT_STARTED.value:
-                self._phase_helper(do_if_not_started=self.do_phase_2_monomer_b_and_initiator_b_dispense,
-                                   next_phase=PC.PHASE_2_INFUSING_MONOMER_B_AND_INIT_B)
+        elif (
+            self.phase_setpoint.value == PC.PHASE_2_INFUSING_MONOMER_B_AND_INIT_B.value
+        ):
+            if (
+                self.current_phase_status
+                == ReactionStation.CurrentPhaseStatus.NOT_STARTED.value
+            ):
+                self._phase_helper(
+                    do_if_not_started=self.do_phase_2_monomer_b_and_initiator_b_dispense,
+                    next_phase=PC.PHASE_2_INFUSING_MONOMER_B_AND_INIT_B,
+                )
             else:
                 # if self._monomer_b_dispensed_ul_counter >= self.monomer_b_volume_to_dispense_ul
                 # then we should continue to output purge, otherwise reload
-                if self._monomer_b_dispensed_ul_counter >= self.monomer_b_volume_to_dispense_ul:
-                    self._phase_helper(do_if_not_started=None,
-                                       next_phase=PC.PHASE_2_OUTPUT_PURGE)
+                if (
+                    self._monomer_b_dispensed_ul_counter
+                    >= self.monomer_b_volume_to_dispense_ul
+                ):
+                    self._phase_helper(
+                        do_if_not_started=None, next_phase=PC.PHASE_2_OUTPUT_PURGE
+                    )
                 # reload
                 else:
-                    self._phase_helper(do_if_not_started=None,
-                                       next_phase=PC.PHASE_2_MONOMER_B_AND_INIT_B_WITHDRAW)
+                    self._phase_helper(
+                        do_if_not_started=None,
+                        next_phase=PC.PHASE_2_MONOMER_B_AND_INIT_B_WITHDRAW,
+                    )
                     repeat = True
 
         elif self.phase_setpoint.value == PC.PHASE_2_OUTPUT_PURGE.value:
-            self._phase_helper(do_if_not_started=self.do_phase_2_output_purge,
-                               next_phase=PC.PHASE_2_COMPLETE)
+            self._phase_helper(
+                do_if_not_started=self.do_phase_2_output_purge,
+                next_phase=PC.PHASE_2_COMPLETE,
+            )
 
         elif self.phase_setpoint.value == PC.PHASE_2_COMPLETE.value:
             if self._repeat is True:
@@ -707,8 +811,10 @@ class ReactionStation(object):
             else:
                 self.enabled_setpoint.update(ReactionStation.Enabled.DISABLED.value)
 
-        log_str += f"{ReactionStation.phase_to_str(self.phase_setpoint.value)}" \
-                   f"({self.phase_setpoint.value}[{self.current_phase_status}])"
+        log_str += (
+            f"{ReactionStation.phase_to_str(self.phase_setpoint.value)}"
+            f"({self.phase_setpoint.value}[{self.current_phase_status}])"
+        )
 
         print(log_str)
 
@@ -732,18 +838,26 @@ class ReactionStation(object):
         :return:
         """
 
-        monomer_valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.waste_port)
-        initiator_valve_command_t = self._devices.PUMP.make_valve_command(position=self.initiator_input.waste_port)
+        monomer_valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.waste_port
+        )
+        initiator_valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.initiator_input.waste_port
+        )
 
-        self._devices.PUMP.set_valves(**{
-            f"pump{self.monomer_input.index}": monomer_valve_command_t,
-            f"pump{self.initiator_input.index}": initiator_valve_command_t,
-        })
+        self._devices.PUMP.set_valves(
+            **{
+                f"pump{self.monomer_input.index}": monomer_valve_command_t,
+                f"pump{self.initiator_input.index}": initiator_valve_command_t,
+            }
+        )
 
         time.sleep(0.5)
 
         # we need to set the plunger resolution to N0 if it's been set to N2
-        for pump_input, name in zip((self.monomer_input, self.initiator_input), ("monomer", "initiator")):
+        for pump_input, name in zip(
+            (self.monomer_input, self.initiator_input), ("monomer", "initiator")
+        ):
             self.set_plunger_mode(pump_input=pump_input, target_mode=0, pump_name=name)
 
         # limit purging rate to a max of 50 mL/min
@@ -751,7 +865,9 @@ class ReactionStation(object):
             mode=self._devices.PUMP.continuous,
             direction=self._devices.PUMP.infuse,
             rate_units=self._devices.PUMP.ul_min,
-            rate_value=min(self._devices.PUMP.get_max_rate_ul_min(self.monomer_input.index), 50000)
+            rate_value=min(
+                self._devices.PUMP.get_max_rate_ul_min(self.monomer_input.index), 50000
+            ),
         )
 
         # limit purging rate to a max of 50 mL/min
@@ -759,13 +875,18 @@ class ReactionStation(object):
             mode=self._devices.PUMP.continuous,
             direction=self._devices.PUMP.infuse,
             rate_units=self._devices.PUMP.ul_min,
-            rate_value=min(self._devices.PUMP.get_max_rate_ul_min(self.initiator_input.index), 50000)
+            rate_value=min(
+                self._devices.PUMP.get_max_rate_ul_min(self.initiator_input.index),
+                50000,
+            ),
         )
 
-        self._devices.PUMP.pump(**{
-            f"pump{self.monomer_input.index}": monomer_pump_command_t,
-            f"pump{self.initiator_input.index}": initiator_pump_command_t,
-        })
+        self._devices.PUMP.pump(
+            **{
+                f"pump{self.monomer_input.index}": monomer_pump_command_t,
+                f"pump{self.initiator_input.index}": initiator_pump_command_t,
+            }
+        )
 
         time.sleep(0.5)
 
@@ -780,9 +901,13 @@ class ReactionStation(object):
         :return:
         """
 
-        valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.monomer_A_input_port)
+        valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.monomer_A_input_port
+        )
 
-        self._devices.PUMP.set_valves(**{f"pump{self.monomer_input.index}": valve_command_t})
+        self._devices.PUMP.set_valves(
+            **{f"pump{self.monomer_input.index}": valve_command_t}
+        )
 
         time.sleep(0.5)
 
@@ -795,10 +920,15 @@ class ReactionStation(object):
             finite_units=self._devices.PUMP.ul,
         )
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{f"pump{self.monomer_input.index}": pump_command_t})
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{f"pump{self.monomer_input.index}": pump_command_t},
+        )
 
-        _ = f"Station {self.index}: priming wdrw {self.monomer_input.monomer_a_priming_volume_ul} " \
+        _ = (
+            f"Station {self.index}: priming wdrw {self.monomer_input.monomer_a_priming_volume_ul} "
             f"uL mon. A at {self.monomer_a_withdraw_rate_ul_min} uL/min"
+        )
         print(_)
 
         if self.logging_enabled:
@@ -817,19 +947,25 @@ class ReactionStation(object):
         :return:
         """
 
-        valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.waste_port)
+        valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.waste_port
+        )
 
-        self._devices.PUMP.set_valves(**{f"pump{self.monomer_input.index}": valve_command_t})
+        self._devices.PUMP.set_valves(
+            **{f"pump{self.monomer_input.index}": valve_command_t}
+        )
 
         time.sleep(0.5)
 
-        purge_rate_ul_min = min(self._devices.PUMP.get_max_rate_ul_min(self.monomer_input.index), 20000)
+        purge_rate_ul_min = min(
+            self._devices.PUMP.get_max_rate_ul_min(self.monomer_input.index), 20000
+        )
 
         pump_command_t = self._devices.PUMP.make_command(
             mode=self._devices.PUMP.continuous,
             direction=self._devices.PUMP.infuse,
             rate_units=self._devices.PUMP.ul_min,
-            rate_value=purge_rate_ul_min
+            rate_value=purge_rate_ul_min,
         )
 
         self._devices.PUMP.pump(**{f"pump{self.monomer_input.index}": pump_command_t})
@@ -855,24 +991,34 @@ class ReactionStation(object):
         :return:
         """
 
-        valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.monomer_A_input_port)
+        valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.monomer_A_input_port
+        )
 
-        self._devices.PUMP.set_valves(**{f"pump{self.monomer_input.index}": valve_command_t})
+        self._devices.PUMP.set_valves(
+            **{f"pump{self.monomer_input.index}": valve_command_t}
+        )
 
         time.sleep(0.5)
 
         # we need to set the plunger resolution to N0 if it's been set to N2
-        self.set_plunger_mode(pump_input=self.monomer_input, target_mode=0, pump_name="monomer")
+        self.set_plunger_mode(
+            pump_input=self.monomer_input, target_mode=0, pump_name="monomer"
+        )
 
         withdraw_rate = self.monomer_a_withdraw_rate_ul_min
 
-        withdraw_volume_ul = self.monomer_a_volume_to_dispense_ul - self._monomer_a_dispensed_ul_counter
+        withdraw_volume_ul = (
+            self.monomer_a_volume_to_dispense_ul - self._monomer_a_dispensed_ul_counter
+        )
 
         # if this is the first infusion, we need to withdraw extra to allow for priming the output tubing
         if self._monomer_a_infusions_counter == 0:
             withdraw_volume_ul += self.monomer_a_output_tubing_prime_volume_ul
 
-        withdraw_volume_ul = min(withdraw_volume_ul, self.monomer_input.get_syringe_volume_ul())
+        withdraw_volume_ul = min(
+            withdraw_volume_ul, self.monomer_input.get_syringe_volume_ul()
+        )
 
         pump_command_t = self._devices.PUMP.make_command(
             mode=self._devices.PUMP.finite,
@@ -880,10 +1026,13 @@ class ReactionStation(object):
             rate_units=self._devices.PUMP.ul_min,
             rate_value=withdraw_rate,
             finite_units=self._devices.PUMP.ul,
-            finite_value=withdraw_volume_ul
+            finite_value=withdraw_volume_ul,
         )
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{f"pump{self.monomer_input.index}": pump_command_t})
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{f"pump{self.monomer_input.index}": pump_command_t},
+        )
 
         self._last_monomer_withdraw_volume_ul = withdraw_volume_ul
 
@@ -906,9 +1055,13 @@ class ReactionStation(object):
         :return:
         """
 
-        valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.output_port)
+        valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.output_port
+        )
 
-        self._devices.PUMP.set_valves(**{f"pump{self.monomer_input.index}": valve_command_t})
+        self._devices.PUMP.set_valves(
+            **{f"pump{self.monomer_input.index}": valve_command_t}
+        )
 
         time.sleep(0.5)
 
@@ -918,14 +1071,19 @@ class ReactionStation(object):
             rate_units=self._devices.PUMP.ul_min,
             rate_value=self.monomer_a_output_tubing_prime_rate_ul_min,
             finite_units=self._devices.PUMP.ul,
-            finite_value=self.monomer_a_output_tubing_prime_volume_ul
+            finite_value=self.monomer_a_output_tubing_prime_volume_ul,
         )
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{f"pump{self.monomer_input.index}": pump_command_t})
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{f"pump{self.monomer_input.index}": pump_command_t},
+        )
 
         time.sleep(0.5)
 
-    def do_phase_1_monomer_a_dispense(self, monomer_a_to_dispense_ul: float = None, is_air: bool = False) -> None:
+    def do_phase_1_monomer_a_dispense(
+        self, monomer_a_to_dispense_ul: float = None, is_air: bool = False
+    ) -> None:
         """
         Now we begin dispensing monomer A at the target rate into the reaction vessel.
 
@@ -938,22 +1096,33 @@ class ReactionStation(object):
         :return:
         """
 
-        valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.output_port)
+        valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.output_port
+        )
 
-        self._devices.PUMP.set_valves(**{f"pump{self.monomer_input.index}": valve_command_t})
+        self._devices.PUMP.set_valves(
+            **{f"pump{self.monomer_input.index}": valve_command_t}
+        )
 
         time.sleep(0.5)
 
         # we need to set the plunger resolution to N2 if the target rate is less than what's achievable
         # with N0 mode
-        if self.monomer_a_dispense_rate_ul_min <= 8 * self.monomer_input.get_min_rate_ul_min():
-            self.set_plunger_mode(pump_input=self.monomer_input, target_mode=2, pump_name="monomer")
+        if (
+            self.monomer_a_dispense_rate_ul_min
+            <= 8 * self.monomer_input.get_min_rate_ul_min()
+        ):
+            self.set_plunger_mode(
+                pump_input=self.monomer_input, target_mode=2, pump_name="monomer"
+            )
 
         if monomer_a_to_dispense_ul is None:
             # account for plunger movement to prime output tubing if this is the first infusion
             if self._monomer_a_infusions_counter == 0:
-                monomer_a_to_dispense_ul = (self._last_monomer_withdraw_volume_ul
-                                            - self.monomer_a_output_tubing_prime_volume_ul)
+                monomer_a_to_dispense_ul = (
+                    self._last_monomer_withdraw_volume_ul
+                    - self.monomer_a_output_tubing_prime_volume_ul
+                )
             else:
                 monomer_a_to_dispense_ul = self._last_monomer_withdraw_volume_ul
 
@@ -963,24 +1132,31 @@ class ReactionStation(object):
             rate_units=self._devices.PUMP.ul_min,
             rate_value=self.monomer_a_dispense_rate_ul_min,
             finite_units=self._devices.PUMP.ul,
-            finite_value=monomer_a_to_dispense_ul
+            finite_value=monomer_a_to_dispense_ul,
         )
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{f"pump{self.monomer_input.index}": pump_command_t})
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{f"pump{self.monomer_input.index}": pump_command_t},
+        )
 
         self._monomer_a_dispensed_ul_counter += monomer_a_to_dispense_ul
         self._monomer_a_infusions_counter += 1
 
         if is_air is not True:
 
-            _ = (f"Station {self.index}: inf {self._monomer_a_dispensed_ul_counter} of "
-                 f"{self.monomer_a_volume_to_dispense_ul} uL mon. A at {self.monomer_a_dispense_rate_ul_min} uL/min")
+            _ = (
+                f"Station {self.index}: inf {self._monomer_a_dispensed_ul_counter} of "
+                f"{self.monomer_a_volume_to_dispense_ul} uL mon. A at {self.monomer_a_dispense_rate_ul_min} uL/min"
+            )
 
         else:
 
-            _ = (f"Station {self.index}: inf residual "
-                 f"{self.monomer_a_volume_to_dispense_ul} uL mon. A at "
-                 f"{self.monomer_a_dispense_rate_ul_min} uL/min with air")
+            _ = (
+                f"Station {self.index}: inf residual "
+                f"{self.monomer_a_volume_to_dispense_ul} uL mon. A at "
+                f"{self.monomer_a_dispense_rate_ul_min} uL/min with air"
+            )
 
         print(_)
         if self.logging_enabled:
@@ -1005,11 +1181,15 @@ class ReactionStation(object):
         """
 
         # we need to set the plunger resolution to N0 if it's been set to N2
-        self.set_plunger_mode(pump_input=self.monomer_input, target_mode=0, pump_name="monomer")
+        self.set_plunger_mode(
+            pump_input=self.monomer_input, target_mode=0, pump_name="monomer"
+        )
 
-        withdraw_rate_ul_min = min(50000., self.monomer_input.get_max_rate_ul_min())
+        withdraw_rate_ul_min = min(50000.0, self.monomer_input.get_max_rate_ul_min())
         withdraw_volume_ul = 2 * (
-                self.monomer_input.output_tubing_volume_ul + self.monomer_input.output_tubing_volume_ul)
+            self.monomer_input.output_tubing_volume_ul
+            + self.monomer_input.output_tubing_volume_ul
+        )
 
         monomer_pump_command_t = self._devices.PUMP.make_command(
             mode=self._devices.PUMP.finite,
@@ -1017,29 +1197,39 @@ class ReactionStation(object):
             rate_units=self._devices.PUMP.ul_min,
             rate_value=withdraw_rate_ul_min,
             finite_units=self._devices.PUMP.ul,
-            finite_value=withdraw_volume_ul
+            finite_value=withdraw_volume_ul,
         )
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{
-            f"pump{self.monomer_input.index}": monomer_pump_command_t,
-        })
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{
+                f"pump{self.monomer_input.index}": monomer_pump_command_t,
+            },
+        )
 
         # wait for completion
         while self._devices.PUMP.is_active(**{f"pump{self.monomer_input.index}": 1}):
             time.sleep(1)
 
-        valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.waste_port)
+        valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.waste_port
+        )
 
-        self._devices.PUMP.set_valves(**{f"pump{self.monomer_input.index}": valve_command_t})
+        self._devices.PUMP.set_valves(
+            **{f"pump{self.monomer_input.index}": valve_command_t}
+        )
 
         time.sleep(0.5)
 
         # switch the direction
         monomer_pump_command_t.direction = self._devices.PUMP.infuse
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{
-            f"pump{self.monomer_input.index}": monomer_pump_command_t,
-        })
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{
+                f"pump{self.monomer_input.index}": monomer_pump_command_t,
+            },
+        )
 
         # wait for completion
         while self._devices.PUMP.is_active(**{f"pump{self.monomer_input.index}": 1}):
@@ -1059,15 +1249,19 @@ class ReactionStation(object):
         """
 
         monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-            position=self.monomer_input.monomer_B_input_port)
+            position=self.monomer_input.monomer_B_input_port
+        )
 
         initiator_valve_command_t = self._devices.PUMP.make_valve_command(
-            position=self.initiator_input.initiator_input_port)
+            position=self.initiator_input.initiator_input_port
+        )
 
-        self._devices.PUMP.set_valves(**{
-            f"pump{self.monomer_input.index}": monomer_valve_command_t,
-            f"pump{self.initiator_input.index}": initiator_valve_command_t,
-        })
+        self._devices.PUMP.set_valves(
+            **{
+                f"pump{self.monomer_input.index}": monomer_valve_command_t,
+                f"pump{self.initiator_input.index}": initiator_valve_command_t,
+            }
+        )
 
         time.sleep(0.5)
 
@@ -1089,15 +1283,20 @@ class ReactionStation(object):
             finite_units=self._devices.PUMP.ul,
         )
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{
-            f"pump{self.monomer_input.index}": monomer_pump_command_t,
-            f"pump{self.initiator_input.index}": initiator_pump_command_t,
-        })
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{
+                f"pump{self.monomer_input.index}": monomer_pump_command_t,
+                f"pump{self.initiator_input.index}": initiator_pump_command_t,
+            },
+        )
 
-        _ = f"Station {self.index}: Priming wdrw {self.monomer_input.monomer_b_priming_volume_ul} uL mon. B at " \
-            f"{self.monomer_b_withdraw_rate_ul_min} " \
-            f"uL/min and {self.initiator_input.initiator_priming_volume_ul} uL init. B " \
+        _ = (
+            f"Station {self.index}: Priming wdrw {self.monomer_input.monomer_b_priming_volume_ul} uL mon. B at "
+            f"{self.monomer_b_withdraw_rate_ul_min} "
+            f"uL/min and {self.initiator_input.initiator_priming_volume_ul} uL init. B "
             f"at {self.initiator_b_withdraw_rate_ul_min} uL/min"
+        )
 
         print(_)
 
@@ -1114,13 +1313,19 @@ class ReactionStation(object):
         :return:
         """
 
-        monomer_valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.waste_port)
-        initiator_valve_command_t = self._devices.PUMP.make_valve_command(position=self.initiator_input.waste_port)
+        monomer_valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.waste_port
+        )
+        initiator_valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.initiator_input.waste_port
+        )
 
-        self._devices.PUMP.set_valves(**{
-            f"pump{self.monomer_input.index}": monomer_valve_command_t,
-            f"pump{self.initiator_input.index}": initiator_valve_command_t,
-        })
+        self._devices.PUMP.set_valves(
+            **{
+                f"pump{self.monomer_input.index}": monomer_valve_command_t,
+                f"pump{self.initiator_input.index}": initiator_valve_command_t,
+            }
+        )
 
         time.sleep(0.5)
 
@@ -1128,20 +1333,27 @@ class ReactionStation(object):
             mode=self._devices.PUMP.continuous,
             direction=self._devices.PUMP.infuse,
             rate_units=self._devices.PUMP.ul_min,
-            rate_value=min(self._devices.PUMP.get_max_rate_ul_min(self.monomer_input.index), 20000)
+            rate_value=min(
+                self._devices.PUMP.get_max_rate_ul_min(self.monomer_input.index), 20000
+            ),
         )
 
         initiator_pump_command_t = self._devices.PUMP.make_command(
             mode=self._devices.PUMP.continuous,
             direction=self._devices.PUMP.infuse,
             rate_units=self._devices.PUMP.ul_min,
-            rate_value=min(self._devices.PUMP.get_max_rate_ul_min(self.initiator_input.index), 20000)
+            rate_value=min(
+                self._devices.PUMP.get_max_rate_ul_min(self.initiator_input.index),
+                20000,
+            ),
         )
 
-        self._devices.PUMP.pump(**{
-            f"pump{self.monomer_input.index}": monomer_pump_command_t,
-            f"pump{self.initiator_input.index}": initiator_pump_command_t,
-        })
+        self._devices.PUMP.pump(
+            **{
+                f"pump{self.monomer_input.index}": monomer_pump_command_t,
+                f"pump{self.initiator_input.index}": initiator_pump_command_t,
+            }
+        )
 
         time.sleep(0.5)
 
@@ -1192,51 +1404,63 @@ class ReactionStation(object):
 
         # stop both pumps
         if not monomer_is_active or not initiator_is_active:
-            self._devices.PUMP.stop(**{
-                f"pump{self.monomer_input.index}": True,
-                f"pump{self.initiator_input.index}": True,
-            })
+            self._devices.PUMP.stop(
+                **{
+                    f"pump{self.monomer_input.index}": True,
+                    f"pump{self.initiator_input.index}": True,
+                }
+            )
 
         monomer_valve_command_t, initiator_valve_command_t = None, None
 
         if not monomer_is_active:
             monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.monomer_input.monomer_B_input_port)
+                position=self.monomer_input.monomer_B_input_port
+            )
 
         if not initiator_is_active:
             initiator_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.initiator_input.initiator_input_port)
+                position=self.initiator_input.initiator_input_port
+            )
 
-        self._devices.PUMP.set_valves(**{
-            f"pump{self.monomer_input.index}": monomer_valve_command_t,
-            f"pump{self.initiator_input.index}": initiator_valve_command_t,
-        })
+        self._devices.PUMP.set_valves(
+            **{
+                f"pump{self.monomer_input.index}": monomer_valve_command_t,
+                f"pump{self.initiator_input.index}": initiator_valve_command_t,
+            }
+        )
 
         time.sleep(0.5)
 
         # we need to set the plunger resolution to N0 if it's been set to N2
         for pump_input, name, input_is_active in zip(
-                (self.monomer_input, self.initiator_input),
-                ("monomer", "initiator"),
-                (monomer_is_active, initiator_is_active)
+            (self.monomer_input, self.initiator_input),
+            ("monomer", "initiator"),
+            (monomer_is_active, initiator_is_active),
         ):
             if not input_is_active:
-                self.set_plunger_mode(pump_input=pump_input, target_mode=0, pump_name=name)
+                self.set_plunger_mode(
+                    pump_input=pump_input, target_mode=0, pump_name=name
+                )
 
         if not monomer_is_active:
 
             # we need to withdraw equal dispense-rate weighted volumes, taking into account the
             # syringe size that will be limiting the max time that we can infuse
-            monomer_b_withdraw_vol_ul = self.monomer_b_volume_to_dispense_ul - self._monomer_b_dispensed_ul_counter
+            monomer_b_withdraw_vol_ul = (
+                self.monomer_b_volume_to_dispense_ul
+                - self._monomer_b_dispensed_ul_counter
+            )
 
             # if this will be our first infusion, we need to withdraw extra to allow for
             # priming the tubing output
             if self._monomer_b_infusions_counter == 0:
-                monomer_b_withdraw_vol_ul += self.monomer_b_output_tubing_prime_volume_ul
+                monomer_b_withdraw_vol_ul += (
+                    self.monomer_b_output_tubing_prime_volume_ul
+                )
 
             self._last_monomer_withdraw_volume_ul = min(
-                monomer_b_withdraw_vol_ul,
-                self.monomer_input.get_syringe_volume_ul()
+                monomer_b_withdraw_vol_ul, self.monomer_input.get_syringe_volume_ul()
             )
 
         else:
@@ -1246,17 +1470,21 @@ class ReactionStation(object):
 
         if not initiator_is_active:
 
-            initiator_b_withdraw_vol_ul = (self.calc_initiator_b_volume_to_dispense_ul() -
-                                           self._initiator_b_dispensed_ul_counter)
+            initiator_b_withdraw_vol_ul = (
+                self.calc_initiator_b_volume_to_dispense_ul()
+                - self._initiator_b_dispensed_ul_counter
+            )
 
             # if this will be our first infusion, we need to withdraw extra to allow for
             # priming the tubing output
             if self._initiator_b_infusions_counter == 0:
-                initiator_b_withdraw_vol_ul += self.initiator_b_output_tubing_prime_volume_ul
+                initiator_b_withdraw_vol_ul += (
+                    self.initiator_b_output_tubing_prime_volume_ul
+                )
 
             self._last_initiator_withdraw_volume_ul = min(
                 initiator_b_withdraw_vol_ul,
-                self.initiator_input.get_syringe_volume_ul()
+                self.initiator_input.get_syringe_volume_ul(),
             )
 
         else:
@@ -1273,7 +1501,7 @@ class ReactionStation(object):
                 rate_units=self._devices.PUMP.ul_min,
                 rate_value=self.monomer_b_withdraw_rate_ul_min,
                 finite_units=self._devices.PUMP.ul,
-                finite_value=self._last_monomer_withdraw_volume_ul
+                finite_value=self._last_monomer_withdraw_volume_ul,
             )
 
         if not initiator_is_active:
@@ -1283,18 +1511,23 @@ class ReactionStation(object):
                 rate_units=self._devices.PUMP.ul_min,
                 rate_value=self.initiator_b_withdraw_rate_ul_min,
                 finite_units=self._devices.PUMP.ul,
-                finite_value=self._last_initiator_withdraw_volume_ul
+                finite_value=self._last_initiator_withdraw_volume_ul,
             )
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{
-            f"pump{self.monomer_input.index}": monomer_pump_command_t,
-            f"pump{self.initiator_input.index}": initiator_pump_command_t,
-        })
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{
+                f"pump{self.monomer_input.index}": monomer_pump_command_t,
+                f"pump{self.initiator_input.index}": initiator_pump_command_t,
+            },
+        )
 
-        _ = f"Station {self.index}: wdrw {self._last_monomer_withdraw_volume_ul} uL mon. B at " \
-            f"{self.monomer_b_withdraw_rate_ul_min} " \
-            f"uL/min and {self._last_initiator_withdraw_volume_ul} uL init. B " \
+        _ = (
+            f"Station {self.index}: wdrw {self._last_monomer_withdraw_volume_ul} uL mon. B at "
+            f"{self.monomer_b_withdraw_rate_ul_min} "
+            f"uL/min and {self._last_initiator_withdraw_volume_ul} uL init. B "
             f"at {self.initiator_b_withdraw_rate_ul_min} uL/min"
+        )
 
         print(_)
         if self.logging_enabled:
@@ -1315,13 +1548,19 @@ class ReactionStation(object):
         :return:
         """
 
-        monomer_valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.output_port)
-        initiator_valve_command_t = self._devices.PUMP.make_valve_command(position=self.initiator_input.output_port)
+        monomer_valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.output_port
+        )
+        initiator_valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.initiator_input.output_port
+        )
 
-        self._devices.PUMP.set_valves(**{
-            f"pump{self.monomer_input.index}": monomer_valve_command_t,
-            f"pump{self.initiator_input.index}": initiator_valve_command_t,
-        })
+        self._devices.PUMP.set_valves(
+            **{
+                f"pump{self.monomer_input.index}": monomer_valve_command_t,
+                f"pump{self.initiator_input.index}": initiator_valve_command_t,
+            }
+        )
 
         time.sleep(0.5)
 
@@ -1331,7 +1570,7 @@ class ReactionStation(object):
             rate_units=self._devices.PUMP.ul_min,
             rate_value=self.monomer_b_output_tubing_prime_rate_ul_min,
             finite_units=self._devices.PUMP.ul,
-            finite_value=self.monomer_b_output_tubing_prime_volume_ul
+            finite_value=self.monomer_b_output_tubing_prime_volume_ul,
         )
 
         initiator_pump_command_t = self._devices.PUMP.make_command(
@@ -1340,20 +1579,24 @@ class ReactionStation(object):
             rate_units=self._devices.PUMP.ul_min,
             rate_value=self.initiator_b_output_tubing_prime_rate_ul_min,
             finite_units=self._devices.PUMP.ul,
-            finite_value=self.initiator_b_output_tubing_prime_volume_ul
+            finite_value=self.initiator_b_output_tubing_prime_volume_ul,
         )
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{
-            f"pump{self.monomer_input.index}": monomer_pump_command_t,
-            f"pump{self.initiator_input.index}": initiator_pump_command_t,
-        })
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{
+                f"pump{self.monomer_input.index}": monomer_pump_command_t,
+                f"pump{self.initiator_input.index}": initiator_pump_command_t,
+            },
+        )
 
         time.sleep(0.5)
 
     def do_phase_2_monomer_b_and_initiator_b_dispense(
-            self,
-            monomer_b_to_dispense_ul: float = None,
-            initiator_b_to_dispense_ul: float = None) -> None:
+        self,
+        monomer_b_to_dispense_ul: float = None,
+        initiator_b_to_dispense_ul: float = None,
+    ) -> None:
         """
         Now we begin dispensing monomer and initiator B at their respective target rates into the reaction vessel.
 
@@ -1367,42 +1610,63 @@ class ReactionStation(object):
         :return:
         """
 
-        monomer_valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.output_port)
-        initiator_valve_command_t = self._devices.PUMP.make_valve_command(position=self.initiator_input.output_port)
+        monomer_valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.output_port
+        )
+        initiator_valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.initiator_input.output_port
+        )
 
-        self._devices.PUMP.set_valves(**{
-            f"pump{self.monomer_input.index}": monomer_valve_command_t,
-            f"pump{self.initiator_input.index}": initiator_valve_command_t,
-        })
+        self._devices.PUMP.set_valves(
+            **{
+                f"pump{self.monomer_input.index}": monomer_valve_command_t,
+                f"pump{self.initiator_input.index}": initiator_valve_command_t,
+            }
+        )
 
         time.sleep(0.5)
 
         # we need to set the plunger resolution to N2 if the target rate is less than what's achievable
         # with N0 mode
         for pump_input, name, dispense_rate in zip(
-                (self.monomer_input, self.initiator_input),
-                ("monomer", "initiator"),
-                (self.monomer_b_dispense_rate_ul_min, self.initiator_b_dispense_rate_ul_min),
+            (self.monomer_input, self.initiator_input),
+            ("monomer", "initiator"),
+            (
+                self.monomer_b_dispense_rate_ul_min,
+                self.initiator_b_dispense_rate_ul_min,
+            ),
         ):
             if dispense_rate <= 8 * pump_input.get_min_rate_ul_min():
-                self.set_plunger_mode(pump_input=pump_input, target_mode=2, pump_name=name)
+                self.set_plunger_mode(
+                    pump_input=pump_input, target_mode=2, pump_name=name
+                )
 
         if monomer_b_to_dispense_ul is None:
             if self._last_monomer_withdraw_volume_ul != 0:
-                self._monomer_b_dispense_volume_ul = self._last_monomer_withdraw_volume_ul
+                self._monomer_b_dispense_volume_ul = (
+                    self._last_monomer_withdraw_volume_ul
+                )
             if self._monomer_b_infusions_counter == 0:
-                self._monomer_b_dispense_volume_ul -= self.monomer_b_output_tubing_prime_volume_ul
+                self._monomer_b_dispense_volume_ul -= (
+                    self.monomer_b_output_tubing_prime_volume_ul
+                )
 
         else:
             self._monomer_b_dispense_volume_ul = monomer_b_to_dispense_ul
 
         if initiator_b_to_dispense_ul is None:
             if self._last_initiator_withdraw_volume_ul != 0:
-                self._initiator_b_dispense_volume_ul = self._last_initiator_withdraw_volume_ul
+                self._initiator_b_dispense_volume_ul = (
+                    self._last_initiator_withdraw_volume_ul
+                )
             else:
-                self._initiator_b_dispense_volume_ul = self.initiator_input.get_syringe_volume_ul()
+                self._initiator_b_dispense_volume_ul = (
+                    self.initiator_input.get_syringe_volume_ul()
+                )
             if self._initiator_b_infusions_counter == 0:
-                self._initiator_b_dispense_volume_ul -= self.initiator_b_output_tubing_prime_volume_ul
+                self._initiator_b_dispense_volume_ul -= (
+                    self.initiator_b_output_tubing_prime_volume_ul
+                )
 
         else:
             self._initiator_b_dispense_volume_ul = initiator_b_to_dispense_ul
@@ -1413,7 +1677,7 @@ class ReactionStation(object):
             rate_units=self._devices.PUMP.ul_min,
             rate_value=self.monomer_b_dispense_rate_ul_min,
             finite_units=self._devices.PUMP.ul,
-            finite_value=self._monomer_b_dispense_volume_ul
+            finite_value=self._monomer_b_dispense_volume_ul,
         )
 
         initiator_pump_command_t = self._devices.PUMP.make_command(
@@ -1422,28 +1686,35 @@ class ReactionStation(object):
             rate_units=self._devices.PUMP.ul_min,
             rate_value=self.initiator_b_dispense_rate_ul_min,
             finite_units=self._devices.PUMP.ul,
-            finite_value=self._initiator_b_dispense_volume_ul
+            finite_value=self._initiator_b_dispense_volume_ul,
         )
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{
-            f"pump{self.monomer_input.index}": monomer_pump_command_t,
-            f"pump{self.initiator_input.index}": initiator_pump_command_t,
-        })
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{
+                f"pump{self.monomer_input.index}": monomer_pump_command_t,
+                f"pump{self.initiator_input.index}": initiator_pump_command_t,
+            },
+        )
 
         if self._last_monomer_withdraw_volume_ul > 0:
             self._monomer_b_dispensed_ul_counter += self._monomer_b_dispense_volume_ul
             self._monomer_b_infusions_counter += 1
 
         if self._last_initiator_withdraw_volume_ul > 0:
-            self._initiator_b_dispensed_ul_counter += self._initiator_b_dispense_volume_ul
+            self._initiator_b_dispensed_ul_counter += (
+                self._initiator_b_dispense_volume_ul
+            )
             self._initiator_b_infusions_counter += 1
 
-        _ = (f"Station {self.index}: inf {self._monomer_b_dispensed_ul_counter} "
-             f"of {self.monomer_b_volume_to_dispense_ul} uL mon. B at "
-             f"{self.monomer_b_dispense_rate_ul_min} uL/min and "
-             f"{self._initiator_b_dispensed_ul_counter} of "
-             f"{self.calc_initiator_b_volume_to_dispense_ul()} uL init. B at "
-             f"{self.initiator_b_dispense_rate_ul_min} uL/min")
+        _ = (
+            f"Station {self.index}: inf {self._monomer_b_dispensed_ul_counter} "
+            f"of {self.monomer_b_volume_to_dispense_ul} uL mon. B at "
+            f"{self.monomer_b_dispense_rate_ul_min} uL/min and "
+            f"{self._initiator_b_dispensed_ul_counter} of "
+            f"{self.calc_initiator_b_volume_to_dispense_ul()} uL init. B at "
+            f"{self.initiator_b_dispense_rate_ul_min} uL/min"
+        )
 
         print(_)
         if self.logging_enabled:
@@ -1451,8 +1722,12 @@ class ReactionStation(object):
 
         time.sleep(0.5)
 
-    def do_phase_2_output_purge(self, do_monomer: bool = True, do_initiator: bool = True,
-                                wait_for_all: bool = False) -> None:
+    def do_phase_2_output_purge(
+        self,
+        do_monomer: bool = True,
+        do_initiator: bool = True,
+        wait_for_all: bool = False,
+    ) -> None:
         """
 
 
@@ -1472,7 +1747,9 @@ class ReactionStation(object):
         """
 
         # we need to set the plunger resolution to N0 if it's been set to N2
-        for pump_input, name in zip((self.monomer_input, self.initiator_input), ("monomer", "initiator")):
+        for pump_input, name in zip(
+            (self.monomer_input, self.initiator_input), ("monomer", "initiator")
+        ):
             self.set_plunger_mode(pump_input=pump_input, target_mode=0, pump_name=name)
 
         monomer_pump_command_t = self._devices.PUMP.make_command(
@@ -1492,50 +1769,72 @@ class ReactionStation(object):
         # Do a withdraw of 2 * (output_tubing_volume_ul + waste_tubing_volume_ul) at max of 50 mL/min
         # for each input
         for pump_input, name, command in zip(
-                (self.monomer_input, self.initiator_input),
-                ("monomer", "initiator"),
-                (monomer_pump_command_t, initiator_pump_command_t)
+            (self.monomer_input, self.initiator_input),
+            ("monomer", "initiator"),
+            (monomer_pump_command_t, initiator_pump_command_t),
         ):
-            withdraw_rate_ul_min = min(50000., pump_input.get_max_rate_ul_min())
-            withdraw_volume_ul = 2 * (pump_input.output_tubing_volume_ul + pump_input.output_tubing_volume_ul)
+            withdraw_rate_ul_min = min(50000.0, pump_input.get_max_rate_ul_min())
+            withdraw_volume_ul = 2 * (
+                pump_input.output_tubing_volume_ul + pump_input.output_tubing_volume_ul
+            )
             command.rate_value = withdraw_rate_ul_min
             command.finite_value = withdraw_volume_ul
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{
-            f"pump{self.monomer_input.index}": monomer_pump_command_t,
-            f"pump{self.initiator_input.index}": initiator_pump_command_t,
-        })
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{
+                f"pump{self.monomer_input.index}": monomer_pump_command_t,
+                f"pump{self.initiator_input.index}": initiator_pump_command_t,
+            },
+        )
 
         # wait for completion
-        while self._devices.PUMP.is_active(**{f"pump{self.monomer_input.index}": 1,
-                                              f"pump{self.initiator_input.index}": 1}):
+        while self._devices.PUMP.is_active(
+            **{
+                f"pump{self.monomer_input.index}": 1,
+                f"pump{self.initiator_input.index}": 1,
+            }
+        ):
             time.sleep(1)
 
-        monomer_valve_command_t = self._devices.PUMP.make_valve_command(position=self.monomer_input.waste_port)
-        initiator_valve_command_t = self._devices.PUMP.make_valve_command(position=self.initiator_input.waste_port)
+        monomer_valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.monomer_input.waste_port
+        )
+        initiator_valve_command_t = self._devices.PUMP.make_valve_command(
+            position=self.initiator_input.waste_port
+        )
 
-        self._devices.PUMP.set_valves(**{
-            f"pump{self.monomer_input.index}": monomer_valve_command_t,
-            f"pump{self.initiator_input.index}": initiator_valve_command_t
-        })
+        self._devices.PUMP.set_valves(
+            **{
+                f"pump{self.monomer_input.index}": monomer_valve_command_t,
+                f"pump{self.initiator_input.index}": initiator_valve_command_t,
+            }
+        )
 
         time.sleep(0.5)
 
         monomer_pump_command_t.direction = self._devices.PUMP.infuse
         initiator_pump_command_t.direction = self._devices.PUMP.infuse
 
-        self._devices.PUMP.pump(wait_for_complete=False, **{
-            f"pump{self.monomer_input.index}": monomer_pump_command_t,
-            f"pump{self.initiator_input.index}": initiator_pump_command_t,
-        })
+        self._devices.PUMP.pump(
+            wait_for_complete=False,
+            **{
+                f"pump{self.monomer_input.index}": monomer_pump_command_t,
+                f"pump{self.initiator_input.index}": initiator_pump_command_t,
+            },
+        )
 
         # wait for completion
-        while self._devices.PUMP.is_active(**{f"pump{self.monomer_input.index}": 1,
-                                              f"pump{self.initiator_input.index}": 1}):
+        while self._devices.PUMP.is_active(
+            **{
+                f"pump{self.monomer_input.index}": 1,
+                f"pump{self.initiator_input.index}": 1,
+            }
+        ):
             time.sleep(1)
 
 
-class ReactionProcessHandler(object):
+class ReactionProcessHandler:
     """
     Class to handle processing each of the reaction stations
     as they proceed through the forumulation steps.
@@ -1546,7 +1845,7 @@ class ReactionProcessHandler(object):
 
     # control the period in seconds at which
     # the process prints the status of all stations to screen
-    status_print_interval_s: float = 360.
+    status_print_interval_s: float = 360.0
     last_status_print_time: float = None
 
     # the heartbeat interval in seconds to wait between processing
@@ -1558,7 +1857,9 @@ class ReactionProcessHandler(object):
     _data: Data = None
     _aqueduct: Aqueduct = None
 
-    def __init__(self, devices_obj: Devices = None, aqueduct: Aqueduct = None, data: Data = None):
+    def __init__(
+        self, devices_obj: Devices = None, aqueduct: Aqueduct = None, data: Data = None
+    ):
 
         if isinstance(devices_obj, Devices):
             self._devices = devices_obj
@@ -1573,13 +1874,15 @@ class ReactionProcessHandler(object):
         _t = []
 
         for i in range(0, 4):
-            _initiator_input = InitiatorPumpInput(index=2 * i, devices_obj=self._devices)
-            _monomer_input = MonomerPumpInput(index=2 * i + 1, devices_obj=self._devices)
+            _initiator_input = InitiatorPumpInput(
+                index=2 * i, devices_obj=self._devices
+            )
+            _monomer_input = MonomerPumpInput(
+                index=2 * i + 1, devices_obj=self._devices
+            )
 
             _reaction_station = ReactionStation(
-                index=i,
-                devices_obj=devices_obj,
-                aqueduct=aqueduct
+                index=i, devices_obj=devices_obj, aqueduct=aqueduct
             )
 
             _reaction_station.initiator_input = _initiator_input
@@ -1614,8 +1917,9 @@ class ReactionProcessHandler(object):
         :return:
         """
 
-        if self.last_status_print_time is None or \
-                (time.time() > self.last_status_print_time + self.status_print_interval_s):
+        if self.last_status_print_time is None or (
+            time.time() > self.last_status_print_time + self.status_print_interval_s
+        ):
             self.print_all_stations()
             self.last_status_print_time = time.time()
 
@@ -1641,11 +1945,18 @@ class ReactionProcessHandler(object):
             #
             # for the co-dispense phase, both pumps need to be operating
             if s.phase_setpoint.value in (
-                    ReactionStation.Phase.PHASE_2_MONOMER_B_AND_INIT_B_WITHDRAW,
-                    ReactionStation.Phase.PHASE_2_INFUSING_MONOMER_B_AND_INIT_B.value):
-                condition = (is_active[s.monomer_input.index] and is_active[s.initiator_input.index])
+                ReactionStation.Phase.PHASE_2_MONOMER_B_AND_INIT_B_WITHDRAW,
+                ReactionStation.Phase.PHASE_2_INFUSING_MONOMER_B_AND_INIT_B.value,
+            ):
+                condition = (
+                    is_active[s.monomer_input.index]
+                    and is_active[s.initiator_input.index]
+                )
             else:
-                condition = (is_active[s.monomer_input.index] or is_active[s.initiator_input.index])
+                condition = (
+                    is_active[s.monomer_input.index]
+                    or is_active[s.initiator_input.index]
+                )
             if condition is True:
                 _s[_n] = True
         return tuple(_s)
@@ -1661,7 +1972,11 @@ class ReactionProcessHandler(object):
 
             active_inputs = self.get_active_pump_inputs()
             for i, a in enumerate(active_inputs):
-                if a is False and self.stations[i].enabled_setpoint.value == ReactionStation.Enabled.ENABLED.value:
+                if (
+                    a is False
+                    and self.stations[i].enabled_setpoint.value
+                    == ReactionStation.Enabled.ENABLED.value
+                ):
                     self.stations[i].do_next_phase()
 
             self.print_station_status_at_interval()
@@ -1704,11 +2019,11 @@ class ReactionProcessHandler(object):
         self.stations[0].initiator_input.index = 0
 
         self.stations[0].monomer_a_dispense_rate_ul_min = 15.7
-        self.stations[0].monomer_a_volume_to_dispense_ul = 1000.
+        self.stations[0].monomer_a_volume_to_dispense_ul = 1000.0
 
         # round up to the nearest decimal
         self.stations[0].monomer_b_dispense_rate_ul_min = 93.8
-        self.stations[0].monomer_b_volume_to_dispense_ul = 17380.
+        self.stations[0].monomer_b_volume_to_dispense_ul = 17380.0
 
         # round up to the nearest decimal
         self.stations[0].initiator_b_dispense_rate_ul_min = 109.4
@@ -1720,10 +2035,10 @@ class ReactionProcessHandler(object):
         self.stations[1].initiator_input.index = 2
 
         self.stations[1].monomer_a_dispense_rate_ul_min = 15.7
-        self.stations[1].monomer_a_volume_to_dispense_ul = 1000.
+        self.stations[1].monomer_a_volume_to_dispense_ul = 1000.0
 
         self.stations[1].monomer_b_dispense_rate_ul_min = 93.8
-        self.stations[1].monomer_b_volume_to_dispense_ul = 17380.
+        self.stations[1].monomer_b_volume_to_dispense_ul = 17380.0
 
         self.stations[1].initiator_b_dispense_rate_ul_min = 109.4
 
@@ -1734,10 +2049,10 @@ class ReactionProcessHandler(object):
         self.stations[2].initiator_input.index = 4
 
         self.stations[2].monomer_a_dispense_rate_ul_min = 13
-        self.stations[2].monomer_a_volume_to_dispense_ul = 1000.
+        self.stations[2].monomer_a_volume_to_dispense_ul = 1000.0
 
         self.stations[2].monomer_b_dispense_rate_ul_min = 93.8
-        self.stations[2].monomer_b_volume_to_dispense_ul = 17380.
+        self.stations[2].monomer_b_volume_to_dispense_ul = 17380.0
 
         self.stations[2].initiator_b_dispense_rate_ul_min = 109.4
 
@@ -1748,10 +2063,10 @@ class ReactionProcessHandler(object):
         self.stations[3].initiator_input.index = 6
 
         self.stations[3].monomer_a_dispense_rate_ul_min = 13
-        self.stations[3].monomer_a_volume_to_dispense_ul = 1000.
+        self.stations[3].monomer_a_volume_to_dispense_ul = 1000.0
 
         self.stations[3].monomer_b_dispense_rate_ul_min = 93.8
-        self.stations[3].monomer_b_volume_to_dispense_ul = 17380.
+        self.stations[3].monomer_b_volume_to_dispense_ul = 17380.0
 
         self.stations[3].initiator_b_dispense_rate_ul_min = 109.4
 
@@ -1794,13 +2109,15 @@ class ReactionProcessHandler(object):
 
         # round up to the nearest decimal
         self.stations[0].monomer_b_dispense_rate_ul_min = 18.8
-        self.stations[0].monomer_b_volume_to_dispense_ul = 11600.
+        self.stations[0].monomer_b_volume_to_dispense_ul = 11600.0
 
         # round up to the nearest decimal
         self.stations[0].initiator_b_dispense_rate_ul_min = 58.6
 
         # start the Tech Sol process at the co-dispense phase
-        self.stations[0].phase_setpoint.update(ReactionStation.Phase.PHASE_2_INITIALIZED.value)
+        self.stations[0].phase_setpoint.update(
+            ReactionStation.Phase.PHASE_2_INITIALIZED.value
+        )
 
         # STATION 1
         # a C24000 pump with 5 mL syringe, acrylic acid
@@ -1809,12 +2126,14 @@ class ReactionProcessHandler(object):
         self.stations[1].initiator_input.index = 2
 
         self.stations[1].monomer_b_dispense_rate_ul_min = 18.8
-        self.stations[1].monomer_b_volume_to_dispense_ul = 11600.
+        self.stations[1].monomer_b_volume_to_dispense_ul = 11600.0
 
         self.stations[1].initiator_b_dispense_rate_ul_min = 58.6
 
         # start the Tech Sol process at the co-dispense phase
-        self.stations[1].phase_setpoint.update(ReactionStation.Phase.PHASE_2_INITIALIZED.value)
+        self.stations[1].phase_setpoint.update(
+            ReactionStation.Phase.PHASE_2_INITIALIZED.value
+        )
 
         # STATION 2
         # a C3000 pump with 5 mL syringe, acrylic acid
@@ -1823,12 +2142,14 @@ class ReactionProcessHandler(object):
         self.stations[2].initiator_input.index = 4
 
         self.stations[2].monomer_b_dispense_rate_ul_min = 18.8
-        self.stations[2].monomer_b_volume_to_dispense_ul = 11600.
+        self.stations[2].monomer_b_volume_to_dispense_ul = 11600.0
 
         self.stations[2].initiator_b_dispense_rate_ul_min = 58.6
 
         # start the Tech Sol process at the co-dispense phase
-        self.stations[2].phase_setpoint.update(ReactionStation.Phase.PHASE_2_INITIALIZED.value)
+        self.stations[2].phase_setpoint.update(
+            ReactionStation.Phase.PHASE_2_INITIALIZED.value
+        )
 
         # STATION 3
         # a C3000 pump with 5 mL syringe, acrylic acid
@@ -1837,12 +2158,14 @@ class ReactionProcessHandler(object):
         self.stations[3].initiator_input.index = 6
 
         self.stations[3].monomer_b_dispense_rate_ul_min = 18.8
-        self.stations[3].monomer_b_volume_to_dispense_ul = 11600.
+        self.stations[3].monomer_b_volume_to_dispense_ul = 11600.0
 
         self.stations[3].initiator_b_dispense_rate_ul_min = 62.5
 
         # start the Tech Sol process at the co-dispense phase
-        self.stations[3].phase_setpoint.update(ReactionStation.Phase.PHASE_2_INITIALIZED.value)
+        self.stations[3].phase_setpoint.update(
+            ReactionStation.Phase.PHASE_2_INITIALIZED.value
+        )
 
     def do_techsol_process(self):
 
@@ -1856,24 +2179,28 @@ class ReactionProcessHandler(object):
 
         """
         Step 1:
-        
+
         1) Set all valves to waste
         2) Do a full infuse of all plungers at 10 mL/min
-        
+
         """
         valve_commands = {}
 
         for i, s in enumerate(self.stations):
             monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.stations[i].monomer_input.waste_port)
+                position=self.stations[i].monomer_input.waste_port
+            )
 
             initiator_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.stations[i].initiator_input.waste_port)
+                position=self.stations[i].initiator_input.waste_port
+            )
 
-            valve_commands.update({
-                f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
-                f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t
-            })
+            valve_commands.update(
+                {
+                    f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
+                    f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t,
+                }
+            )
 
         self._devices.PUMP.set_valves(**valve_commands)
 
@@ -1897,10 +2224,12 @@ class ReactionProcessHandler(object):
                 rate_value=10000,
             )
 
-            pump_commands.update({
-                f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
-                f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t
-            })
+            pump_commands.update(
+                {
+                    f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
+                    f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t,
+                }
+            )
 
         self._devices.PUMP.pump(wait_for_complete=False, **pump_commands)
 
@@ -1912,13 +2241,13 @@ class ReactionProcessHandler(object):
 
         """
         Step 2:
-        
+
         Do 3 cycles of:
             1) set monomer input valves to monomer input A
             2) do full withdraw at 50 mL/min
             3) set monomer input valves to waste
-            4) do full infuse at 50 mL/min        
-        
+            4) do full infuse at 50 mL/min
+
         """
 
         # we're going to do 3 withdraws from monomer A, infuse to waste
@@ -1929,11 +2258,14 @@ class ReactionProcessHandler(object):
 
             for i, s in enumerate(self.stations):
                 monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-                    position=self.stations[i].monomer_input.monomer_A_input_port)
+                    position=self.stations[i].monomer_input.monomer_A_input_port
+                )
 
-                valve_commands.update({
-                    f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
-                })
+                valve_commands.update(
+                    {
+                        f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
+                    }
+                )
 
             self._devices.PUMP.set_valves(**valve_commands)
 
@@ -1950,9 +2282,11 @@ class ReactionProcessHandler(object):
                     rate_value=plunger_rate_ul_min,
                 )
 
-                pump_commands.update({
-                    f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
-                })
+                pump_commands.update(
+                    {
+                        f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
+                    }
+                )
 
             self._devices.PUMP.pump(wait_for_complete=False, **pump_commands)
 
@@ -1967,11 +2301,14 @@ class ReactionProcessHandler(object):
 
             for i, s in enumerate(self.stations):
                 monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-                    position=self.stations[i].monomer_input.waste_port)
+                    position=self.stations[i].monomer_input.waste_port
+                )
 
-                valve_commands.update({
-                    f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
-                })
+                valve_commands.update(
+                    {
+                        f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
+                    }
+                )
 
             self._devices.PUMP.set_valves(**valve_commands)
 
@@ -1988,9 +2325,11 @@ class ReactionProcessHandler(object):
                     rate_value=plunger_rate_ul_min,
                 )
 
-                pump_commands.update({
-                    f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
-                })
+                pump_commands.update(
+                    {
+                        f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
+                    }
+                )
 
             self._devices.PUMP.pump(wait_for_complete=False, **pump_commands)
 
@@ -2002,13 +2341,13 @@ class ReactionProcessHandler(object):
 
         """
         Step 3:
-        
+
         Do 3 cycles of:
             1) set monomer input valves to monomer input B and initiator input valves to initiator input
             2) do full withdraw at 50 mL/min
             3) set monomer input and initiator input valves to output
-            4) do full infuse at 50 mL/min        
-        
+            4) do full infuse at 50 mL/min
+
         """
 
         # now we're going to do 3 withdraws from monomer B, initiator B, infuse to output
@@ -2019,15 +2358,19 @@ class ReactionProcessHandler(object):
 
             for i, s in enumerate(self.stations):
                 monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-                    position=self.stations[i].monomer_input.monomer_B_input_port)
+                    position=self.stations[i].monomer_input.monomer_B_input_port
+                )
 
                 initiator_valve_command_t = self._devices.PUMP.make_valve_command(
-                    position=self.stations[i].initiator_input.initiator_input_port)
+                    position=self.stations[i].initiator_input.initiator_input_port
+                )
 
-                valve_commands.update({
-                    f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
-                    f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t
-                })
+                valve_commands.update(
+                    {
+                        f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
+                        f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t,
+                    }
+                )
 
             self._devices.PUMP.set_valves(**valve_commands)
 
@@ -2051,10 +2394,12 @@ class ReactionProcessHandler(object):
                     rate_value=plunger_rate_ul_min,
                 )
 
-                pump_commands.update({
-                    f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
-                    f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t
-                })
+                pump_commands.update(
+                    {
+                        f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
+                        f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t,
+                    }
+                )
 
             self._devices.PUMP.pump(wait_for_complete=False, **pump_commands)
 
@@ -2069,15 +2414,19 @@ class ReactionProcessHandler(object):
 
             for i, s in enumerate(self.stations):
                 monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-                    position=self.stations[i].monomer_input.output_port)
+                    position=self.stations[i].monomer_input.output_port
+                )
 
                 initiator_valve_command_t = self._devices.PUMP.make_valve_command(
-                    position=self.stations[i].initiator_input.output_port)
+                    position=self.stations[i].initiator_input.output_port
+                )
 
-                valve_commands.update({
-                    f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
-                    f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t
-                })
+                valve_commands.update(
+                    {
+                        f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
+                        f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t,
+                    }
+                )
 
             self._devices.PUMP.set_valves(**valve_commands)
 
@@ -2101,10 +2450,12 @@ class ReactionProcessHandler(object):
                     rate_value=plunger_rate_ul_min,
                 )
 
-                pump_commands.update({
-                    f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
-                    f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t
-                })
+                pump_commands.update(
+                    {
+                        f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
+                        f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t,
+                    }
+                )
 
             self._devices.PUMP.pump(wait_for_complete=False, **pump_commands)
 
@@ -2116,16 +2467,16 @@ class ReactionProcessHandler(object):
 
         """
         Step 4:
-        
-        1) Set valves to output   
+
+        1) Set valves to output
         2) Do full withdraw at 50 mL/min
         3) Set valves to monomer A / initiator
         4) Do 1 mL infuse at 50 mL/min
-        5) Set valves to monomer B / initiator   
+        5) Set valves to monomer B / initiator
         6) Do 1 mL infuse at 50 mL/min
-        7) Set valves to waste   
+        7) Set valves to waste
         8) Do full infuse at 50 mL/min
-        
+
         """
 
         # set all monomer pump valves to waste
@@ -2133,15 +2484,19 @@ class ReactionProcessHandler(object):
 
         for i, s in enumerate(self.stations):
             monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.stations[i].monomer_input.output_port)
+                position=self.stations[i].monomer_input.output_port
+            )
 
             initiator_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.stations[i].initiator_input.output_port)
+                position=self.stations[i].initiator_input.output_port
+            )
 
-            valve_commands.update({
-                f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
-                f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t
-            })
+            valve_commands.update(
+                {
+                    f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
+                    f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t,
+                }
+            )
 
         self._devices.PUMP.set_valves(**valve_commands)
 
@@ -2165,10 +2520,12 @@ class ReactionProcessHandler(object):
                 rate_value=plunger_rate_ul_min,
             )
 
-            pump_commands.update({
-                f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
-                f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t
-            })
+            pump_commands.update(
+                {
+                    f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
+                    f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t,
+                }
+            )
 
         self._devices.PUMP.pump(wait_for_complete=False, **pump_commands)
 
@@ -2183,15 +2540,19 @@ class ReactionProcessHandler(object):
 
         for i, s in enumerate(self.stations):
             monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.stations[i].monomer_input.monomer_A_input_port)
+                position=self.stations[i].monomer_input.monomer_A_input_port
+            )
 
             initiator_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.stations[i].initiator_input.initiator_input_port)
+                position=self.stations[i].initiator_input.initiator_input_port
+            )
 
-            valve_commands.update({
-                f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
-                f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t
-            })
+            valve_commands.update(
+                {
+                    f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
+                    f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t,
+                }
+            )
 
         self._devices.PUMP.set_valves(**valve_commands)
 
@@ -2207,7 +2568,7 @@ class ReactionProcessHandler(object):
                 rate_units=self._devices.PUMP.ul_min,
                 rate_value=plunger_rate_ul_min,
                 finite_units=self._devices.PUMP.ul,
-                finite_value=1000
+                finite_value=1000,
             )
 
             initiator_pump_command_t = self._devices.PUMP.make_command(
@@ -2216,13 +2577,15 @@ class ReactionProcessHandler(object):
                 rate_units=self._devices.PUMP.ul_min,
                 rate_value=plunger_rate_ul_min,
                 finite_units=self._devices.PUMP.ul,
-                finite_value=1000
+                finite_value=1000,
             )
 
-            pump_commands.update({
-                f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
-                f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t
-            })
+            pump_commands.update(
+                {
+                    f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
+                    f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t,
+                }
+            )
 
         self._devices.PUMP.pump(wait_for_complete=False, **pump_commands)
 
@@ -2237,15 +2600,19 @@ class ReactionProcessHandler(object):
 
         for i, s in enumerate(self.stations):
             monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.stations[i].monomer_input.monomer_B_input_port)
+                position=self.stations[i].monomer_input.monomer_B_input_port
+            )
 
             initiator_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.stations[i].initiator_input.initiator_input_port)
+                position=self.stations[i].initiator_input.initiator_input_port
+            )
 
-            valve_commands.update({
-                f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
-                f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t
-            })
+            valve_commands.update(
+                {
+                    f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
+                    f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t,
+                }
+            )
 
         self._devices.PUMP.set_valves(**valve_commands)
 
@@ -2261,7 +2628,7 @@ class ReactionProcessHandler(object):
                 rate_units=self._devices.PUMP.ul_min,
                 rate_value=plunger_rate_ul_min,
                 finite_units=self._devices.PUMP.ul,
-                finite_value=1000
+                finite_value=1000,
             )
 
             initiator_pump_command_t = self._devices.PUMP.make_command(
@@ -2270,13 +2637,15 @@ class ReactionProcessHandler(object):
                 rate_units=self._devices.PUMP.ul_min,
                 rate_value=plunger_rate_ul_min,
                 finite_units=self._devices.PUMP.ul,
-                finite_value=1000
+                finite_value=1000,
             )
 
-            pump_commands.update({
-                f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
-                f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t
-            })
+            pump_commands.update(
+                {
+                    f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
+                    f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t,
+                }
+            )
 
         self._devices.PUMP.pump(wait_for_complete=False, **pump_commands)
 
@@ -2291,15 +2660,19 @@ class ReactionProcessHandler(object):
 
         for i, s in enumerate(self.stations):
             monomer_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.stations[i].monomer_input.waste_port)
+                position=self.stations[i].monomer_input.waste_port
+            )
 
             initiator_valve_command_t = self._devices.PUMP.make_valve_command(
-                position=self.stations[i].initiator_input.waste_port)
+                position=self.stations[i].initiator_input.waste_port
+            )
 
-            valve_commands.update({
-                f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
-                f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t
-            })
+            valve_commands.update(
+                {
+                    f"pump{self.stations[i].monomer_input.index}": monomer_valve_command_t,
+                    f"pump{self.stations[i].initiator_input.index}": initiator_valve_command_t,
+                }
+            )
 
         self._devices.PUMP.set_valves(**valve_commands)
 
@@ -2323,10 +2696,12 @@ class ReactionProcessHandler(object):
                 rate_value=plunger_rate_ul_min,
             )
 
-            pump_commands.update({
-                f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
-                f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t
-            })
+            pump_commands.update(
+                {
+                    f"pump{self.stations[i].monomer_input.index}": monomer_pump_command_t,
+                    f"pump{self.stations[i].initiator_input.index}": initiator_pump_command_t,
+                }
+            )
 
         self._devices.PUMP.pump(wait_for_complete=False, **pump_commands)
 
@@ -2356,7 +2731,9 @@ class ReactionProcessHandler(object):
                 print(f"Index: {index} not valid.")
                 continue
 
-            self.stations[index].enabled_setpoint.update(ReactionStation.Enabled.ENABLED.value)
+            self.stations[index].enabled_setpoint.update(
+                ReactionStation.Enabled.ENABLED.value
+            )
 
             self.stations[index].monomer_a_dispense_rate_ul_min *= accel_factor
             self.stations[index].monomer_b_dispense_rate_ul_min *= accel_factor
@@ -2380,7 +2757,9 @@ class ReactionProcessHandler(object):
         # disable all but the `station_index` station
         for index in range(0, 4):
             if index != station_index:
-                self.stations[index].enabled_setpoint.update(ReactionStation.Enabled.DISABLED.value)
+                self.stations[index].enabled_setpoint.update(
+                    ReactionStation.Enabled.DISABLED.value
+                )
 
         self.stations[station_index].monomer_b_dispense_rate_ul_min *= accel_factor
         self.stations[station_index].initiator_b_dispense_rate_ul_min *= accel_factor
@@ -2391,15 +2770,17 @@ class ReactionProcessHandler(object):
 
         # disable all but the first (0th index) station
         for _ in (1, 2, 3):
-            self.stations[_].enabled_setpoint.update(ReactionStation.Enabled.DISABLED.value)
+            self.stations[_].enabled_setpoint.update(
+                ReactionStation.Enabled.DISABLED.value
+            )
 
-        self.stations[0].monomer_a_dispense_rate_ul_min = 120.
-        self.stations[0].monomer_a_volume_to_dispense_ul = 900.
+        self.stations[0].monomer_a_dispense_rate_ul_min = 120.0
+        self.stations[0].monomer_a_volume_to_dispense_ul = 900.0
 
-        self.stations[0].monomer_b_dispense_rate_ul_min = 100.
-        self.stations[0].monomer_b_volume_to_dispense_ul = 300.
+        self.stations[0].monomer_b_dispense_rate_ul_min = 100.0
+        self.stations[0].monomer_b_volume_to_dispense_ul = 300.0
 
-        self.stations[0].initiator_b_dispense_rate_ul_min = 10.
+        self.stations[0].initiator_b_dispense_rate_ul_min = 10.0
 
         self.do_process()
 
@@ -2414,10 +2795,10 @@ class ReactionProcessHandler(object):
         # Row 0 is the header row with data labels. Within a row the data (columns) are separated by commas.
         csv_ipt = self._aqueduct.input(
             message="Upload a CSV file. Within a row use commas to separate column entries from left to right. <br>"
-                    "Each new line will be a new row.  <br>"
-                    "Ensure row 0 is a header row (labels).  <br>",
+            "Each new line will be a new row.  <br>"
+            "Ensure row 0 is a header row (labels).  <br>",
             input_type="csv",
-            dtype="str"
+            dtype="str",
         )
 
         table_data = csv_ipt.get_value()
@@ -2434,15 +2815,16 @@ class ReactionProcessHandler(object):
             row_index = i
             row_contents = []
             for j, column in enumerate(r):
-                row_contents.append(dict(
-                    name=f"{labels[j]}", value=column))
+                row_contents.append(dict(name=f"{labels[j]}", value=column))
 
-            new_list.append(dict(
-                hint=f"csv row: {row_index}",
-                value=row_contents,
-                dtype="list",
-                name=f"data{i}"
-            ))
+            new_list.append(
+                dict(
+                    hint=f"csv row: {row_index}",
+                    value=row_contents,
+                    dtype="list",
+                    name=f"data{i}",
+                )
+            )
 
         # prompt the user to confirm the uploaded csv data looks correct.
         tabular_ipt = self._aqueduct.input(
@@ -2453,17 +2835,16 @@ class ReactionProcessHandler(object):
         )
 
         # format the confirmed data (str) into a list and return the list new_rates.
-        confirmed_values = json.loads(
-            tabular_ipt.get_value())
+        confirmed_values = json.loads(tabular_ipt.get_value())
         new_params = []
 
         for cv in confirmed_values:
             row = []
             for value in cv:
                 try:
-                    row.append(float((value.get('value'))))
+                    row.append(float(value.get("value")))
                 except ValueError:
-                    row.append((value.get('value')))
+                    row.append(value.get("value"))
             new_params.append(row)
 
         # params are a list of list with index row and columns:
@@ -2482,7 +2863,7 @@ class ReactionProcessHandler(object):
             10: Mono_polym(mL)
             11: Mono_polym_rate(uL / min)
             12: time_polym(h)
-        Row 1 (Station 1) 
+        Row 1 (Station 1)
             ...
         """
         return new_params
@@ -2493,9 +2874,9 @@ class ReactionProcessHandler(object):
 
         """
         `data` is a list of lists with format:
-        
+
         [
-            [ 
+            [
                 0: Reactor Index
                 1: Temperature(C)
                 2: Kettle_CTA(mL)
@@ -2508,18 +2889,18 @@ class ReactionProcessHandler(object):
                 9: Init_polym_rate(uL / min)
                 10: Mono_polym(mL)
                 11: Mono_polym_rate(uL / min)
-                12: time_polym(h)                
-            ], 
-            [ 
+                12: time_polym(h)
+            ],
+            [
             ...
         ]
-        
+
         so...
-            data[0][0] is station 0 reactor index 
+            data[0][0] is station 0 reactor index
             data[1][0] is station 1 reactor index
-            
+
             data[0][8] is init_polym(mL)
-            etc.        
+            etc.
         """
         STATION_0_INDEX = 0
         STATION_1_INDEX = 1
@@ -2544,19 +2925,51 @@ class ReactionProcessHandler(object):
         self.stations[0].initiator_input.index = 0
 
         self.stations[0].monomer_a_dispense_rate_ul_min = round(
-            float(data[STATION_0_INDEX][column_mapping.MONOMER_A_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_0_INDEX][
+                    column_mapping.MONOMER_A_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
         self.stations[0].monomer_a_volume_to_dispense_ul = round(
-            float(data[STATION_0_INDEX][column_mapping.MONOMER_A_VOLUME_TO_DISPENSE_COL.value]) * 1000, 2)
+            float(
+                data[STATION_0_INDEX][
+                    column_mapping.MONOMER_A_VOLUME_TO_DISPENSE_COL.value
+                ]
+            )
+            * 1000,
+            2,
+        )
 
         # round up to the nearest decimal
         self.stations[0].monomer_b_dispense_rate_ul_min = round(
-            float(data[STATION_0_INDEX][column_mapping.MONOMER_B_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_0_INDEX][
+                    column_mapping.MONOMER_B_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
         self.stations[0].monomer_b_volume_to_dispense_ul = round(
-            float(data[STATION_0_INDEX][column_mapping.MONOMER_B_VOLUME_TO_DISPENSE_COL.value]) * 1000, 2)
+            float(
+                data[STATION_0_INDEX][
+                    column_mapping.MONOMER_B_VOLUME_TO_DISPENSE_COL.value
+                ]
+            )
+            * 1000,
+            2,
+        )
 
         # round up to the nearest decimal
         self.stations[0].initiator_b_dispense_rate_ul_min = round(
-            float(data[STATION_0_INDEX][column_mapping.INITIATOR_B_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_0_INDEX][
+                    column_mapping.INITIATOR_B_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
 
         # STATION 1
         # a C24000 pump with 5 mL syringe
@@ -2565,19 +2978,51 @@ class ReactionProcessHandler(object):
         self.stations[1].initiator_input.index = 2
 
         self.stations[1].monomer_a_dispense_rate_ul_min = round(
-            float(data[STATION_1_INDEX][column_mapping.MONOMER_A_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_1_INDEX][
+                    column_mapping.MONOMER_A_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
         self.stations[1].monomer_a_volume_to_dispense_ul = round(
-            float(data[STATION_1_INDEX][column_mapping.MONOMER_A_VOLUME_TO_DISPENSE_COL.value]) * 1000, 2)
+            float(
+                data[STATION_1_INDEX][
+                    column_mapping.MONOMER_A_VOLUME_TO_DISPENSE_COL.value
+                ]
+            )
+            * 1000,
+            2,
+        )
 
         # round up to the nearest decimal
         self.stations[1].monomer_b_dispense_rate_ul_min = round(
-            float(data[STATION_1_INDEX][column_mapping.MONOMER_B_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_1_INDEX][
+                    column_mapping.MONOMER_B_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
         self.stations[1].monomer_b_volume_to_dispense_ul = round(
-            float(data[STATION_1_INDEX][column_mapping.MONOMER_B_VOLUME_TO_DISPENSE_COL.value]) * 1000, 2)
+            float(
+                data[STATION_1_INDEX][
+                    column_mapping.MONOMER_B_VOLUME_TO_DISPENSE_COL.value
+                ]
+            )
+            * 1000,
+            2,
+        )
 
         # round up to the nearest decimal
         self.stations[1].initiator_b_dispense_rate_ul_min = round(
-            float(data[STATION_1_INDEX][column_mapping.INITIATOR_B_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_1_INDEX][
+                    column_mapping.INITIATOR_B_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
 
         # STATION 2
         # a C3000 pump with 5 mL syringe
@@ -2586,19 +3031,51 @@ class ReactionProcessHandler(object):
         self.stations[2].initiator_input.index = 4
 
         self.stations[2].monomer_a_dispense_rate_ul_min = round(
-            float(data[STATION_2_INDEX][column_mapping.MONOMER_A_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_2_INDEX][
+                    column_mapping.MONOMER_A_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
         self.stations[2].monomer_a_volume_to_dispense_ul = round(
-            float(data[STATION_2_INDEX][column_mapping.MONOMER_A_VOLUME_TO_DISPENSE_COL.value]) * 1000, 2)
+            float(
+                data[STATION_2_INDEX][
+                    column_mapping.MONOMER_A_VOLUME_TO_DISPENSE_COL.value
+                ]
+            )
+            * 1000,
+            2,
+        )
 
         # round up to the nearest decimal
         self.stations[2].monomer_b_dispense_rate_ul_min = round(
-            float(data[STATION_2_INDEX][column_mapping.MONOMER_B_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_2_INDEX][
+                    column_mapping.MONOMER_B_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
         self.stations[2].monomer_b_volume_to_dispense_ul = round(
-            float(data[STATION_2_INDEX][column_mapping.MONOMER_B_VOLUME_TO_DISPENSE_COL.value]) * 1000, 2)
+            float(
+                data[STATION_2_INDEX][
+                    column_mapping.MONOMER_B_VOLUME_TO_DISPENSE_COL.value
+                ]
+            )
+            * 1000,
+            2,
+        )
 
         # round up to the nearest decimal
         self.stations[2].initiator_b_dispense_rate_ul_min = round(
-            float(data[STATION_2_INDEX][column_mapping.INITIATOR_B_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_2_INDEX][
+                    column_mapping.INITIATOR_B_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
 
         # STATION 3
         # a C3000 pump with 5 mL syringe
@@ -2607,18 +3084,50 @@ class ReactionProcessHandler(object):
         self.stations[3].initiator_input.index = 6
 
         self.stations[3].monomer_a_dispense_rate_ul_min = round(
-            float(data[STATION_3_INDEX][column_mapping.MONOMER_A_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_3_INDEX][
+                    column_mapping.MONOMER_A_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
         self.stations[3].monomer_a_volume_to_dispense_ul = round(
-            float(data[STATION_3_INDEX][column_mapping.MONOMER_A_VOLUME_TO_DISPENSE_COL.value]) * 1000, 2)
+            float(
+                data[STATION_3_INDEX][
+                    column_mapping.MONOMER_A_VOLUME_TO_DISPENSE_COL.value
+                ]
+            )
+            * 1000,
+            2,
+        )
 
         # round up to the nearest decimal
         self.stations[3].monomer_b_dispense_rate_ul_min = round(
-            float(data[STATION_3_INDEX][column_mapping.MONOMER_B_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_3_INDEX][
+                    column_mapping.MONOMER_B_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
         self.stations[3].monomer_b_volume_to_dispense_ul = round(
-            float(data[STATION_3_INDEX][column_mapping.MONOMER_B_VOLUME_TO_DISPENSE_COL.value]) * 1000, 2)
+            float(
+                data[STATION_3_INDEX][
+                    column_mapping.MONOMER_B_VOLUME_TO_DISPENSE_COL.value
+                ]
+            )
+            * 1000,
+            2,
+        )
 
         # round up to the nearest decimal
         self.stations[3].initiator_b_dispense_rate_ul_min = round(
-            float(data[STATION_3_INDEX][column_mapping.INITIATOR_B_DISPENSE_RATE_UL_MIN_COL.value]), 2)
+            float(
+                data[STATION_3_INDEX][
+                    column_mapping.INITIATOR_B_DISPENSE_RATE_UL_MIN_COL.value
+                ]
+            ),
+            2,
+        )
 
         self.do_process()

@@ -8,20 +8,20 @@ import tff.definitions
 
 
 def pump_ramp(
-        interval_s: int = 1,
-        pump: "PeristalticPump" = None,
-        pump_name: str = "PUMP",
-        start_flowrate_ml_min: Union[float, int] = 10,
-        end_flowrate_ml_min: Union[float, int] = 20,
-        rate_change_interval_s: Union[float, int] = 10,
-        rate_change_ml_min: Union[float, int] = 2,
-        rate_change_pct: Union[float, None] = None,
-        timeout_min: Union[float, int] = 10,
-        adjust_pinch_valve: bool = True,
-        scale3_target_mass_g: Union[float, int, None] = None,
-        devices_obj: "tff.classes.Devices" = None,
-        data: "tff.classes.Data" = None,
-        watchdog: "tff.classes.Watchdog" = None
+    interval_s: int = 1,
+    pump: "PeristalticPump" = None,
+    pump_name: str = "PUMP",
+    start_flowrate_ml_min: Union[float, int] = 10,
+    end_flowrate_ml_min: Union[float, int] = 20,
+    rate_change_interval_s: Union[float, int] = 10,
+    rate_change_ml_min: Union[float, int] = 2,
+    rate_change_pct: Union[float, None] = None,
+    timeout_min: Union[float, int] = 10,
+    adjust_pinch_valve: bool = True,
+    scale3_target_mass_g: Union[float, int, None] = None,
+    devices_obj: "tff.classes.Devices" = None,
+    data: "tff.classes.Data" = None,
+    watchdog: "tff.classes.Watchdog" = None,
 ) -> int:
     """
     Start and then ramp a pump's flowrate in incremented steps.
@@ -55,7 +55,9 @@ def pump_ramp(
         2 = scale 3 hit target mass
     """
     # start PUMP at start_flowrate_ml_min
-    print("[RAMP] Starting {} at {:.2f} mL/min".format(pump_name, start_flowrate_ml_min))
+    print(
+        "[RAMP] Starting {} at {:.2f} mL/min".format(pump_name, start_flowrate_ml_min)
+    )
 
     commands = pump.make_commands()
     command = PeristalticPump.make_start_command(
@@ -78,7 +80,8 @@ def pump_ramp(
     # if the rate_change_pct is set, calculate a new rate_change_ml_min
     if rate_change_pct is not None:
         rate_change_ml_min = round(
-            (end_flowrate_ml_min - start_flowrate_ml_min) * rate_change_pct, 2)
+            (end_flowrate_ml_min - start_flowrate_ml_min) * rate_change_pct, 2
+        )
 
     # while the flow rate of PUMP1 is less than the target, gradually increase the
     # rate in increments of 2 mL/min
@@ -101,20 +104,21 @@ def pump_ramp(
                 adjust_pinch_valve=adjust_pinch_valve,
                 devices_obj=devices_obj,
                 data=data,
-                watchdog=watchdog
+                watchdog=watchdog,
             )
 
             if scale3_target_mass_g is not None:
                 if data.W3 is not None and data.W3 >= scale3_target_mass_g:
                     print(
-                        f"[RAMP] Scale 3 target mass of {scale3_target_mass_g} g hit during pump {pump_name} ramp.")
+                        f"[RAMP] Scale 3 target mass of {scale3_target_mass_g} g hit during pump {pump_name} ramp."
+                    )
                     return tff.definitions.STATUS_TARGET_MASS_HIT
 
         # increase the rate of PUMP by rate_change_ml_min mL/min, don't exceed the target flowrate
         target_pump1_ml_min = min(
-            pump.get_ml_min()[0] + rate_change_ml_min, end_flowrate_ml_min)
-        print(
-            f"[RAMP] Adjusting {pump_name} rate to {target_pump1_ml_min:.2f} mL/min")
+            pump.get_ml_min()[0] + rate_change_ml_min, end_flowrate_ml_min
+        )
+        print(f"[RAMP] Adjusting {pump_name} rate to {target_pump1_ml_min:.2f} mL/min")
 
         commands = pump.make_commands()
         command = PeristalticPump.make_change_speed_command(
@@ -130,19 +134,19 @@ def pump_ramp(
 
 
 def pumps_2_and_3_ramp(
-        interval_s: int = 1,
-        pump2_start_flowrate_ml_min: Union[float, int] = 10,
-        pump2_end_flowrate_ml_min: Union[float, int] = 20,
-        pump3_start_flowrate_ml_min: Union[float, int] = 10,
-        pump3_end_flowrate_ml_min: Union[float, int] = 20,
-        rate_change_interval_s: Union[float, int] = 10,
-        number_rate_changes: int = 6,
-        timeout_min: Union[float, int] = 30,
-        adjust_pinch_valve: bool = True,
-        scale3_target_mass_g: Union[float, int, None] = None,
-        devices_obj: "tff.classes.Devices" = None,
-        data: "tff.classes.Data" = None,
-        watchdog: "tff.classes.Watchdog" = None
+    interval_s: int = 1,
+    pump2_start_flowrate_ml_min: Union[float, int] = 10,
+    pump2_end_flowrate_ml_min: Union[float, int] = 20,
+    pump3_start_flowrate_ml_min: Union[float, int] = 10,
+    pump3_end_flowrate_ml_min: Union[float, int] = 20,
+    rate_change_interval_s: Union[float, int] = 10,
+    number_rate_changes: int = 6,
+    timeout_min: Union[float, int] = 30,
+    adjust_pinch_valve: bool = True,
+    scale3_target_mass_g: Union[float, int, None] = None,
+    devices_obj: "tff.classes.Devices" = None,
+    data: "tff.classes.Data" = None,
+    watchdog: "tff.classes.Watchdog" = None,
 ) -> int:
     """
     Start Pump 2 and Pump 3 at half of target flowrate
@@ -179,8 +183,7 @@ def pumps_2_and_3_ramp(
     timeout: float = time_start + timeout_min * 60
 
     if isinstance(devices_obj.PUMP2, PeristalticPump):
-        print(
-            f"[DUAL RAMP] Starting PUMP2 at {pump2_start_flowrate_ml_min:.2f} mL/min")
+        print(f"[DUAL RAMP] Starting PUMP2 at {pump2_start_flowrate_ml_min:.2f} mL/min")
 
         commands = devices_obj.PUMP2.make_commands()
         command = PeristalticPump.make_start_command(
@@ -192,8 +195,7 @@ def pumps_2_and_3_ramp(
         devices_obj.PUMP2.set_command(commands, 0, command)
         devices_obj.PUMP2.start(commands, record=True)
 
-    print(
-        f"[DUAL RAMP] Starting PUMP3 at {pump3_start_flowrate_ml_min:.2f} mL/min")
+    print(f"[DUAL RAMP] Starting PUMP3 at {pump3_start_flowrate_ml_min:.2f} mL/min")
 
     commands = devices_obj.PUMP3.make_commands()
     command = PeristalticPump.make_start_command(
@@ -208,14 +210,18 @@ def pumps_2_and_3_ramp(
     pump2_rate_ml_min_range: List[float] = tff.helpers.get_flowrate_range(
         start_flow_rate=pump2_start_flowrate_ml_min,
         end_flow_rate=pump2_end_flowrate_ml_min,
-        steps=number_rate_changes)
+        steps=number_rate_changes,
+    )
 
     pump3_rate_ml_min_range: List[float] = tff.helpers.get_flowrate_range(
         start_flow_rate=pump3_start_flowrate_ml_min,
         end_flow_rate=pump3_end_flowrate_ml_min,
-        steps=number_rate_changes)
+        steps=number_rate_changes,
+    )
 
-    for pump2_rate_ml_min, pump3_rate_ml_min in zip(pump2_rate_ml_min_range[1::], pump3_rate_ml_min_range[1::]):
+    for pump2_rate_ml_min, pump3_rate_ml_min in zip(
+        pump2_rate_ml_min_range[1::], pump3_rate_ml_min_range[1::]
+    ):
 
         # check to see whether we've timed out
         if time.time() > timeout:
@@ -233,19 +239,24 @@ def pumps_2_and_3_ramp(
                 pump_2_3_watch=True,
                 devices_obj=devices_obj,
                 data=data,
-                watchdog=watchdog
+                watchdog=watchdog,
             )
             if scale3_target_mass_g is not None:
                 if data.W3 is not None and data.W3 >= scale3_target_mass_g:
-                    print("[DUAL RAMP] Scale 3 target mass of {} g hit during pumps 2 and 3 ramp.".format(
-                        scale3_target_mass_g)
+                    print(
+                        "[DUAL RAMP] Scale 3 target mass of {} g hit during pumps 2 and 3 ramp.".format(
+                            scale3_target_mass_g
+                        )
                     )
                     return tff.definitions.STATUS_TARGET_MASS_HIT
 
         if isinstance(devices_obj.PUMP2, PeristalticPump):
             # change the rate of PUMP2
             print(
-                "[DUAL RAMP] Adjusting PUMP2 rate to {:.2f} mL/min".format(pump2_rate_ml_min))
+                "[DUAL RAMP] Adjusting PUMP2 rate to {:.2f} mL/min".format(
+                    pump2_rate_ml_min
+                )
+            )
 
             commands = devices_obj.PUMP2.make_commands()
             command = PeristalticPump.make_change_speed_command(
@@ -256,8 +267,7 @@ def pumps_2_and_3_ramp(
             devices_obj.PUMP2.change_speed(commands)
 
         # change the rate of PUMP3
-        print(
-            f"[DUAL RAMP] Adjusting PUMP3 rate to {pump3_rate_ml_min:.2f} mL/min")
+        print(f"[DUAL RAMP] Adjusting PUMP3 rate to {pump3_rate_ml_min:.2f} mL/min")
 
         commands = devices_obj.PUMP3.make_commands()
         command = PeristalticPump.make_change_speed_command(
@@ -281,12 +291,12 @@ def pumps_2_and_3_ramp(
 
 
 def open_pinch_valve(
-        target_pct_open: float = 0.3,
-        increment_pct_open: float = 0.005,
-        interval_s: int = 1,
-        devices_obj: "tff.classes.Devices" = None,
-        data: "tff.classes.Data" = None,
-        watchdog: "tff.classes.Watchdog" = None
+    target_pct_open: float = 0.3,
+    increment_pct_open: float = 0.005,
+    interval_s: int = 1,
+    devices_obj: "tff.classes.Devices" = None,
+    data: "tff.classes.Data" = None,
+    watchdog: "tff.classes.Watchdog" = None,
 ) -> None:
     """
     Slowly open the pinch valve in increments of increment_pct_open
@@ -300,21 +310,23 @@ def open_pinch_valve(
     :param watchdog:
     :return:
     """
-    target_pct_open = min(max(0., target_pct_open), 1.)
+    target_pct_open = min(max(0.0, target_pct_open), 1.0)
     while data.PV < target_pct_open:
-        increment_target_pct_open = min(
-            data.PV + increment_pct_open, target_pct_open)
+        increment_target_pct_open = min(data.PV + increment_pct_open, target_pct_open)
 
         commands = devices_obj.PV.make_commands()
         command = devices_obj.PV.make_set_poisition_command(
-            pct_open=increment_target_pct_open)
+            pct_open=increment_target_pct_open
+        )
         devices_obj.PV.set_command(commands, 0, command)
         devices_obj.PV.set_position(commands, record=True)
 
-        print("[OPEN] Adjusting pinch valve to {} open, final target {}".format(
-            tff.helpers.format_float(increment_target_pct_open, 4),
-            tff.helpers.format_float(target_pct_open, 4)
-        ))
+        print(
+            "[OPEN] Adjusting pinch valve to {} open, final target {}".format(
+                tff.helpers.format_float(increment_target_pct_open, 4),
+                tff.helpers.format_float(target_pct_open, 4),
+            )
+        )
         time.sleep(interval_s)
         data.update_data()
         data.log_data_at_interval()
@@ -323,18 +335,18 @@ def open_pinch_valve(
 
 
 def monitor(
-        interval_s: float = 1,
-        adjust_pinch_valve: bool = True,
-        pressure_bounds_1_psi: tuple = (1, 30),
-        pressure_bounds_2_psi: tuple = (0, 30),
-        pressure_bounds_3_psi: tuple = (0, 30),
-        pressure_bounds_4_psi: tuple = (0, 15),
-        loop_timeout_min: float = 10,
-        pump_2_3_watch: bool = False,
-        devices_obj: "tff.classes.Devices" = None,
-        data: "tff.classes.Data" = None,
-        watchdog: "tff.classes.Watchdog" = None,
-        process: "tff.classes.Process" = None,
+    interval_s: float = 1,
+    adjust_pinch_valve: bool = True,
+    pressure_bounds_1_psi: tuple = (1, 30),
+    pressure_bounds_2_psi: tuple = (0, 30),
+    pressure_bounds_3_psi: tuple = (0, 30),
+    pressure_bounds_4_psi: tuple = (0, 15),
+    loop_timeout_min: float = 10,
+    pump_2_3_watch: bool = False,
+    devices_obj: "tff.classes.Devices" = None,
+    data: "tff.classes.Data" = None,
+    watchdog: "tff.classes.Watchdog" = None,
+    process: "tff.classes.Process" = None,
 ) -> None:
     """
     Logging and Monitoring logic to:
@@ -389,8 +401,7 @@ def monitor(
 
     def set_position(pct_open):
         commands = devices_obj.PV.make_commands()
-        command = devices_obj.PV.make_set_poisition_command(
-            pct_open=pct_open)
+        command = devices_obj.PV.make_set_poisition_command(pct_open=pct_open)
         devices_obj.PV.set_command(commands, 0, command)
         devices_obj.PV.set_position(commands, record=True)
 
@@ -405,12 +416,22 @@ def monitor(
 
             # If we're ramping pumps 2 and 3, initiate the following response: If P3 < 0psi and P1 < 15psi,
             # pinch more to avoid under-pressure condition during pump 2,3 ramp-up
-            if pump_2_3_watch and data.P3 < pressure_bounds_4_psi[0] and data.P1 < pressure_bounds_4_psi[1]:
+            if (
+                pump_2_3_watch
+                and data.P3 < pressure_bounds_4_psi[0]
+                and data.P1 < pressure_bounds_4_psi[1]
+            ):
                 print(
-                    "[MONITOR] watching pressures to avoid underpressure alarm during ramp-up.")
-                print("[MONITOR] decreasing pinch valve setting by 0.01 until P3 > 0, down to a minimum PV setting of "
-                      "0.3")
-                while data.P3 < pressure_bounds_4_psi[0] and data.P1 < pressure_bounds_4_psi[1]:
+                    "[MONITOR] watching pressures to avoid underpressure alarm during ramp-up."
+                )
+                print(
+                    "[MONITOR] decreasing pinch valve setting by 0.01 until P3 > 0, down to a minimum PV setting of "
+                    "0.3"
+                )
+                while (
+                    data.P3 < pressure_bounds_4_psi[0]
+                    and data.P1 < pressure_bounds_4_psi[1]
+                ):
                     # if process._aqueduct.__user_id__ == "L":
                     #     # don't pinch below 30%
                     #     target_pct_open: float = max(data.PV - 0.01, 0.3)
@@ -418,20 +439,28 @@ def monitor(
                     # don't pinch below 10%
                     target_pct_open: float = max(data.PV - 0.005, 0.0)
                     set_position(target_pct_open)
-                    print("[MONITOR (PUMP 2&3 WATCH)] adjusting pinch valve to {} open".format(
-                        tff.helpers.format_float(
-                            target_pct_open, 4)))
+                    print(
+                        "[MONITOR (PUMP 2&3 WATCH)] adjusting pinch valve to {} open".format(
+                            tff.helpers.format_float(target_pct_open, 4)
+                        )
+                    )
                     # wait for 2 seconds to allow time for measurable response
-                    time.sleep(.2)
+                    time.sleep(0.2)
                     data.update_data()
                     data.log_data_at_interval(1)
 
             # If P3 < pressure_bounds_1_psi[0] (2 psi default) and P1 < pressure_bounds_1_psi[1] (30 psi default),
             # close the Pinch Valve by 0.025%
-            elif data.P3 < pressure_bounds_1_psi[0] and data.P1 < pressure_bounds_1_psi[1]:
+            elif (
+                data.P3 < pressure_bounds_1_psi[0]
+                and data.P1 < pressure_bounds_1_psi[1]
+            ):
                 time_start: float = time.monotonic()
-                timeout: float = time_start + loop_timeout_min * 60.
-                while data.P3 < pressure_bounds_1_psi[0] and data.P1 < pressure_bounds_1_psi[1]:
+                timeout: float = time_start + loop_timeout_min * 60.0
+                while (
+                    data.P3 < pressure_bounds_1_psi[0]
+                    and data.P1 < pressure_bounds_1_psi[1]
+                ):
                     if time.monotonic() > timeout:
                         print("[MONITOR] Timed out during CONDITION 1 control.")
                         break
@@ -446,13 +475,15 @@ def monitor(
                     else:
                         adj = 0.0002
 
-                    target_pct_open: float = max(data.PV - adj, 0.)
+                    target_pct_open: float = max(data.PV - adj, 0.0)
                     devices_obj.PV.set_position(target_pct_open, record=True)
-                    print("[MONITOR (CONDITION 1)] Adjusting pinch valve to {} open".format(
-                        tff.helpers.format_float(
-                            target_pct_open, 4)))
+                    print(
+                        "[MONITOR (CONDITION 1)] Adjusting pinch valve to {} open".format(
+                            tff.helpers.format_float(target_pct_open, 4)
+                        )
+                    )
                     # wait for 2 seconds to allow time for measurable response
-                    time.sleep(.2)
+                    time.sleep(0.2)
                     data.update_data()
                     data.log_data_at_interval(5)
                     if isinstance(watchdog, tff.classes.Watchdog):
@@ -460,20 +491,28 @@ def monitor(
 
             # If P3 > pressure_bounds_2_psi[0] (0 psi default) and P1 > pressure_bounds_2_psi[1] (30 psi default),
             # open the Pinch Valve by 0.025%
-            elif data.P3 > pressure_bounds_2_psi[1] and data.P1 > pressure_bounds_2_psi[1]:
+            elif (
+                data.P3 > pressure_bounds_2_psi[1]
+                and data.P1 > pressure_bounds_2_psi[1]
+            ):
                 time_start: float = time.monotonic()
-                timeout: float = time_start + loop_timeout_min * 60.
-                while data.P3 > pressure_bounds_2_psi[0] and data.P1 > pressure_bounds_2_psi[1]:
+                timeout: float = time_start + loop_timeout_min * 60.0
+                while (
+                    data.P3 > pressure_bounds_2_psi[0]
+                    and data.P1 > pressure_bounds_2_psi[1]
+                ):
                     if time.monotonic() > timeout:
                         print("[MONITOR] Timed out during CONDITION 2 control.")
                         break
-                    target_pct_open: float = min(data.PV + 0.0005, 1.)
-                    print("[MONITOR (CONDITION 2)] Adjusting pinch valve to {} open".format(
-                        tff.helpers.format_float(
-                            target_pct_open, 4)))
+                    target_pct_open: float = min(data.PV + 0.0005, 1.0)
+                    print(
+                        "[MONITOR (CONDITION 2)] Adjusting pinch valve to {} open".format(
+                            tff.helpers.format_float(target_pct_open, 4)
+                        )
+                    )
                     set_position(target_pct_open)
                     # wait for 2 seconds to allow time for measurable response
-                    time.sleep(.2)
+                    time.sleep(0.2)
                     data.update_data()
                     data.log_data_at_interval(5)
                     if isinstance(watchdog, tff.classes.Watchdog):
@@ -481,10 +520,16 @@ def monitor(
 
             # If P3 < pressure_bounds_3_psi[0] (0 psi default) and P1 > pressure_bounds_3_psi[1] (30 psi default),
             # decrease PUMP1 flowrate by 0.1 mL/min
-            elif data.P3 < pressure_bounds_3_psi[0] and data.P1 > pressure_bounds_3_psi[1]:
+            elif (
+                data.P3 < pressure_bounds_3_psi[0]
+                and data.P1 > pressure_bounds_3_psi[1]
+            ):
                 time_start: float = time.monotonic()
-                timeout: float = time_start + loop_timeout_min * 60.
-                while data.P3 < pressure_bounds_3_psi[0] and data.P1 > pressure_bounds_3_psi[1]:
+                timeout: float = time_start + loop_timeout_min * 60.0
+                while (
+                    data.P3 < pressure_bounds_3_psi[0]
+                    and data.P1 > pressure_bounds_3_psi[1]
+                ):
                     if time.monotonic() > timeout:
                         print("[MONITOR] Timed out during CONDITION 3 control.")
                         break
@@ -498,11 +543,13 @@ def monitor(
                     devices_obj.PUMP1.set_command(commands, 0, command)
                     devices_obj.PUMP1.change_speed(commands)
 
-                    print("[MONITOR (CONDITION 3)] Adjusting PUMP1 rate to {} mL/min".format(
-                        tff.helpers.format_float(
-                            target_pump1_ml_min, 2)))
+                    print(
+                        "[MONITOR (CONDITION 3)] Adjusting PUMP1 rate to {} mL/min".format(
+                            tff.helpers.format_float(target_pump1_ml_min, 2)
+                        )
+                    )
                     # wait for 2 seconds to allow time for measurable response
-                    time.sleep(.2)
+                    time.sleep(0.2)
                     data.update_data()
                     data.log_data_at_interval(5)
                     if isinstance(watchdog, tff.classes.Watchdog):
@@ -520,12 +567,12 @@ def monitor(
 
 
 def pinch_valve_lock_in(
-        interval: int = 1,
-        target_p3_psi: float = 5.,
-        timeout_min: float = 2.,
-        scale3_target_mass_g: Union[float, None] = None,
-        devices_obj: "tff.classes.Devices" = None,
-        data: "tff.classes.Data" = None
+    interval: int = 1,
+    target_p3_psi: float = 5.0,
+    timeout_min: float = 2.0,
+    scale3_target_mass_g: Union[float, None] = None,
+    devices_obj: "tff.classes.Devices" = None,
+    data: "tff.classes.Data" = None,
 ) -> int:
     """
     Once all pumps for a given module are up to full speed, start a timer (use 2min until you hear otherwise from us)
@@ -543,15 +590,19 @@ def pinch_valve_lock_in(
         2 = scale 3 hit target mass
     """
     # set a window around the target_p3_psi in which the valve will not adjust, the
-    WINDOW_PSI: float = .5
+    WINDOW_PSI: float = 0.5
 
     # time to sleep after valve adjustment
-    VALVE_DELAY_S = .2
+    VALVE_DELAY_S = 0.2
 
     # define a timer that counts time spent in loop
     time_tried_s: int = 0
 
-    print("[LOCK IN] beginning pinch valve lock-in to target P3 {} psi.".format(target_p3_psi))
+    print(
+        "[LOCK IN] beginning pinch valve lock-in to target P3 {} psi.".format(
+            target_p3_psi
+        )
+    )
 
     in_window_counter = 0
 
@@ -566,8 +617,11 @@ def pinch_valve_lock_in(
 
         if scale3_target_mass_g is not None:
             if data.W3 is not None and data.W3 >= scale3_target_mass_g:
-                print("[LOCK IN] scale 3 target mass of {} g hit during pinch valve lock-in.".format(
-                    scale3_target_mass_g))
+                print(
+                    "[LOCK IN] scale 3 target mass of {} g hit during pinch valve lock-in.".format(
+                        scale3_target_mass_g
+                    )
+                )
                 return tff.definitions.STATUS_TARGET_MASS_HIT
 
         # try/catch for invalid pressure readings
@@ -575,12 +629,17 @@ def pinch_valve_lock_in(
 
             # If P3 < target_p3_psi - WINDOW_PSI and error > 1, close the Pinch Valve by 0.002
             # If P3 < target_p3_psi - WINDOW_PSI and error <= 1, close the Pinch Valve by 0.001
-            while data.P3 < target_p3_psi - WINDOW_PSI and time_tried_s < timeout_min * 60:
+            while (
+                data.P3 < target_p3_psi - WINDOW_PSI and time_tried_s < timeout_min * 60
+            ):
 
                 if scale3_target_mass_g is not None:
                     if data.W3 is not None and data.W3 >= scale3_target_mass_g:
-                        print("[LOCK IN] scale 3 target mass of {} g hit during pinch valve lock-in.".format(
-                            scale3_target_mass_g))
+                        print(
+                            "[LOCK IN] scale 3 target mass of {} g hit during pinch valve lock-in.".format(
+                                scale3_target_mass_g
+                            )
+                        )
                         return tff.definitions.STATUS_TARGET_MASS_HIT
 
                 error: float = abs(data.P3 - target_p3_psi)
@@ -593,8 +652,10 @@ def pinch_valve_lock_in(
 
                 target_pct_open: float = data.PV - adj
                 devices_obj.PV.set_position(target_pct_open, record=True)
-                print("[LOCK IN] adjusting pinch valve to {} open".format(
-                    tff.helpers.format_float(target_pct_open, 4))
+                print(
+                    "[LOCK IN] adjusting pinch valve to {} open".format(
+                        tff.helpers.format_float(target_pct_open, 4)
+                    )
                 )
                 # delay to allow response in pressure
                 time.sleep(VALVE_DELAY_S)
@@ -606,12 +667,15 @@ def pinch_valve_lock_in(
 
             # If P3 > target_p3_psi + WINDOW_PSI and error > 1, open the Pinch Valve by 0.002
             # If P3 > target_p3_psi + WINDOW_PSI and error <= 1, open the Pinch Valve by 0.001
-            while data.P3 > target_p3_psi + WINDOW_PSI and time_tried_s < timeout_min * 60:
+            while (
+                data.P3 > target_p3_psi + WINDOW_PSI and time_tried_s < timeout_min * 60
+            ):
 
                 if scale3_target_mass_g is not None:
                     if data.W3 is not None and data.W3 >= scale3_target_mass_g:
                         print(
-                            f"[LOCK IN] scale 3 target mass of {scale3_target_mass_g} g hit during pinch valve lock-in.")
+                            f"[LOCK IN] scale 3 target mass of {scale3_target_mass_g} g hit during pinch valve lock-in."
+                        )
                         return tff.definitions.STATUS_TARGET_MASS_HIT
 
                 error: float = abs(data.P3 - target_p3_psi)
@@ -624,8 +688,7 @@ def pinch_valve_lock_in(
 
                 target_pct_open: float = data.PV + adj
                 devices_obj.PV.set_position(target_pct_open, record=True)
-                print(
-                    f"[LOCK IN] adjusting pinch valve to {target_pct_open:.4f} open")
+                print(f"[LOCK IN] adjusting pinch valve to {target_pct_open:.4f} open")
                 # delay to allow response in pressure
                 time.sleep(VALVE_DELAY_S)
                 time_tried_s += VALVE_DELAY_S
@@ -650,10 +713,10 @@ def pinch_valve_lock_in(
 
 
 def pinch_valve_lock_in_pid(
-        interval: float = 1,
-        timeout_min: float = 2.,
-        scale3_target_mass_g: Union[float, None] = None,
-        process: "tff.classes.Process" = None,
+    interval: float = 1,
+    timeout_min: float = 2.0,
+    scale3_target_mass_g: Union[float, None] = None,
+    process: "tff.classes.Process" = None,
 ) -> int:
     """
     Once all pumps for a given module are up to full speed, start a timer (use 2min until you hear otherwise from us)
@@ -669,15 +732,14 @@ def pinch_valve_lock_in_pid(
         2 = scale 3 hit target mass
     """
     # set a window around the target_p3_psi in which the valve will not adjust, the
-    WINDOW_PSI: float = .5
+    WINDOW_PSI: float = 0.5
 
     # time to sleep after valve adjustment
-    VALVE_DELAY_S = .2
+    VALVE_DELAY_S = 0.2
 
     def set_position(pct_open):
         commands = process.devices.PV.make_commands()
-        command = process.devices.PV.make_set_poisition_command(
-            pct_open=pct_open)
+        command = process.devices.PV.make_set_poisition_command(pct_open=pct_open)
         process.devices.PV.set_command(commands, 0, command)
         process.devices.PV.set_position(commands, record=True)
 
@@ -685,7 +747,8 @@ def pinch_valve_lock_in_pid(
     time_tried_s: int = 0
 
     print(
-        f"[LOCK IN] beginning pinch valve lock-in to target P3 {process.setpoints.P3_target_pressure.value:.2f} psi.")
+        f"[LOCK IN] beginning pinch valve lock-in to target P3 {process.setpoints.P3_target_pressure.value:.2f} psi."
+    )
 
     in_window_counter = 0
 
@@ -703,16 +766,18 @@ def pinch_valve_lock_in_pid(
 
         if scale3_target_mass_g is not None:
             if process.data.W3 is not None and process.data.W3 >= scale3_target_mass_g:
-                print("[LOCK IN] scale 3 target mass of {} g hit during pinch valve lock-in.".format(
-                    scale3_target_mass_g))
+                print(
+                    "[LOCK IN] scale 3 target mass of {} g hit during pinch valve lock-in.".format(
+                        scale3_target_mass_g
+                    )
+                )
                 return tff.definitions.STATUS_TARGET_MASS_HIT
 
         # try/catch for invalid pressure readings
         try:
 
             delta_pct_open = process.pid(process.data.P3)
-            target_pct_open = process.data.PV - \
-                min(max(delta_pct_open, -0.001), 0.001)
+            target_pct_open = process.data.PV - min(max(delta_pct_open, -0.001), 0.001)
 
             set_position(target_pct_open)
             time.sleep(VALVE_DELAY_S)

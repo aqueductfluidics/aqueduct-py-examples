@@ -4,14 +4,14 @@ Name: counter.py
 Description:
 
 This demo illustrates creating a `Setpoint` named
-`counter` that increments itself forever in an 
-infinite while loop. 
+`counter` that increments itself forever in an
+infinite while loop.
 
 The counter value can be modified from the Aqueduct
 user interface.
 
 This is a simple example, but it illustrates the general
-process of creating an externally modifiable value 
+process of creating an externally modifiable value
 that can be used in your Recipe logic.
 """
 import time
@@ -34,5 +34,5 @@ my_counter = aqueduct.setpoint(
 while True:
     print(f"Setpoint value: {my_counter.value}")
     # increment the counter by 1
-    my_counter.update(my_counter.value+1)
+    my_counter.update(my_counter.value + 1)
     time.sleep(1)

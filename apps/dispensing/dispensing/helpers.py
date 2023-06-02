@@ -13,12 +13,18 @@ def format_float(value: Union[float, int, str], precision: int = 2) -> str:
     :return:
     """
     try:
-        return INVALID_CHAR if value is None else format(float(value), '.{}f'.format(precision))
+        return (
+            INVALID_CHAR
+            if value is None
+            else format(float(value), ".{}f".format(precision))
+        )
     except ValueError:
         return INVALID_CHAR
 
 
-def get_flowrate_range(start_flow_rate: float, end_flow_rate: float, steps: int) -> list:
+def get_flowrate_range(
+    start_flow_rate: float, end_flow_rate: float, steps: int
+) -> list:
     """
     Return a list of flowrates starting at `start_flow_rate` and ending at
     `end_flow_rate` of length steps with equal intervals between them.
@@ -47,7 +53,9 @@ def calc_tubing_volume_ul(length_mm: float, inner_diameter_mm: float) -> float:
     return 3.14159 * (inner_diameter_mm / 2) ** 2 * length_mm / 1000000
 
 
-def calc_minimum_flowrate_ul_min(pump_series: int, syringe_volume_ul: float, resolution: int) -> float:
+def calc_minimum_flowrate_ul_min(
+    pump_series: int, syringe_volume_ul: float, resolution: int
+) -> float:
     """
     Calculates the minimum flowrate achievable for a given pump series, syringe volume, and step resolution.
 
@@ -80,18 +88,20 @@ def calc_minimum_flowrate_ul_min(pump_series: int, syringe_volume_ul: float, res
     """
     if pump_series == 2:
         if resolution in (0, 1):
-            return syringe_volume_ul / 6000. * 60
+            return syringe_volume_ul / 6000.0 * 60
         if resolution in (2,):
-            return syringe_volume_ul / 48000. * 60
+            return syringe_volume_ul / 48000.0 * 60
     elif pump_series == 3:
         if resolution in (0, 1):
-            return syringe_volume_ul / 24000. * 60
+            return syringe_volume_ul / 24000.0 * 60
         if resolution in (2,):
-            return syringe_volume_ul / 192000. * 60
-    return 0.
+            return syringe_volume_ul / 192000.0 * 60
+    return 0.0
 
 
-def calc_maximum_flowrate_ul_min(pump_series: int, syringe_volume_ul: float, resolution: int) -> float:
+def calc_maximum_flowrate_ul_min(
+    pump_series: int, syringe_volume_ul: float, resolution: int
+) -> float:
     """
     Calculates the maximum flowrate achievable for a given pump series, syringe volume, and step resolution.
 
@@ -124,20 +134,27 @@ def calc_maximum_flowrate_ul_min(pump_series: int, syringe_volume_ul: float, res
     """
     if pump_series == 2:
         if resolution in (0, 1):
-            return syringe_volume_ul / 6000. * 60
+            return syringe_volume_ul / 6000.0 * 60
         if resolution in (2,):
-            return syringe_volume_ul / 48000. * 60
+            return syringe_volume_ul / 48000.0 * 60
     elif pump_series == 3:
         if resolution in (0, 1):
-            return syringe_volume_ul / 24000. * 60
+            return syringe_volume_ul / 24000.0 * 60
         if resolution in (2,):
-            return syringe_volume_ul / 192000. * 60
-    return 0.
+            return syringe_volume_ul / 192000.0 * 60
+    return 0.0
 
 
-def optimize_flowrates_to_target_ratio(target_ratio: float, target_combined_rate_ul_min: float, pump_1_volume_ul: float,
-                                       pump_1_series: int, pump_2_volume_ul: int, pump_2_series: int,
-                                       print_results: bool = True, limit: int = 10) -> tuple:
+def optimize_flowrates_to_target_ratio(
+    target_ratio: float,
+    target_combined_rate_ul_min: float,
+    pump_1_volume_ul: float,
+    pump_1_series: int,
+    pump_2_volume_ul: int,
+    pump_2_series: int,
+    print_results: bool = True,
+    limit: int = 10,
+) -> tuple:
     """
     Target ratio == pump 1 / pump 2.
 
@@ -157,33 +174,39 @@ def optimize_flowrates_to_target_ratio(target_ratio: float, target_combined_rate
     :param pump_2_series:
     :return:
     """
-    ideal_pump_1_flowrate_ul_min = target_combined_rate_ul_min - (target_combined_rate_ul_min / (target_ratio + 1.))
-    ideal_pump_2_flowrate_ul_min = target_combined_rate_ul_min - ideal_pump_1_flowrate_ul_min
+    ideal_pump_1_flowrate_ul_min = target_combined_rate_ul_min - (
+        target_combined_rate_ul_min / (target_ratio + 1.0)
+    )
+    ideal_pump_2_flowrate_ul_min = (
+        target_combined_rate_ul_min - ideal_pump_1_flowrate_ul_min
+    )
 
     pump_1_rate_step_ul_min = calc_minimum_flowrate_ul_min(
-        pump_series=pump_1_series,
-        syringe_volume_ul=pump_1_volume_ul,
-        resolution=2
+        pump_series=pump_1_series, syringe_volume_ul=pump_1_volume_ul, resolution=2
     )
 
     pump_2_rate_step_ul_min = calc_minimum_flowrate_ul_min(
-        pump_series=pump_2_series,
-        syringe_volume_ul=pump_2_volume_ul,
-        resolution=2
+        pump_series=pump_2_series, syringe_volume_ul=pump_2_volume_ul, resolution=2
     )
 
-    nearest_attainable_pump_1_flowrate_ul_min = (int(ideal_pump_1_flowrate_ul_min / pump_1_rate_step_ul_min) *
-                                                 pump_1_rate_step_ul_min)
+    nearest_attainable_pump_1_flowrate_ul_min = (
+        int(ideal_pump_1_flowrate_ul_min / pump_1_rate_step_ul_min)
+        * pump_1_rate_step_ul_min
+    )
 
-    nearest_attainable_pump_2_flowrate_ul_min = (int(ideal_pump_2_flowrate_ul_min / pump_2_rate_step_ul_min) *
-                                                 pump_2_rate_step_ul_min)
+    nearest_attainable_pump_2_flowrate_ul_min = (
+        int(ideal_pump_2_flowrate_ul_min / pump_2_rate_step_ul_min)
+        * pump_2_rate_step_ul_min
+    )
 
     pump_1_flowrate_range_ul_min = tuple(
-        nearest_attainable_pump_1_flowrate_ul_min + i * pump_1_rate_step_ul_min for i in range(-10, 10)
+        nearest_attainable_pump_1_flowrate_ul_min + i * pump_1_rate_step_ul_min
+        for i in range(-10, 10)
     )
 
     pump_2_flowrate_range_ul_min = tuple(
-        nearest_attainable_pump_2_flowrate_ul_min + i * pump_2_rate_step_ul_min for i in range(-10, 10)
+        nearest_attainable_pump_2_flowrate_ul_min + i * pump_2_rate_step_ul_min
+        for i in range(-10, 10)
     )
 
     results = []
@@ -203,10 +226,11 @@ def optimize_flowrates_to_target_ratio(target_ratio: float, target_combined_rate
             except ZeroDivisionError:
                 continue
 
-    results = sorted(results, key=lambda k: k['ratio_dev'])[0:limit]
+    results = sorted(results, key=lambda k: k["ratio_dev"])[0:limit]
 
     if print_results is True:
         import pprint
+
         pprint.pprint(results)
 
     return tuple(results)

@@ -1,24 +1,22 @@
 import time
 
-import local.lib.lnp.classes
-import local.lib.lnp.data
-import local.lib.lnp.devices
+import lnp.classes
+import lnp.data
+import lnp.devices
 
 
-class MassFlowModel(object):
-    """
-    
-    """
+class MassFlowModel:
+    """ """
 
     filtration_start_time: float = None
 
     filter_cv_retentate: float = 60
 
     def __init__(
-            self,
-            devices_obj: "local.lib.lnp.classes.Devices" = None,
-            aqueduct: "local.lib.lnp.classes.Aqueduct" = None,
-            data: "local.lib.lnp.classes.Data" = None
+        self,
+        devices_obj: "lnp.classes.Devices" = None,
+        aqueduct: "lnp.classes.Aqueduct" = None,
+        data: "lnp.classes.Data" = None,
     ):
         self._devices = devices_obj
         self._aqueduct = aqueduct
@@ -26,21 +24,21 @@ class MassFlowModel(object):
 
     def calc_delta_p_feed_rententate(self, R1) -> float:
         try:
-            return 1 / (self.filter_cv_retentate * 0.865 / R1)**2
+            return 1 / (self.filter_cv_retentate * 0.865 / R1) ** 2
         except ZeroDivisionError:
             return 0
 
     @staticmethod
     def calc_pv_cv(PV) -> float:
-        if PV < .30:
-            return max(100 - (1/PV**2), 1)
+        if PV < 0.30:
+            return max(100 - (1 / PV**2), 1)
         else:
             return 100
 
     @staticmethod
     def calc_delta_p_rententate(R1, PV) -> float:
         try:
-            return 1 / (MassFlowModel.calc_pv_cv(PV) * 0.865 / R1)**2
+            return 1 / (MassFlowModel.calc_pv_cv(PV) * 0.865 / R1) ** 2
         except ZeroDivisionError:
             return 0
 
@@ -68,4 +66,10 @@ class MassFlowModel(object):
         p1 = self.calc_p1(self._data.R1, self._data.PV, p2)
         p3 = MassFlowModel.calc_p3(p1, p2, self._data.R1, self._data.R3)
         p1, p2, p3 = min(p1, 50), min(p2, 50), min(p3, 50)
-        self._devices.SCIP.set_sim_pressures(values=(p1, p2, p3,))
+        self._devices.SCIP.set_sim_pressures(
+            values=(
+                p1,
+                p2,
+                p3,
+            )
+        )

@@ -19,14 +19,15 @@ from typing import List, Tuple, Callable
 
 
 class Enabled(enum.Enum):
-        """
-        Enum to enable/disable a Reaction Station. If a ReactionStation is disabled, the
-        ReactionProcessHandler will not take any action. If the ReactionStation is enabled,
-        the ReactionProcessHandler will monitor the phases of the ReactionStation and
-        execute the required steps sequentially.
-        """
-        DISABLED = 0
-        ENABLED = 1
+    """
+    Enum to enable/disable a Reaction Station. If a ReactionStation is disabled, the
+    ReactionProcessHandler will not take any action. If the ReactionStation is enabled,
+    the ReactionProcessHandler will monitor the phases of the ReactionStation and
+    execute the required steps sequentially.
+    """
+
+    DISABLED = 0
+    ENABLED = 1
 
 
 class Phase(enum.Enum):
@@ -54,12 +55,11 @@ def phase_to_str(phase: int) -> str:
     if phase == Phase.INITIALIZED.value:
         return "initialized"
 
-
     elif phase == Phase.COMPLETE.value:
         return "complete"
 
 
-class ProcessTemplate(object):
+class ProcessTemplate:
     """
     Class to contain all relevant parameters for executing a generic process with one
     or more syringe pumps.
@@ -69,6 +69,7 @@ class ProcessTemplate(object):
         """
         Track the status of the current phase.
         """
+
         NOT_STARTED = 0
         STARTED = 1
         COMPLETE = 2
@@ -96,22 +97,16 @@ class ProcessTemplate(object):
     logging_enabled: bool = True
     log_file_name: str = "reaction_"
 
-    # add relevant process params here, such as 
-    # port indices, target volumes, target flowrates, 
+    # add relevant process params here, such as
+    # port indices, target volumes, target flowrates,
     # counters, etc.
 
-
-    
-    
     # reference to the Global aqueduct instance
     _devices: Devices = None
     _aqueduct: Aqueduct = None
 
     def __init__(
-            self,
-            index: int = 0,
-            devices_obj: Devices = None,
-            aqueduct: Aqueduct = None
+        self, index: int = 0, devices_obj: Devices = None, aqueduct: Aqueduct = None
     ):
 
         self.index = index
@@ -123,12 +118,14 @@ class ProcessTemplate(object):
             self._aqueduct = aqueduct
 
     def __str__(self):
-        return f"Station {self.index} (mon. {self.monomer_input}, init. {self.initiator_input}): " \
-               f"enabled={self.enabled_setpoint.value}, phase={self.phase_setpoint.value}"
+        return (
+            f"Station {self.index} (mon. {self.monomer_input}, init. {self.initiator_input}): "
+            f"enabled={self.enabled_setpoint.value}, phase={self.phase_setpoint.value}"
+        )
 
     def make_setpoints(self) -> None:
         """
-        Method used to generate the enable_setpoint and phase_setpoint and any other 
+        Method used to generate the enable_setpoint and phase_setpoint and any other
         setpoints useful for the specific process
 
         :return:
@@ -137,13 +134,13 @@ class ProcessTemplate(object):
         self.enabled_setpoint = self._aqueduct.setpoint(
             name=f"station_{self.index}_enabled",
             value=Enabled.ENABLED.value,
-            dtype=int.__name__
+            dtype=int.__name__,
         )
 
         self.phase_setpoint = self._aqueduct.setpoint(
             name=f"station_{self.index}_phase",
             value=Phase.PHASE_1_INITIALIZED.value,
-            dtype=int.__name__
+            dtype=int.__name__,
         )
 
     def is_active(self, active_inputs: Tuple[bool]) -> bool:
@@ -170,10 +167,11 @@ class ProcessTemplate(object):
         self.current_phase_status = phase_status.value
 
     def _phase_helper(
-            self,
-            do_if_not_started: Callable = None,
-            next_phase: Phase = None,
-            do_if_not_started_kwargs: dict = None) -> None:
+        self,
+        do_if_not_started: Callable = None,
+        next_phase: Phase = None,
+        do_if_not_started_kwargs: dict = None,
+    ) -> None:
         """
         Helper to avoid repeating phase block logic.
 
@@ -204,8 +202,10 @@ class ProcessTemplate(object):
         repeat: bool = False
 
         # start of a logging string that tracks the phase and status change
-        log_str: str = f"Station {self.index}: {self.phase_to_str(self.phase_setpoint.value)}" \
-                       f"({self.phase_setpoint.value}[{self.current_phase_status}]) -> "
+        log_str: str = (
+            f"Station {self.index}: {self.phase_to_str(self.phase_setpoint.value)}"
+            f"({self.phase_setpoint.value}[{self.current_phase_status}]) -> "
+        )
 
         if self.phase_setpoint.value == Phase.INITIALIZED.value:
 
@@ -213,7 +213,7 @@ class ProcessTemplate(object):
                 do_if_not_started=None,
                 next_phase=Phase.STEP_ONE,
             )
-            
+
             # setting repeat = True means we'll run through the `do_next_phase` function again
             repeat = True
 
@@ -221,20 +221,17 @@ class ProcessTemplate(object):
 
             def to_do():
                 """
-                Define what actions the station should take during this step, 
-                such as: 
-                    starting plunger movement(s) 
-                    actuating a valve(s) 
+                Define what actions the station should take during this step,
+                such as:
+                    starting plunger movement(s)
+                    actuating a valve(s)
                     starting a timer
                 """
                 # add actions here
 
                 return
 
-            self._phase_helper(
-                do_if_not_started=to_do,
-                next_phase=Phase.COMPLETE
-            )
+            self._phase_helper(do_if_not_started=to_do, next_phase=Phase.COMPLETE)
 
         elif self.phase_setpoint.value == Phase.COMPLETE.value:
             if self._repeat is True:
@@ -243,8 +240,10 @@ class ProcessTemplate(object):
             else:
                 self.enabled_setpoint.update(self.Enabled.DISABLED.value)
 
-        log_str += f"{self.phase_to_str(self.phase_setpoint.value)}" \
-                   f"({self.phase_setpoint.value}[{self.current_phase_status}])"
+        log_str += (
+            f"{self.phase_to_str(self.phase_setpoint.value)}"
+            f"({self.phase_setpoint.value}[{self.current_phase_status}])"
+        )
 
         print(log_str)
 

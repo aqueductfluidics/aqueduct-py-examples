@@ -84,7 +84,7 @@ class CurrentPhaseStatus(enum.Enum):
     COMPLETE = 2
 
 
-class CoDispenseStation(object):
+class CoDispenseStation:
     """
     Class to contain all relevant parameters for executing a 1 Phase codispense.
     """

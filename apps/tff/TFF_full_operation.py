@@ -20,10 +20,7 @@ data = tff.data.Data(devices, aq)
 setpoints = tff.classes.Setpoints(aq)
 
 # make the Watchdog object
-watchdog = tff.classes.Watchdog(
-    data_obj=data,
-    devices_obj=devices,
-    aqueduct_obj=aq)
+watchdog = tff.classes.Watchdog(data_obj=data, devices_obj=devices, aqueduct_obj=aq)
 
 # make the Process object
 process = tff.classes.Process(

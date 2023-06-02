@@ -1,7 +1,7 @@
 """Simulated Process Model Module"""
 
 
-class PressureModel(object):
+class PressureModel:
     """
     This simple model estimates the pressures:
         - P1, feed
@@ -56,10 +56,10 @@ class PressureModel(object):
     filter_cv_retentate: float = 60
 
     def __init__(
-            self,
-            devices_obj: "tff.classes.Devices" = None,
-            aqueduct: "tff.classes.Aqueduct" = None,
-            data: "tff.classes.Data" = None
+        self,
+        devices_obj: "tff.classes.Devices" = None,
+        aqueduct: "tff.classes.Aqueduct" = None,
+        data: "tff.classes.Data" = None,
     ):
         self._devices = devices_obj
         self._aqueduct = aqueduct
@@ -76,7 +76,7 @@ class PressureModel(object):
         :rtype: float
         """
         try:
-            return 1 / (self.filter_cv_retentate * 0.865 / R1)**2
+            return 1 / (self.filter_cv_retentate * 0.865 / R1) ** 2
         except ZeroDivisionError:
             return 0
 
@@ -91,8 +91,8 @@ class PressureModel(object):
         :return: Cv of the pinch valve.
         :rtype: float
         """
-        if PV < .30:
-            return max(100 - (1/PV**2), 1)
+        if PV < 0.30:
+            return max(100 - (1 / PV**2), 1)
         else:
             return 100
 
@@ -111,7 +111,7 @@ class PressureModel(object):
         :rtype: float
         """
         try:
-            return 1 / (PressureModel.calc_pv_cv(PV) * 0.865 / R1)**2
+            return 1 / (PressureModel.calc_pv_cv(PV) * 0.865 / R1) ** 2
         except ZeroDivisionError:
             return 0
 
@@ -184,4 +184,10 @@ class PressureModel(object):
         p1 = self.calc_p1(self._data.R1, self._data.PV, p2)
         p3 = PressureModel.calc_p3(p1, p2, self._data.R1, self._data.R3)
         p1, p2, p3 = min(p1, 50), min(p2, 50), min(p3, 50)
-        self._devices.SCIP.set_sim_values(values=(p1, p2, p3,))
+        self._devices.SCIP.set_sim_values(
+            values=(
+                p1,
+                p2,
+                p3,
+            )
+        )

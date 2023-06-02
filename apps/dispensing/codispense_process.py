@@ -35,28 +35,28 @@ for i in range(0, 6):
     station.pump0_output_port = 2
     station.pump0_waste_port = 3
 
-    station.pump0_output_tubing_volume_ul = 350.
-    station.pump0_priming_volume_ul = 151. + 300. + 200
+    station.pump0_output_tubing_volume_ul = 350.0
+    station.pump0_priming_volume_ul = 151.0 + 300.0 + 200
 
     station.pump1_input_port = 1
     station.pump1_output_port = 2
     station.pump1_waste_port = 3
 
-    station.pump1_output_tubing_volume_ul = 350.
-    station.pump1_priming_volume_ul = 151. + 300. + 200
+    station.pump1_output_tubing_volume_ul = 350.0
+    station.pump1_priming_volume_ul = 151.0 + 300.0 + 200
 
     station.pump0_volume_to_dispense_ul = 365000
-    station.pump0_dispense_rate_ul_min = 50.
-    station.pump0_priming_volume_ul = 151. + 300. + 200.
-    station.pump0_output_tubing_prime_volume_ul = 315.
-    station.pump0_output_tubing_prime_rate_ul_min = 2000.
-    station.pump0_withdraw_rate_ul_min = 25000.
+    station.pump0_dispense_rate_ul_min = 50.0
+    station.pump0_priming_volume_ul = 151.0 + 300.0 + 200.0
+    station.pump0_output_tubing_prime_volume_ul = 315.0
+    station.pump0_output_tubing_prime_rate_ul_min = 2000.0
+    station.pump0_withdraw_rate_ul_min = 25000.0
 
     station.pump1_volume_to_dispense_ul = 116000
-    station.pump1_dispense_rate_ul_min = 15.
-    station.pump1_output_tubing_prime_volume_ul = 315.
-    station.pump1_output_tubing_prime_rate_ul_min = 2000.
-    station.pump1_withdraw_rate_ul_min = 25000.
+    station.pump1_dispense_rate_ul_min = 15.0
+    station.pump1_output_tubing_prime_volume_ul = 315.0
+    station.pump1_output_tubing_prime_rate_ul_min = 2000.0
+    station.pump1_withdraw_rate_ul_min = 25000.0
 
     process_runner.add_station(station)
 

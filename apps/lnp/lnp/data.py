@@ -2,15 +2,17 @@ import time
 from typing import List, Union
 
 from aqueduct.core.aq import Aqueduct
-import local.lib.lnp.helpers
-from local.lib.lnp.definitions import *
-from local.lib.lnp.devices import *
+import lnp.helpers
+from lnp.definitions import *
+from lnp.devices import *
 
-class TrailingRates(object):
+
+class TrailingRates:
     """
     Class used to format trailing rate-of-change values for the
     balances and pump rates.
     """
+
     aq_pump_ml_min: Union[float, None]
     oil_pump_ml_min: Union[float, None]
     dilution_pump_ml_min: Union[float, None]
@@ -18,8 +20,15 @@ class TrailingRates(object):
     oil_mfm_ml_min: Union[float, None]
     dilution_mfm_ml_min: Union[float, None]
 
-    def __init__(self, R1_ml_min: float, W1_ml_min: float, R2_ml_min: float,
-                 W2_ml_min: float, R3_ml_min: float, W3_ml_min: float):
+    def __init__(
+        self,
+        R1_ml_min: float,
+        W1_ml_min: float,
+        R2_ml_min: float,
+        W2_ml_min: float,
+        R3_ml_min: float,
+        W3_ml_min: float,
+    ):
         """
 
         :param R1_ml_min:
@@ -37,33 +46,36 @@ class TrailingRates(object):
         self.dilution_mfm_ml_min = W3_ml_min
 
     def print(self):
-        print("[DATA] W1: {} mL/min, R1: {} mL/min, W2: {} mL/min, R2: {} mL/min, W3: {} mL/min, R3: {} mL/min".format(
-            local.lib.lnp.helpers.format_float(self.oil_pump_ml_min, 3),
-            local.lib.lnp.helpers.format_float(self.aq_pump_ml_min, 2),
-            local.lib.lnp.helpers.format_float(self.aq_mfm_ml_min, 3),
-            local.lib.lnp.helpers.format_float(self.dilution_pump_ml_min, 2),
-            local.lib.lnp.helpers.format_float(self.dilution_mfm_ml_min, 3),
-            local.lib.lnp.helpers.format_float(self.oil_mfm_ml_min, 2),
-        ))
+        print(
+            "[DATA] W1: {} mL/min, R1: {} mL/min, W2: {} mL/min, R2: {} mL/min, W3: {} mL/min, R3: {} mL/min".format(
+                lnp.helpers.format_float(self.oil_pump_ml_min, 3),
+                lnp.helpers.format_float(self.aq_pump_ml_min, 2),
+                lnp.helpers.format_float(self.aq_mfm_ml_min, 3),
+                lnp.helpers.format_float(self.dilution_pump_ml_min, 2),
+                lnp.helpers.format_float(self.dilution_mfm_ml_min, 3),
+                lnp.helpers.format_float(self.oil_mfm_ml_min, 2),
+            )
+        )
 
 
-class DataCacheItem(object):
+class DataCacheItem:
     """
     A class to structure cached data. Mirrors the structure of the
     Data class.
     """
-    aq_mfm_ml_min: Union[float, None] = None  
+
+    aq_mfm_ml_min: Union[float, None] = None
     aq_pres_psi: Union[float, None] = None
-    aq_pump_ml_min: Union[float, None] = None  
+    aq_pump_ml_min: Union[float, None] = None
     aq_valve_pos: Union[int, None] = None
-    dilution_pump_ml_min: Union[float, None] = None  
-    oil_mfm_ml_min: Union[float, None] = None  
+    dilution_pump_ml_min: Union[float, None] = None
+    oil_mfm_ml_min: Union[float, None] = None
     oil_pres_psi: Union[float, None] = None
-    oil_pump_ml_min: Union[float, None] = None  
+    oil_pump_ml_min: Union[float, None] = None
     oil_valve_pos: Union[int, None] = None
-    product_mfm_ml_min: Union[float, None] = None  
+    product_mfm_ml_min: Union[float, None] = None
     product_pres_psi: Union[float, None] = None
-    timestamp: Union[float, None] = None  
+    timestamp: Union[float, None] = None
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -71,10 +83,11 @@ class DataCacheItem(object):
                 setattr(self, k, v)
 
 
-class DataCache(object):
+class DataCache:
     """
     A Class to store cached data.
     """
+
     # a cache of the the previous data objects, should be cleared after
     # ramps to begin calculating from steady state
     # newest value last
@@ -90,12 +103,12 @@ class DataCache(object):
     _scheduled_time: float = None
 
     # the period in seconds of addition to the list
-    _interval_s: float = 5.
+    _interval_s: float = 5.0
 
     # ref to Devices
-    _devices: local.lib.lnp.devices.Devices = None
+    _devices: lnp.devices.Devices = None
 
-    def __init__(self, devices_obj: local.lib.lnp.devices.Devices):
+    def __init__(self, devices_obj: lnp.devices.Devices):
         self._devices = devices_obj
 
     # enclose the Data close in quotes
@@ -121,7 +134,7 @@ class DataCache(object):
             self._cache.append(item)
 
             # trim cache length if it exceeds the set length
-            self._cache = self._cache[-1 * self._length:]
+            self._cache = self._cache[-1 * self._length :]
 
             # schedule the next recording time
             self._scheduled_time = self._interval_s + data.timestamp
@@ -160,24 +173,26 @@ class DataCache(object):
             delta_t_interval_tolerance_s = 1
 
             if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
-                enum_keys = (('W1', 'R1'), ('W2', 'R2'), ('W3', 'R3'))
+                enum_keys = (("W1", "R1"), ("W2", "R2"), ("W3", "R3"))
             else:
                 # have to use R3 in lieu of R2 when PUMP2 is absent
-                enum_keys = (('W1', 'R1'), ('W2', 'R3'), ('W3', 'R3'))
+                enum_keys = (("W1", "R1"), ("W2", "R3"), ("W3", "R3"))
 
             # loop through the cache in reverse
             for i in range(1, len(self._cache) - 1):
 
                 # calculate the time interval between the cache timestamps
-                _dt = self._cache[-i].timestamp - \
-                    self._cache[-(i + 1)].timestamp
+                _dt = self._cache[-i].timestamp - self._cache[-(i + 1)].timestamp
 
                 # if we're on loop iteration greater than 1
                 if i > 1:
                     # check for aperiodicity in logging interval, break if the interval is outside the last interval
                     # +/- delta_t_interval_tolerance_s
-                    if not (delta_t_interval_s - delta_t_interval_tolerance_s < _dt <
-                            delta_t_interval_s + delta_t_interval_tolerance_s):
+                    if not (
+                        delta_t_interval_s - delta_t_interval_tolerance_s
+                        < _dt
+                        < delta_t_interval_s + delta_t_interval_tolerance_s
+                    ):
                         break
 
                 # update the interval
@@ -186,19 +201,21 @@ class DataCache(object):
                 for jj, k in enumerate(enum_keys):
                     # calculate the rate of change in mL/min on the balances
                     balance_delta_mass_g_delta_t_s = (
-                        (getattr(self._cache[-i], k[0]) -
-                         getattr(self._cache[-(i + 1)], k[0])) / _dt
-                    )
+                        getattr(self._cache[-i], k[0])
+                        - getattr(self._cache[-(i + 1)], k[0])
+                    ) / _dt
 
                     # multiply by 60 to convert to g/min
                     balance_accumulation_list_g_min[jj].append(
-                        balance_delta_mass_g_delta_t_s * 60.)
+                        balance_delta_mass_g_delta_t_s * 60.0
+                    )
 
-                    pump_nominal_rate_ml_min = (getattr(self._cache[-i], k[1]) + getattr(self._cache[-(i + 1)],
-                                                                                         k[1])) / 2.
+                    pump_nominal_rate_ml_min = (
+                        getattr(self._cache[-i], k[1])
+                        + getattr(self._cache[-(i + 1)], k[1])
+                    ) / 2.0
 
-                    pump_nominal_rate_list_ml_min[jj].append(
-                        pump_nominal_rate_ml_min)
+                    pump_nominal_rate_list_ml_min[jj].append(pump_nominal_rate_ml_min)
 
                 counts += 1
 
@@ -208,11 +225,13 @@ class DataCache(object):
                 rate_mean = rate_sum / len(rate_list)
                 # threshold deviation for determining an outlier
                 threshold_ml_min = 5
-                good_rates = [r for r in rate_list if (
-                    rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)]
+                good_rates = [
+                    r
+                    for r in rate_list
+                    if (rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)
+                ]
                 # set the mean with the good values
-                balance_accumulation_mean_g_min[i] = sum(
-                    good_rates) / len(good_rates)
+                balance_accumulation_mean_g_min[i] = sum(good_rates) / len(good_rates)
 
             # remove outliers from the the pump_nominal_rate_list_ml_min
             for i, rate_list in enumerate(pump_nominal_rate_list_ml_min):
@@ -220,11 +239,13 @@ class DataCache(object):
                 rate_mean = rate_sum / len(rate_list)
                 # threshold deviation for determining an outlier
                 threshold_ml_min = 5
-                good_rates = [r for r in rate_list if (
-                    rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)]
+                good_rates = [
+                    r
+                    for r in rate_list
+                    if (rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)
+                ]
                 # set the mean with the good values
-                pump_nominal_rate_mean_ml_min[i] = sum(
-                    good_rates) / len(good_rates)
+                pump_nominal_rate_mean_ml_min[i] = sum(good_rates) / len(good_rates)
 
             if counts > 0:
                 if isinstance(self._devices.PUMP2, aqueduct.devices.mfpp.obj.MFPP):
@@ -253,26 +274,27 @@ class DataCache(object):
             return None
 
 
-class Data(object):
+class Data:
     """
     Class to help with logging and updating data for the
     LNP setup.
     """
-    aq_mfm_ml_min: Union[float, None] = None 
+
+    aq_mfm_ml_min: Union[float, None] = None
     aq_pres_psi: Union[float, None] = None
-    aq_pump_ml_min: Union[float, None] = None  
+    aq_pump_ml_min: Union[float, None] = None
     aq_valve_pos: Union[int, None] = None
-    aq_temperature_c: Union[float, None] = None  
-    dilution_pump_ml_min: Union[float, None] = None  
-    oil_mfm_ml_min: Union[float, None] = None  
+    aq_temperature_c: Union[float, None] = None
+    dilution_pump_ml_min: Union[float, None] = None
+    oil_mfm_ml_min: Union[float, None] = None
     oil_pres_psi: Union[float, None] = None
-    oil_pump_ml_min: Union[float, None] = None 
+    oil_pump_ml_min: Union[float, None] = None
     oil_valve_pos: Union[int, None] = None
-    oil_temperature_c: Union[float, None] = None 
-    product_mfm_ml_min: Union[float, None] = None  
+    oil_temperature_c: Union[float, None] = None
+    product_mfm_ml_min: Union[float, None] = None
     product_pres_psi: Union[float, None] = None
-    product_temperature_c: Union[float, None] = None 
-    timestamp: Union[float, None] = None 
+    product_temperature_c: Union[float, None] = None
+    timestamp: Union[float, None] = None
 
     # timestamp of last write to log file
     log_timestamp: Union[float, None] = None
@@ -294,7 +316,7 @@ class Data(object):
 
     _extrapolation_timestamp: float = None
 
-    def __init__(self, devices_obj: local.lib.lnp.devices.Devices, aqueduct_obj: Aqueduct):
+    def __init__(self, devices_obj: lnp.devices.Devices, aqueduct_obj: Aqueduct):
         """
         Instantiation method.
 
@@ -311,10 +333,7 @@ class Data(object):
         self.init_sim_values()
 
     def update_data(
-            self,
-            retries: int = 5,
-            debug: bool = False,
-            pause_on_error: bool = False
+        self, retries: int = 5, debug: bool = False, pause_on_error: bool = False
     ) -> None:
         """
         Method to update the global data dictionary.
@@ -336,20 +355,24 @@ class Data(object):
         valve_positions = self._devices.SOL_VALVES.positions()
         temperatures = self._devices.TEMP_PROBE.get_all_temperatures()
 
-        self.aq_mfm_ml_min: Union[float, None] = aq_pump_mass_flow 
+        self.aq_mfm_ml_min: Union[float, None] = aq_pump_mass_flow
         self.aq_pres_psi: Union[float, None] = pressures[AQUEOUS_PRES_TDCR_INDEX]
-        self.aq_pump_ml_min: Union[float, None] = mass_flows[AQUEOUS_MFM_INDEX]  
+        self.aq_pump_ml_min: Union[float, None] = mass_flows[AQUEOUS_MFM_INDEX]
         self.aq_valve_pos: Union[int, None] = valve_positions[AQUEOUS_VALVE_INDEX]
-        self.aq_temperature_c: Union[float, None] = temperatures[AQUEOUS_TEMP_PROBE_INDEX] 
-        self.dilution_pump_ml_min: Union[float, None] = dilution_pump_mass_flow 
-        self.oil_mfm_ml_min: Union[float, None] = mass_flows[OIL_MFM_INDEX]    
+        self.aq_temperature_c: Union[float, None] = temperatures[
+            AQUEOUS_TEMP_PROBE_INDEX
+        ]
+        self.dilution_pump_ml_min: Union[float, None] = dilution_pump_mass_flow
+        self.oil_mfm_ml_min: Union[float, None] = mass_flows[OIL_MFM_INDEX]
         self.oil_pres_psi: Union[float, None] = pressures[OIL_PRES_TDCR_INDEX]
-        self.oil_pump_ml_min: Union[float, None] = oil_pump_mass_flow  
+        self.oil_pump_ml_min: Union[float, None] = oil_pump_mass_flow
         self.oil_valve_pos: Union[int, None] = valve_positions[OIL_VALVE_INDEX]
-        self.oil_temperature_c: Union[float, None] = temperatures[OIL_TEMP_PROBE_INDEX] 
-        self.product_mfm_ml_min: Union[float, None] = mass_flows[PRODUCT_MFM_INDEX]     
-        self.product_pres_psi: Union[float, None] = mass_flows[PRODUCT_PRES_TDCR_INDEX] 
-        self.product_temperature_c: Union[float, None] = temperatures[PRODUCT_TEMP_PROBE_INDEX] 
+        self.oil_temperature_c: Union[float, None] = temperatures[OIL_TEMP_PROBE_INDEX]
+        self.product_mfm_ml_min: Union[float, None] = mass_flows[PRODUCT_MFM_INDEX]
+        self.product_pres_psi: Union[float, None] = mass_flows[PRODUCT_PRES_TDCR_INDEX]
+        self.product_temperature_c: Union[float, None] = temperatures[
+            PRODUCT_TEMP_PROBE_INDEX
+        ]
 
         self.timestamp = time.time()
 
@@ -395,16 +418,16 @@ class Data(object):
         #     "R2: {7}, "
         #     "R3: {8}, "
         #     "PV: {9}".format(
-        #         local.lib.lnp.helpers.format_float(self.P1, 3),
-        #         local.lib.lnp.helpers.format_float(self.P2, 3),
-        #         local.lib.lnp.helpers.format_float(self.P3, 3),
-        #         local.lib.lnp.helpers.format_float(self.W1, 3),
-        #         local.lib.lnp.helpers.format_float(self.W2, 3),
-        #         local.lib.lnp.helpers.format_float(self.W3, 3),
-        #         local.lib.lnp.helpers.format_float(self.R1, 3),
-        #         local.lib.lnp.helpers.format_float(self.R2, 3),
-        #         local.lib.lnp.helpers.format_float(self.R3, 3),
-        #         local.lib.lnp.helpers.format_float(self.PV, 4)
+        #         lnp.helpers.format_float(self.P1, 3),
+        #         lnp.helpers.format_float(self.P2, 3),
+        #         lnp.helpers.format_float(self.P3, 3),
+        #         lnp.helpers.format_float(self.W1, 3),
+        #         lnp.helpers.format_float(self.W2, 3),
+        #         lnp.helpers.format_float(self.W3, 3),
+        #         lnp.helpers.format_float(self.R1, 3),
+        #         lnp.helpers.format_float(self.R2, 3),
+        #         lnp.helpers.format_float(self.R3, 3),
+        #         lnp.helpers.format_float(self.PV, 4)
         #     ))
 
     def as_dict(self) -> dict:
@@ -415,26 +438,28 @@ class Data(object):
         :return: dictionary
         """
         keys = [
-            ('P1', 3),
-            ('P2', 3),
-            ('P3', 3),
-            ('W1', 3),
-            ('W2', 3),
-            ('W3', 3),
-            ('R1', 3),
-            ('R2', 3),
-            ('R3', 3),
-            ('PV', 4),
-            ('timestamp',),
+            ("P1", 3),
+            ("P2", 3),
+            ("P3", 3),
+            ("W1", 3),
+            ("W2", 3),
+            ("W3", 3),
+            ("R1", 3),
+            ("R2", 3),
+            ("R3", 3),
+            ("PV", 4),
+            ("timestamp",),
         ]
         d = {}
         for k in keys:
-            if k[0] == 'timestamp':
+            if k[0] == "timestamp":
                 d.update(
-                    {k[0]: getattr(self, k[0], None).strftime('%Y-%m-%dT%H:%M:%S.%f')})
+                    {k[0]: getattr(self, k[0], None).strftime("%Y-%m-%dT%H:%M:%S.%f")}
+                )
             else:
-                d.update({k[0]: local.lib.lnp.helpers.format_float(
-                    getattr(self, k[0], None), k[1])})
+                d.update(
+                    {k[0]: lnp.helpers.format_float(getattr(self, k[0], None), k[1])}
+                )
         return d
 
     def log_data_at_interval(self, interval_s: float = None) -> None:
@@ -470,7 +495,23 @@ class Data(object):
 
             if isinstance(self._devices.SCIP, aqueduct.devices.scip.obj.SCIP):
                 self._devices.SCIP.set_sim_pressures(
-                    values=((5., 5., 5.,) + 9 * (0,)))
+                    values=(
+                        (
+                            5.0,
+                            5.0,
+                            5.0,
+                        )
+                        + 9 * (0,)
+                    )
+                )
                 self._devices.SCIP.set_sim_noise(
-                    values=((0.01, 0.01, 0.01,) + 9 * (0,)))
+                    values=(
+                        (
+                            0.01,
+                            0.01,
+                            0.01,
+                        )
+                        + 9 * (0,)
+                    )
+                )
                 self._devices.SCIP.set_sim_rates_of_change(values=(12 * (0,)))

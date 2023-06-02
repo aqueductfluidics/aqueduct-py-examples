@@ -11,7 +11,7 @@ from aqueduct.core.aq import Aqueduct
 from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES
 
 
-class ProcessRunner(object):
+class ProcessRunner:
     """
     Class to handle processing each of the stations.
     """
@@ -20,17 +20,17 @@ class ProcessRunner(object):
 
     # control the period in seconds at which
     # the process prints the status of all stations to screen
-    status_print_interval_s: float = 360.
+    status_print_interval_s: float = 360.0
     last_status_print_time: float = None
 
     # control the period in seconds at which
     # the process records all station data
-    record_data_interval_s: float = 2.
+    record_data_interval_s: float = 2.0
     last_record_time: float = None
 
     # the heartbeat interval in seconds to wait between processing
     # any events
-    interval_s: float = .2
+    interval_s: float = 0.2
 
     # reference to the Devices, Data, and Aqueduct classes
     _devices: Devices = None
@@ -38,10 +38,7 @@ class ProcessRunner(object):
     _aqueduct: Aqueduct = None
 
     def __init__(
-            self,
-            devices_obj: Devices = None,
-            aqueduct: Aqueduct = None,
-            data: Data = None
+        self, devices_obj: Devices = None, aqueduct: Aqueduct = None, data: Data = None
     ):
 
         if isinstance(devices_obj, Devices):
@@ -110,8 +107,9 @@ class ProcessRunner(object):
         :return:
         """
 
-        if self.last_status_print_time is None or \
-                (time.time() > self.last_status_print_time + self.status_print_interval_s):
+        if self.last_status_print_time is None or (
+            time.time() > self.last_status_print_time + self.status_print_interval_s
+        ):
             self.print_all_stations()
             self.last_status_print_time = time.time()
 
@@ -123,8 +121,9 @@ class ProcessRunner(object):
         :return:
         """
 
-        if self.last_record_time is None or \
-                (time.time() > self.last_record_time + self.record_data_interval_s):
+        if self.last_record_time is None or (
+            time.time() > self.last_record_time + self.record_data_interval_s
+        ):
             self.record_all_stations()
             self.last_record_time = time.time()
 
@@ -144,11 +143,11 @@ class ProcessRunner(object):
         # of boolean values
         active_pumps = self._devices.PUMP.get_status()
 
-        # now loop through all of ProcessRunner's stations and 
-        # call the station's `is_active` method (pass the active_pumps) 
+        # now loop through all of ProcessRunner's stations and
+        # call the station's `is_active` method (pass the active_pumps)
         for i, s in enumerate(self.stations):
             active_stations[i] = s.is_active(active_pumps)
-        
+
         return tuple(active_stations)
 
     def csv_upload_with_header_row(self) -> list:
@@ -162,10 +161,10 @@ class ProcessRunner(object):
         # Row 0 is the header row with data labels. Within a row the data (columns) are separated by commas.
         csv_ipt = self._aqueduct.input(
             message="Upload a CSV file. Within a row use commas to separate column entries from left to right. <br>"
-                    "Each new line will be a new row.  <br>"
-                    "Ensure row 0 is a header row (labels).  <br>",
+            "Each new line will be a new row.  <br>"
+            "Ensure row 0 is a header row (labels).  <br>",
             input_type="csv",
-            dtype="str"
+            dtype="str",
         )
 
         table_data = csv_ipt.get_value()
@@ -182,15 +181,16 @@ class ProcessRunner(object):
             row_index = i
             row_contents = []
             for j, column in enumerate(r):
-                row_contents.append(dict(
-                    name=f"{labels[j]}", value=column))
+                row_contents.append(dict(name=f"{labels[j]}", value=column))
 
-            new_list.append(dict(
-                hint=f"csv row: {row_index}",
-                value=row_contents,
-                dtype="list",
-                name=f"data{i}"
-            ))
+            new_list.append(
+                dict(
+                    hint=f"csv row: {row_index}",
+                    value=row_contents,
+                    dtype="list",
+                    name=f"data{i}",
+                )
+            )
 
         # prompt the user to confirm the uploaded csv data looks correct.
         tabular_ipt = self._aqueduct.input(
@@ -201,17 +201,16 @@ class ProcessRunner(object):
         )
 
         # format the confirmed data (str) into a list and return the list new_rates.
-        confirmed_values = json.loads(
-            tabular_ipt.get_value())
+        confirmed_values = json.loads(tabular_ipt.get_value())
         new_params = []
 
         for cv in confirmed_values:
             row = []
             for value in cv:
                 try:
-                    row.append(float((value.get('value'))))
+                    row.append(float(value.get("value")))
                 except ValueError:
-                    row.append((value.get('value')))
+                    row.append(value.get("value"))
             new_params.append(row)
 
         # params are a list of list with index row and columns:
@@ -230,7 +229,7 @@ class ProcessRunner(object):
             10: Mono_polym(mL)
             11: Mono_polym_rate(uL / min)
             12: time_polym(h)
-        Row 1 (Station 1) 
+        Row 1 (Station 1)
             ...
         """
         return new_params
@@ -253,4 +252,3 @@ class ProcessRunner(object):
             self.print_station_status_at_interval()
             self.record_station_data_at_interval()
             time.sleep(self.interval_s)
-

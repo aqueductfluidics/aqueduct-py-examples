@@ -14,7 +14,7 @@ def _clamp(value: Union[int, float], limits: Tuple[float, float]):
     return value
 
 
-class PID(object):
+class PID:
     """
     A simple PID controller.
 
@@ -77,13 +77,19 @@ class PID(object):
         if dt is None:
             dt = now - self._last_time if (now - self._last_time) else 1e-16
         elif dt <= 0:
-            raise ValueError('dt has negative value {}, must be positive'.format(dt))
+            raise ValueError("dt has negative value {}, must be positive".format(dt))
 
-        if self.period_s is not None and dt < self.period_s and self._last_output is not None:
+        if (
+            self.period_s is not None
+            and dt < self.period_s
+            and self._last_output is not None
+        ):
             return self._last_output
 
         error = self.setpoint - input_
-        delta_input = input_ - (self._last_input if (self._last_input is not None) else input_)
+        delta_input = input_ - (
+            self._last_input if (self._last_input is not None) else input_
+        )
 
         # Compute proportional term
         self._proportional = self.k_p * error
@@ -107,7 +113,9 @@ class PID(object):
 
             # Compute integral term
             self._integral += self.k_i * error * dt
-            self._integral = _clamp(self._integral, self.output_limits)  # Avoid integral windup
+            self._integral = _clamp(
+                self._integral, self.output_limits
+            )  # Avoid integral windup
 
         # Compute derivative term
         self._derivative = -self.k_d * delta_input / dt
@@ -126,11 +134,11 @@ class PID(object):
 
     def __repr__(self):
         return (
-            '{self.__class__.__name__}('
-            'k_p={self.k_p!r}, k_i={self.k_i!r}, k_d={self.k_d!r}, '
-            'setpoint={self.setpoint!r}, period_s={self.period_s!r}, '
-            'output_limits={self.output_limits!r},'
-            ')'
+            "{self.__class__.__name__}("
+            "k_p={self.k_p!r}, k_i={self.k_i!r}, k_d={self.k_d!r}, "
+            "setpoint={self.setpoint!r}, period_s={self.period_s!r}, "
+            "output_limits={self.output_limits!r},"
+            ")"
         ).format(self=self)
 
     @property
@@ -169,7 +177,7 @@ class PID(object):
         min_output, max_output = limits
 
         if (None not in limits) and (max_output < min_output):
-            raise ValueError('lower limit must be less than upper limit')
+            raise ValueError("lower limit must be less than upper limit")
 
         self._min_output = min_output
         self._max_output = max_output
@@ -196,4 +204,3 @@ class PID(object):
 
     def get_last_error(self):
         return self._last_error
-

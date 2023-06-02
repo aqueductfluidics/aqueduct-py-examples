@@ -14,7 +14,10 @@ def format_float(value: Union[float, int, str], precision: int = 2) -> str:
     :return:
     """
     try:
-        return INVALID_CHAR if value is None else float(format(float(value), '.{}f'.format(precision)))
+        return (
+            INVALID_CHAR
+            if value is None
+            else float(format(float(value), ".{}f".format(precision)))
+        )
     except ValueError:
         return INVALID_CHAR
-

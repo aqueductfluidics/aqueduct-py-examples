@@ -4,7 +4,7 @@ Name: text_input.py
 Description:
 
 This demo illustrates creating a text `Input` named
-`text_input` that expects a numeric value. 
+`text_input` that expects a numeric value.
 
 We'll pause the Recipe while waiting for the Input to receive
 data by setting `pause_recipe=True` when we create the input.
@@ -30,4 +30,3 @@ text_input = aqueduct.input(
 )
 
 print(f"Input has received data: {text_input.get_value()}")
-

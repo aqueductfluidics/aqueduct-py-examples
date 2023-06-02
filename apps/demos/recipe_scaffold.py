@@ -15,6 +15,7 @@ using the appropriate Aqueduct and Devices objects.
 """
 
 import config
+
 # local imports
 # import local.lib.example.classes
 
@@ -22,7 +23,7 @@ if not config.LAB_MODE_ENABLED:
 
     from aqueduct.aqueduct import Aqueduct
 
-    aqueduct = Aqueduct('G', None, None, None)
+    aqueduct = Aqueduct("G", None, None, None)
 
     # make the Devices object
     # devices = local.lib.example.classes.Devices.generate_dev_devices()
@@ -30,7 +31,7 @@ if not config.LAB_MODE_ENABLED:
 else:
 
     # pass the aqueduct object
-    aqueduct = globals().get('aqueduct')
+    aqueduct = globals().get("aqueduct")
 
     # pass the globals dictionary, which will have the
     # objects for the Devices already instantiated

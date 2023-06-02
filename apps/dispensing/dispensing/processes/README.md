@@ -1,12 +1,12 @@
-## Processes Directory 
+## Processes Directory
 
 ### Usage
 
 When creating a new process, the files in this directory are
 intended to serve as building blocks.
 
-The `ProcessRunner.py` file contains the code for the main loop, which checks 
-on the status of one or more stations. 
+The `ProcessRunner.py` file contains the code for the main loop, which checks
+on the status of one or more stations.
 
 The `run` method of the ProcessRunner class:
     1. checks for inactive stations

@@ -25,13 +25,13 @@ import tff.pid
 from tff.definitions import *
 
 
-class Devices(object):
+class Devices:
     """
     Class representing the devices in the Aqueduct system.
 
     The `Devices` class provides access to the different devices
     in the Aqueduct system, such as pumps, pressure transducers,
-    balances, and pinch valves. Each device is represented by a 
+    balances, and pinch valves. Each device is represented by a
     class attribute in the `Devices` class.
 
     Attributes:
@@ -43,6 +43,7 @@ class Devices(object):
         - `SCIP`: Aqueduct Device that interfaces with 3 Parker SciLog SciPres transducers.
 
     """
+
     PUMP1: PeristalticPump = None
     PUMP2: PeristalticPump = None
     PUMP3: PeristalticPump = None
@@ -65,7 +66,7 @@ class Devices(object):
         self.PV = aq.devices.get(PV_NAME)
 
 
-class Setpoints(object):
+class Setpoints:
     """
     Class representing the setpoints in the Aqueduct system.
 
@@ -79,6 +80,7 @@ class Setpoints(object):
         k_i (Setpoint): Setpoint for the integral PID constant.
         k_d (Setpoint): Setpoint for the derivative PID constant.
     """
+
     pinch_valve_control_active: Setpoint = None
     P3_target_pressure: Setpoint = None
     k_p: Setpoint = None
@@ -92,15 +94,11 @@ class Setpoints(object):
         self._aqueduct = aqueduct_obj
 
         self.pinch_valve_control_active = self._aqueduct.setpoint(
-            "pinch_valve_control_active",
-            False,
-            bool.__name__
+            "pinch_valve_control_active", False, bool.__name__
         )
 
         self.P3_target_pressure = self._aqueduct.setpoint(
-            "P3_target_pressure",
-            5,
-            float.__name__
+            "P3_target_pressure", 5, float.__name__
         )
 
         # create a Setpoint to adjust the proportional PID constant
@@ -125,7 +123,7 @@ class Setpoints(object):
         )
 
 
-class Watchdog(object):
+class Watchdog:
     """
     Class representing the watchdog functionality in the Aqueduct system.
 
@@ -143,6 +141,7 @@ class Watchdog(object):
         _aqueduct (Aqueduct): The Aqueduct instance.
         _data (tff.data.Data): The data object.
     """
+
     over_pressure_alarm: tff.alarms.OverPressureAlarm
     low_pressure_alarm: tff.alarms.LowP3PressureAlarm
     vacuum_condition_alarm: tff.alarms.VacuumConditionAlarm
@@ -154,7 +153,9 @@ class Watchdog(object):
     _aqueduct: Aqueduct
     _data: "tff.data.Data"
 
-    def __init__(self, data_obj: "tff.data.Data", devices_obj: Devices, aqueduct_obj: Aqueduct):
+    def __init__(
+        self, data_obj: "tff.data.Data", devices_obj: Devices, aqueduct_obj: Aqueduct
+    ):
         """
         Initialize the Watchdog class with the data, devices, and Aqueduct instance.
 
@@ -168,17 +169,23 @@ class Watchdog(object):
         self._aqueduct: Aqueduct = aqueduct_obj
 
         self.over_pressure_alarm = tff.alarms.OverPressureAlarm(
-            self._data, self._devices, self._aqueduct)
+            self._data, self._devices, self._aqueduct
+        )
         self.low_pressure_alarm = tff.alarms.LowP3PressureAlarm(
-            self._data, self._devices, self._aqueduct)
+            self._data, self._devices, self._aqueduct
+        )
         self.vacuum_condition_alarm = tff.alarms.VacuumConditionAlarm(
-            self._data, self._devices, self._aqueduct)
+            self._data, self._devices, self._aqueduct
+        )
         self.low_buffer_vessel_alarm = tff.alarms.BufferVesselEmptyAlarm(
-            self._data, self._devices, self._aqueduct)
+            self._data, self._devices, self._aqueduct
+        )
         self.low_retentate_vessel_alarm = tff.alarms.RetentateVesselLowAlarm(
-            self._data, self._devices, self._aqueduct)
+            self._data, self._devices, self._aqueduct
+        )
         self.volume_accumulation_alarm = tff.alarms.VolumeAccumulationAlarm(
-            self._data, self._devices, self._aqueduct)
+            self._data, self._devices, self._aqueduct
+        )
 
     def assign_process_to_alarms(self, process):
         """
@@ -190,7 +197,7 @@ class Watchdog(object):
         for n, m in self.__dict__.items():
             a = getattr(self, n)
             if isinstance(a, tff.alarms.Alarm):
-                setattr(a, '_process', process)
+                setattr(a, "_process", process)
 
     def turn_all_alarms_off(self):
         """
@@ -224,7 +231,10 @@ class Watchdog(object):
         for n, m in self.__dict__.items():
             a = getattr(self, n)
             if isinstance(a, tff.alarms.Alarm):
-                for attr in ['_pump_1_rate_change_interval_s', '_pumps_2_3_ramp_interval_s']:
+                for attr in [
+                    "_pump_1_rate_change_interval_s",
+                    "_pumps_2_3_ramp_interval_s",
+                ]:
                     if hasattr(a, attr):
                         setattr(a, attr, 5)
 
@@ -234,42 +244,43 @@ PROCESS CLASSES
 """
 
 
-class Process(object):
+class Process:
     """
     Class to contain process information like
     drug substance, filter area, etc.
 
     """
+
     INITIAL_CONC_PHASE = 0  # alias for process being in init conc
     DIAFILT_PHASE = 1  # alias for process being in diafilt phase
     FINAL_CONC_PHASE = 2  # alias for process being in final conc phase
 
     DEFAULT_DRUG_SUBSTANCE = "test"
-    DEFAULT_FILTER_AREA = 50.  # cm^2
-    DEFAULT_POLYSACCHARIDE_MASS = 500.  # mg
+    DEFAULT_FILTER_AREA = 50.0  # cm^2
+    DEFAULT_POLYSACCHARIDE_MASS = 500.0  # mg
 
-    DEFAULT_PUMP_1_FLOWRATE = 20.  # mL/min
+    DEFAULT_PUMP_1_FLOWRATE = 20.0  # mL/min
     DEFAULT_PUMP_2_FLOWRATE = DEFAULT_PUMP_1_FLOWRATE / 2  # mL/min
     DEFAULT_PUMP_3_FLOWRATE = DEFAULT_PUMP_1_FLOWRATE / 2  # mL/min
 
-    DEFAULT_TARGET_P3 = 5.  # psi
+    DEFAULT_TARGET_P3 = 5.0  # psi
 
-    DEFAULT_INIT_TRANSFER_VOL = 50.  # mL
+    DEFAULT_INIT_TRANSFER_VOL = 50.0  # mL
 
-    DEFAULT_INIT_CONC_TARGET_MASS = 100.  # grams
-    DEFAULT_INIT_CONC_TIMEOUT_MIN = 360.  # minutes
+    DEFAULT_INIT_CONC_TARGET_MASS = 100.0  # grams
+    DEFAULT_INIT_CONC_TIMEOUT_MIN = 360.0  # minutes
     DEFAULT_INIT_CONC_TARGET = 10  # g/L
-    DEFAULT_INIT_CONC_VOLUME_ML = 100.  # mL
+    DEFAULT_INIT_CONC_VOLUME_ML = 100.0  # mL
 
-    DEFAULT_DIAFILT_TARGET_MASS = 100.  # grams
-    DEFAULT_DIAFILT_TIMEOUT_MIN = 360.  # minutes
+    DEFAULT_DIAFILT_TARGET_MASS = 100.0  # grams
+    DEFAULT_DIAFILT_TIMEOUT_MIN = 360.0  # minutes
     DEFAULT_NUMBER_DIAFILTRATIONS = 1  # integer
 
-    DEFAULT_FINAL_CONC_TARGET_MASS = 100.  # grams
-    DEFAULT_FINAL_CONC_TIMEOUT_MIN = 360.  # minutes
+    DEFAULT_FINAL_CONC_TARGET_MASS = 100.0  # grams
+    DEFAULT_FINAL_CONC_TIMEOUT_MIN = 360.0  # minutes
     DEFAULT_FINAL_CONC_TARGET = 10  # g/L
 
-    DEFAULT_PINCH_VALVE_LOCK_IN_MIN = 4.  # minutes
+    DEFAULT_PINCH_VALVE_LOCK_IN_MIN = 4.0  # minutes
 
     hub_sn: int = None
     lab_mode: bool
@@ -298,7 +309,7 @@ class Process(object):
     pinch_valve_lock_in_min: float = None
 
     # balance stabilization time delay
-    record_mass_time_delay_s: float = 5.
+    record_mass_time_delay_s: float = 5.0
 
     # #################################
 
@@ -419,31 +430,31 @@ class Process(object):
         return self._pid
 
     def __init__(
-            self,
-            devices_obj: Devices = None,
-            data: "tff.data.Data" = None,
-            aqueduct: Aqueduct = None,
-            setpoints: Setpoints = None,
-            watchdog: Watchdog = None,
-            drug_substance: str = DEFAULT_DRUG_SUBSTANCE,
-            filter_area_cm2: float = DEFAULT_FILTER_AREA,
-            polysaccharide_mass_mg: float = DEFAULT_POLYSACCHARIDE_MASS,
-            pump_1_target_flowrate_ml_min: float = DEFAULT_PUMP_1_FLOWRATE,
-            pump_2_target_flowrate_ml_min: float = DEFAULT_PUMP_2_FLOWRATE,
-            pump_3_target_flowrate_ml_min: float = DEFAULT_PUMP_3_FLOWRATE,
-            initial_transfer_volume: float = DEFAULT_INIT_TRANSFER_VOL,
-            init_conc_target_mass_g: float = DEFAULT_INIT_CONC_TARGET_MASS,
-            init_conc_timeout_min: float = DEFAULT_INIT_CONC_TIMEOUT_MIN,
-            init_conc_target_g_l: float = DEFAULT_INIT_CONC_TARGET,
-            init_conc_volume_ml: float = DEFAULT_INIT_CONC_VOLUME_ML,
-            diafilt_target_mass_g: float = DEFAULT_DIAFILT_TARGET_MASS,
-            diafilt_timeout_min: float = DEFAULT_DIAFILT_TIMEOUT_MIN,
-            number_diafiltrations: int = DEFAULT_NUMBER_DIAFILTRATIONS,
-            final_conc_target_mass_g: float = DEFAULT_FINAL_CONC_TARGET_MASS,
-            final_conc_timeout_min: float = DEFAULT_FINAL_CONC_TIMEOUT_MIN,
-            final_conc_target_g_l: float = DEFAULT_FINAL_CONC_TARGET,
-            pinch_valve_lock_in_min: float = DEFAULT_PINCH_VALVE_LOCK_IN_MIN,
-            **kwargs
+        self,
+        devices_obj: Devices = None,
+        data: "tff.data.Data" = None,
+        aqueduct: Aqueduct = None,
+        setpoints: Setpoints = None,
+        watchdog: Watchdog = None,
+        drug_substance: str = DEFAULT_DRUG_SUBSTANCE,
+        filter_area_cm2: float = DEFAULT_FILTER_AREA,
+        polysaccharide_mass_mg: float = DEFAULT_POLYSACCHARIDE_MASS,
+        pump_1_target_flowrate_ml_min: float = DEFAULT_PUMP_1_FLOWRATE,
+        pump_2_target_flowrate_ml_min: float = DEFAULT_PUMP_2_FLOWRATE,
+        pump_3_target_flowrate_ml_min: float = DEFAULT_PUMP_3_FLOWRATE,
+        initial_transfer_volume: float = DEFAULT_INIT_TRANSFER_VOL,
+        init_conc_target_mass_g: float = DEFAULT_INIT_CONC_TARGET_MASS,
+        init_conc_timeout_min: float = DEFAULT_INIT_CONC_TIMEOUT_MIN,
+        init_conc_target_g_l: float = DEFAULT_INIT_CONC_TARGET,
+        init_conc_volume_ml: float = DEFAULT_INIT_CONC_VOLUME_ML,
+        diafilt_target_mass_g: float = DEFAULT_DIAFILT_TARGET_MASS,
+        diafilt_timeout_min: float = DEFAULT_DIAFILT_TIMEOUT_MIN,
+        number_diafiltrations: int = DEFAULT_NUMBER_DIAFILTRATIONS,
+        final_conc_target_mass_g: float = DEFAULT_FINAL_CONC_TARGET_MASS,
+        final_conc_timeout_min: float = DEFAULT_FINAL_CONC_TIMEOUT_MIN,
+        final_conc_target_g_l: float = DEFAULT_FINAL_CONC_TARGET,
+        pinch_valve_lock_in_min: float = DEFAULT_PINCH_VALVE_LOCK_IN_MIN,
+        **kwargs,
     ):
 
         self._devices = devices_obj
@@ -509,10 +520,12 @@ class Process(object):
         :return:
         """
 
-        for _s in ['init_conc_', 'diafilt_', 'final_conc_']:
-            for _r in ['pump_1_target_flowrate_ml_min',
-                       'pump_2_target_flowrate_ml_min',
-                       'pump_3_target_flowrate_ml_min']:
+        for _s in ["init_conc_", "diafilt_", "final_conc_"]:
+            for _r in [
+                "pump_1_target_flowrate_ml_min",
+                "pump_2_target_flowrate_ml_min",
+                "pump_3_target_flowrate_ml_min",
+            ]:
                 a = _s + _r
                 if a in kwargs:
                     setattr(self, a, kwargs.get(a))
@@ -568,7 +581,9 @@ class Process(object):
         elif self.current_phase == self.FINAL_CONC_PHASE:
             return self.final_conc_target_mass_g
 
-    def set_quick_run_params(self, speed: str = 'fast', accelerate_watchdog: bool = True):
+    def set_quick_run_params(
+        self, speed: str = "fast", accelerate_watchdog: bool = True
+    ):
         """
         Set's the parameters for pump ramping, valve lock in to compressed
         time values to allow for a quick run of the protocol.
@@ -578,15 +593,15 @@ class Process(object):
         :return:
         """
         ramp_interval_s = 5
-        timeout_min = .5
+        timeout_min = 0.5
         pv_lock_in_min = 0.5
 
-        if speed == 'fast':
+        if speed == "fast":
             ramp_interval_s = 5
-            timeout_min = .5
+            timeout_min = 0.5
             pv_lock_in_min = 0.5
 
-        elif speed == 'medium':
+        elif speed == "medium":
             ramp_interval_s = 10
             timeout_min = 30
             pv_lock_in_min = 2
@@ -639,9 +654,11 @@ class Process(object):
 
         for t in inspect.getmembers(self):
             attribute, value = t[0], t[1]
-            if attribute[:1] != '_' \
-                    and not any(l.isupper() for l in attribute) \
-                    and not callable(value):
+            if (
+                attribute[:1] != "_"
+                and not any(l.isupper() for l in attribute)
+                and not callable(value)
+            ):
                 log_dict.update({attribute: value})
 
         return log_dict
@@ -672,13 +689,17 @@ class Process(object):
         print("[PHASE (INIT)] Stopping all Pumps.")
 
         self._devices.PUMP1.stop()
-        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
+        if (
+            isinstance(self._devices.PUMP2, PeristalticPump)
+            and self.two_pump_config is False
+        ):
             self._devices.PUMP2.stop()
         self._devices.PUMP3.stop()
 
         commands = self._devices.PV.make_commands()
         command = self._devices.PV.make_set_poisition_command(
-            pct_open=self.pinch_valve_init_pct_open)
+            pct_open=self.pinch_valve_init_pct_open
+        )
         self._devices.PV.set_command(commands, 0, command)
         self._devices.PV.set_position(commands, record=True)
 
@@ -734,7 +755,7 @@ class Process(object):
             # prompt operator to place empty vessel on buffer scale
             self._aqueduct.prompt(
                 message="Place empty vessel on Scale 2 (buffer scale). Press <b>continue</b> to continue.",
-                pause_recipe=True
+                pause_recipe=True,
             )
 
             # tare scale 2
@@ -744,15 +765,15 @@ class Process(object):
             # prompt operator to pour product into buffer vessel, press prompt to continue
             self._aqueduct.prompt(
                 message="Pour product solution into vessel on Scale 2 (buffer scale), connect the buffer feed line to "
-                        "the retentate vessel, and manually prime the buffer feed line. "
-                        "Press <b>continue</b> to continue.",
-                pause_recipe=True
+                "the retentate vessel, and manually prime the buffer feed line. "
+                "Press <b>continue</b> to continue.",
+                pause_recipe=True,
             )
 
             # prompt operator to place empty vessel on permeate scale
             self._aqueduct.prompt(
                 message="Place empty vessel on Scale 3 (permeate scale). Press <b>continue</b> to continue.",
-                pause_recipe=True
+                pause_recipe=True,
             )
 
             # tare scale 3
@@ -771,7 +792,7 @@ class Process(object):
             # Aqueduct input for concentration target
             ipt = self._aqueduct.input(
                 message="Enter the initial concentration target concentration in grams "
-                        "per liter (g/L). Press <b>submit</b> to continue.",
+                "per liter (g/L). Press <b>submit</b> to continue.",
                 pause_recipe=True,
                 dtype=float.__name__,
             )
@@ -779,12 +800,12 @@ class Process(object):
             self.init_conc_target_g_l = ipt.get_value()
 
             # catch a zero init_conc_target_g_l
-            while not self.init_conc_target_g_l or self.init_conc_target_g_l == 0.:
+            while not self.init_conc_target_g_l or self.init_conc_target_g_l == 0.0:
                 # Aqueduct input for concentration target
                 ipt = self._aqueduct.input(
                     message="Error! Can't enter '0' for target concentration!<br><br>"
-                            "Re-enter the initial concentration target concentration in grams per liter (g/L). "
-                            "Press <b>submit</b> to continue.",
+                    "Re-enter the initial concentration target concentration in grams per liter (g/L). "
+                    "Press <b>submit</b> to continue.",
                     pause_recipe=True,
                     dtype=float.__name__,
                 )
@@ -794,7 +815,7 @@ class Process(object):
             # Aqueduct input for the initial product volume
             ipt = self._aqueduct.input(
                 message="Enter the initial product volume in milliliters (mL). Press <b>submit</b> to begin transfer"
-                        " and initial concentration.",
+                " and initial concentration.",
                 pause_recipe=True,
                 dtype=float.__name__,
             )
@@ -807,13 +828,14 @@ class Process(object):
             self.init_conc_target_mass_g = tff.helpers.calc_init_conc_target_mass_g(
                 init_conc_volume_ml=self.init_conc_volume_ml,
                 polysaccharide_mass_mg=self.polysaccharide_mass_mg,
-                init_conc_target_g_l=self.init_conc_target_g_l
+                init_conc_target_g_l=self.init_conc_target_g_l,
             )
 
-            print("[PHASE (INIT)] Initial Concentration target mass (g) for Scale 3 (permeate scale): {}".format(
-                tff.helpers.format_float(
-                    self.init_conc_target_mass_g, 2)
-            ))
+            print(
+                "[PHASE (INIT)] Initial Concentration target mass (g) for Scale 3 (permeate scale): {}".format(
+                    tff.helpers.format_float(self.init_conc_target_mass_g, 2)
+                )
+            )
 
     def do_init_transfer(self):
         """
@@ -829,12 +851,15 @@ class Process(object):
 
         :return: None
         """
-        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
+        if (
+            isinstance(self._devices.PUMP2, PeristalticPump)
+            and self.two_pump_config is False
+        ):
 
             if self.do_prompts:
                 ipt = self._aqueduct.input(
                     message="Enter the volume of solution to transfer to the retentate vessel prior to initial"
-                            " concentration. Press <b>submit</b> to continue.",
+                    " concentration. Press <b>submit</b> to continue.",
                     pause_recipe=True,
                     dtype=float.__name__,
                 )
@@ -843,8 +868,8 @@ class Process(object):
                 # prompt operator to place empty vessel on feed scale
                 self._aqueduct.prompt(
                     message="Place empty vessel on Scale 1 (feed scale) and connect buffer feed line. Ensure all other"
-                            " lines are disconnected from the vessel. Press <b>continue</b> to start transfer.",
-                    pause_recipe=True
+                    " lines are disconnected from the vessel. Press <b>continue</b> to start transfer.",
+                    pause_recipe=True,
                 )
 
             # tare scale 1
@@ -855,7 +880,7 @@ class Process(object):
             if self.do_prompts:
                 ipt = self._aqueduct.input(
                     message="Enter the volume of solution to transfer to the retentate vessel prior to initial"
-                            " concentration. Press <b>submit</b> to continue.",
+                    " concentration. Press <b>submit</b> to continue.",
                     pause_recipe=True,
                     dtype=float.__name__,
                 )
@@ -864,8 +889,8 @@ class Process(object):
                 # prompt operator to place empty vessel on feed scale
                 self._aqueduct.prompt(
                     message="Place empty vessel on Scale 1 (feed scale) and connect buffer feed line. Ensure all other"
-                            " lines are disconnected from the vessel. Press <b>continue</b> to start transfer.",
-                    pause_recipe=True
+                    " lines are disconnected from the vessel. Press <b>continue</b> to start transfer.",
+                    pause_recipe=True,
                 )
 
             # tare scale 1
@@ -876,14 +901,12 @@ class Process(object):
             command = self._devices.PUMP2.make_start_command(
                 mode=self._devices.PUMP2.MODE.Continuous,
                 direction=self._devices.PUMP2.STATUS.Clockwise,
-                rate_value=50.,
+                rate_value=50.0,
                 rate_units=self._devices.PUMP2.RATE_UNITS.MlMin,
             )
             self._devices.PUMP2.set_command(commands, 0, command)
 
-            self._devices.PUMP2.start(
-                commands, record=True
-            )
+            self._devices.PUMP2.start(commands, record=True)
 
             self._data.update_data(debug=True, pause_on_error=True)
             time_start = time.time()
@@ -899,21 +922,30 @@ class Process(object):
                     self._data.update_data()
                     print("[PHASE (INIT)] Transfer complete.")
                     time.sleep(2)
-                    print("[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(
-                        self._data.W1))
+                    print(
+                        "[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(
+                            self._data.W1
+                        )
+                    )
                     break
 
-                if isinstance(self._data.W1, float) and self._data.W1 > self.initial_transfer_volume:
+                if (
+                    isinstance(self._data.W1, float)
+                    and self._data.W1 > self.initial_transfer_volume
+                ):
                     self._devices.PUMP2.stop()
                     self._data.update_data()
                     print("[PHASE (INIT)] Transfer complete.")
                     time.sleep(2)
-                    print("[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(
-                        self._data.W1))
+                    print(
+                        "[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(
+                            self._data.W1
+                        )
+                    )
                     break
 
                 tff.methods.monitor(
-                    interval_s=.2,
+                    interval_s=0.2,
                     adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
                     devices_obj=self._devices,
                     data=self._data,
@@ -922,8 +954,11 @@ class Process(object):
                 )
 
                 if loops == 5:
-                    print("[PHASE (INIT)] Waiting for {} more seconds...".format(
-                        int((timeout - time.time()))))
+                    print(
+                        "[PHASE (INIT)] Waiting for {} more seconds...".format(
+                            int(timeout - time.time())
+                        )
+                    )
                     loops = 0
 
                 # increment loops by 1
@@ -935,8 +970,8 @@ class Process(object):
                 # prompt to confirm completion of transfer and start initial concentration
                 self._aqueduct.prompt(
                     message="Transfer to retentate vessel complete. Press <b>continue</b> to proceed to initial "
-                            "concentration.",
-                    pause_recipe=True
+                    "concentration.",
+                    pause_recipe=True,
                 )
 
         else:
@@ -945,8 +980,8 @@ class Process(object):
                 # prompt operator to place empty vessel on feed scale
                 self._aqueduct.prompt(
                     message="Place empty vessel on Scale 1 (feed scale) and connect all lines."
-                            " Press <b>continue</b> to start transfer.",
-                    pause_recipe=True
+                    " Press <b>continue</b> to start transfer.",
+                    pause_recipe=True,
                 )
 
             # tare scale 1
@@ -957,9 +992,9 @@ class Process(object):
                 # prompt operator to pour product into feed vessel, press prompt to continue
                 self._aqueduct.prompt(
                     message="Pour product solution into vessel on Scale 1 (feed scale)."
-                            " Press <b>continue</b> to proceed to"
-                            " initial concentration.",
-                    pause_recipe=True
+                    " Press <b>continue</b> to proceed to"
+                    " initial concentration.",
+                    pause_recipe=True,
                 )
 
     def do_init_conc(self):
@@ -994,25 +1029,30 @@ class Process(object):
             adjust_pinch_valve=True,
             devices_obj=self._devices,
             data=self._data,
-            watchdog=self._watchdog
+            watchdog=self._watchdog,
         )
 
         """
         ************************
             Initial Concentration
-            Step 2: Pumps 2 (if present) and 3 Ramp Up      
+            Step 2: Pumps 2 (if present) and 3 Ramp Up
         ************************
-        Start Pump 2 (if present) and Pump 3 at half of target flowrate 
+        Start Pump 2 (if present) and Pump 3 at half of target flowrate
         Increase Pump 2, Pump 3 flowrate once per minute, reaching target flowrate after 5 minutes
         Will adjust pinch valve position during ramp to maintain setpoint bounds in `monitor` method
         """
 
-        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
+        if (
+            isinstance(self._devices.PUMP2, PeristalticPump)
+            and self.two_pump_config is False
+        ):
             print(
-                "[PHASE (INIT)] Beginning Initial Concentration Step 2: Pump 2 and Pump 3 Ramp Up.")
+                "[PHASE (INIT)] Beginning Initial Concentration Step 2: Pump 2 and Pump 3 Ramp Up."
+            )
         else:
             print(
-                "[PHASE (INIT)] Beginning Initial Concentration Step 2: Pump 3 Ramp Up.")
+                "[PHASE (INIT)] Beginning Initial Concentration Step 2: Pump 3 Ramp Up."
+            )
 
         # ***UPDATE 1/30/2021 this is the point where we not want to cache the scale1 target mass
         # force an update of data to make sure the reading is latest before caching
@@ -1020,13 +1060,23 @@ class Process(object):
         self._watchdog.volume_accumulation_alarm.set_scale1_target_mass()
 
         self._devices.SCIP.set_sim_rates_of_change(
-            roc=((0.01, 0.01, -0.01,) + 9 * (0,)))
+            roc=(
+                (
+                    0.01,
+                    0.01,
+                    -0.01,
+                )
+                + 9 * (0,)
+            )
+        )
 
         status = tff.methods.pumps_2_and_3_ramp(
             interval_s=1,
-            pump2_start_flowrate_ml_min=self.init_conc_pump_2_target_flowrate_ml_min / 2,
+            pump2_start_flowrate_ml_min=self.init_conc_pump_2_target_flowrate_ml_min
+            / 2,
             pump2_end_flowrate_ml_min=self.init_conc_pump_2_target_flowrate_ml_min,
-            pump3_start_flowrate_ml_min=self.init_conc_pump_3_target_flowrate_ml_min / 2,
+            pump3_start_flowrate_ml_min=self.init_conc_pump_3_target_flowrate_ml_min
+            / 2,
             pump3_end_flowrate_ml_min=self.init_conc_pump_3_target_flowrate_ml_min,
             rate_change_interval_s=self.init_conc_pumps_2_3_ramp_interval_s,
             number_rate_changes=self.init_conc_pumps_2_3_ramp_number_rate_changes,
@@ -1035,20 +1085,21 @@ class Process(object):
             scale3_target_mass_g=self.init_conc_target_mass_g,
             devices_obj=self._devices,
             data=self._data,
-            watchdog=self._watchdog
+            watchdog=self._watchdog,
         )
 
         """
         ************************
             Initial Concentration
-            Step 3: Pinch Valve Lock In      
+            Step 3: Pinch Valve Lock In
         ************************
         """
         # if we hit the target mass during the ramp, skip the pinch valve lock in
         if status != STATUS_TARGET_MASS_HIT:
             time.sleep(5)
             print(
-                "[PHASE (INIT)] Beginning Initial Concentration Step 3: Pinch Valve Lock-In.")
+                "[PHASE (INIT)] Beginning Initial Concentration Step 3: Pinch Valve Lock-In."
+            )
             status = tff.methods.pinch_valve_lock_in_pid(
                 interval=0.2,
                 timeout_min=self.pinch_valve_lock_in_min,
@@ -1062,22 +1113,25 @@ class Process(object):
         """
         ************************
             Initial Concentration
-            Step 4: Wait for Target Mass on Scale 3    
+            Step 4: Wait for Target Mass on Scale 3
         ************************
         turn on over pressure and low pressure alarms
-        wait for target mass or timeout 
+        wait for target mass or timeout
         """
         # avoid lag in waiting here if init conc hit in ramp by jumping straight through
         # if we already hit the target mass, skip jump straight through init conc wait
         if status != STATUS_TARGET_MASS_HIT:
-            print("[PHASE (INIT)] Waiting for initial concentration SCALE3 target mass {:.2f} g".format(
-                self.init_conc_target_mass_g)
+            print(
+                "[PHASE (INIT)] Waiting for initial concentration SCALE3 target mass {:.2f} g".format(
+                    self.init_conc_target_mass_g
+                )
             )
 
             # find the timeout time to break from loop
             time_start = datetime.datetime.utcnow()
-            timeout = time_start + \
-                datetime.timedelta(seconds=self.init_conc_timeout_min * 60)
+            timeout = time_start + datetime.timedelta(
+                seconds=self.init_conc_timeout_min * 60
+            )
 
             # turn on the overpressure, low pressure, vacuum condition, and volume accumulation alarms
             self._watchdog.over_pressure_alarm.on()
@@ -1103,7 +1157,8 @@ class Process(object):
                 # check to see whether we've timed out
                 if datetime.datetime.utcnow() > timeout:
                     print(
-                        "[PHASE (INIT)] Timed out waiting for initial concentration SCALE3 target mass.")
+                        "[PHASE (INIT)] Timed out waiting for initial concentration SCALE3 target mass."
+                    )
                     break
 
                 tff.methods.monitor(
@@ -1124,7 +1179,7 @@ class Process(object):
         """
         ************************
             Initial Concentration
-            Complete!    
+            Complete!
         ************************
         Stop Pumps 2 and 3, Pump 1 continues at same Rate
         record scale 3 mass as process.init_conc_actual_mass_g
@@ -1134,7 +1189,10 @@ class Process(object):
 
         # Set PUMP2 (if present) and PUMP3 to no flow. Pump 1 will continue to operate at
         # target flowrate between Concentration and Diafiltration
-        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
+        if (
+            isinstance(self._devices.PUMP2, PeristalticPump)
+            and self.two_pump_config is False
+        ):
             print("[PHASE (INIT)] Stopping PUMP2 and PUMP3.")
             self._devices.PUMP2.stop()
         else:
@@ -1150,8 +1208,11 @@ class Process(object):
         self._data.log_data_at_interval(5)
         self.init_conc_actual_mass_g = self._data.W3
 
-        print("[PHASE (INIT)] End Initial Concentration SCALE3 mass: {}g".format(
-            self.init_conc_actual_mass_g))
+        print(
+            "[PHASE (INIT)] End Initial Concentration SCALE3 mass: {}g".format(
+                self.init_conc_actual_mass_g
+            )
+        )
 
         # log end time for init conc
         self.init_conc_end_time = datetime.datetime.utcnow().isoformat()
@@ -1175,8 +1236,7 @@ class Process(object):
         print("[PHASE (INIT->DIA)] Opening pinch valve.")
 
         commands = self._devices.PV.make_commands()
-        command = self._devices.PV.make_set_poisition_command(
-            pct_open=0.3)
+        command = self._devices.PV.make_set_poisition_command(pct_open=0.3)
         self._devices.PV.set_command(commands, 0, command)
         self._devices.PV.set_position(commands, record=True)
 
@@ -1185,7 +1245,7 @@ class Process(object):
             # prompt operator to place an empty bottle on buffer scale
             p = self._aqueduct.prompt(
                 message="Place empty vessel on Scale 2 (buffer scale). Press <b>continue</b> to continue.",
-                pause_recipe=False
+                pause_recipe=False,
             )
 
             # while the prompt hasn't been executed, log data and monitor alarms
@@ -1205,8 +1265,8 @@ class Process(object):
             # prompt operator to pour liquid into vessel, press prompt to continue
             p = self._aqueduct.prompt(
                 message="Pour buffer solution into vessel on Scale 2 (buffer scale) and prime the buffer feed line."
-                        " Press <b>continue</b> to continue.",
-                pause_recipe=False
+                " Press <b>continue</b> to continue.",
+                pause_recipe=False,
             )
 
             # while the prompt hasn't been executed, log data and monitor alarms
@@ -1236,10 +1296,11 @@ class Process(object):
                 init_conc_target_g_l=self.init_conc_target_g_l,
             )
 
-            print("[PHASE (INIT->DIA)] Diafiltration 1 target mass (g) for SCALE3: {}".format(
-                tff.helpers.format_float(
-                    self.diafilt_target_mass_g, 2)
-            ))
+            print(
+                "[PHASE (INIT->DIA)] Diafiltration 1 target mass (g) for SCALE3: {}".format(
+                    tff.helpers.format_float(self.diafilt_target_mass_g, 2)
+                )
+            )
 
     def do_diafiltration(self):
         """
@@ -1277,13 +1338,13 @@ class Process(object):
             scale3_target_mass_g=self.diafilt_target_mass_g,
             devices_obj=self._devices,
             data=self._data,
-            watchdog=self._watchdog
+            watchdog=self._watchdog,
         )
 
         """
         ************************
             Diafiltration
-            Step 2: Pinch Valve Lock In      
+            Step 2: Pinch Valve Lock In
         ************************
         """
         # if we hit the target mass during the ramp, skip the pinch valve lock in
@@ -1303,15 +1364,17 @@ class Process(object):
         """
         ************************
             Diafiltration
-            Step 3: Wait for Target Mass on Scale 3    
+            Step 3: Wait for Target Mass on Scale 3
         ************************
         turn on over pressure and low pressure alarms
-        wait for target mass or timeout 
+        wait for target mass or timeout
         """
         # if we already hit the target mass, skip jump straight through diafilt wait
         if status != STATUS_TARGET_MASS_HIT:
-            print("[PHASE (DIA)] Waiting for diafiltration SCALE3 target mass {:.2f}g".format(
-                self.diafilt_target_mass_g)
+            print(
+                "[PHASE (DIA)] Waiting for diafiltration SCALE3 target mass {:.2f}g".format(
+                    self.diafilt_target_mass_g
+                )
             )
 
             # turn on the overpressure, underpressure alarms
@@ -1324,8 +1387,9 @@ class Process(object):
 
             # find the timeout time to break from loop
             time_start = datetime.datetime.utcnow()
-            timeout = time_start + \
-                datetime.timedelta(seconds=self.diafilt_timeout_min * 60)
+            timeout = time_start + datetime.timedelta(
+                seconds=self.diafilt_timeout_min * 60
+            )
 
             self._setpoints.pinch_valve_control_active.update(False)
 
@@ -1341,7 +1405,8 @@ class Process(object):
                 # check to see whether we've timed out
                 if datetime.datetime.utcnow() > timeout:
                     print(
-                        "[PHASE (DIA)] Timed out waiting for diafiltration SCALE3 target mass.")
+                        "[PHASE (DIA)] Timed out waiting for diafiltration SCALE3 target mass."
+                    )
                     break
 
                 tff.methods.monitor(
@@ -1358,11 +1423,11 @@ class Process(object):
 
         """
         ************************
-            Diafiltration 
+            Diafiltration
             Complete!
         ************************
         shut off Pump 2 and Pump 3 (buffer and permeate)
-        Pump 1 continues at rate from end of Diafilt 
+        Pump 1 continues at rate from end of Diafilt
         Record Diafilt mass on Scale 3
         """
 
@@ -1370,7 +1435,10 @@ class Process(object):
 
         # Set PUMP2 (if present) and PUMP3 to no flow. Pump 1 will continue to operate at
         # target flowrate between Diafiltration and Final Conc.
-        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
+        if (
+            isinstance(self._devices.PUMP2, PeristalticPump)
+            and self.two_pump_config is False
+        ):
             print("[PHASE (DIA)] Stopping PUMP2 and PUMP3.")
             self._devices.PUMP2.stop()
         else:
@@ -1386,8 +1454,11 @@ class Process(object):
         self._data.log_data_at_interval(5)
         self.diafilt_actual_mass_g = self._data.W3
 
-        print("[PHASE (DIA)] End Diafiltration SCALE3 mass: {}g".format(
-            self.diafilt_actual_mass_g))
+        print(
+            "[PHASE (DIA)] End Diafiltration SCALE3 mass: {}g".format(
+                self.diafilt_actual_mass_g
+            )
+        )
 
         # log end time for diafilt
         self.diafilt_end_time = datetime.datetime.utcnow().isoformat()
@@ -1411,8 +1482,7 @@ class Process(object):
         # open pinch valve
         print("[PHASE (DIA->FINAL)] Opening pinch valve.")
         commands = self._devices.PV.make_commands()
-        command = self._devices.PV.make_set_poisition_command(
-            pct_open=0.4)
+        command = self._devices.PV.make_set_poisition_command(pct_open=0.4)
         self._devices.PV.set_command(commands, 0, command)
         self._devices.PV.set_position(commands, record=True)
 
@@ -1420,7 +1490,7 @@ class Process(object):
             # Aqueduct input for final concentration target
             ipt = self._aqueduct.input(
                 message="Enter the final concentration target in grams per liter (g/L). "
-                        "Press <b>submit</b> to continue.",
+                "Press <b>submit</b> to continue.",
                 pause_recipe=True,
                 dtype=float.__name__,
             )
@@ -1428,12 +1498,12 @@ class Process(object):
             self.final_conc_target_g_l = ipt.get_value()
 
         # catch a zero final_conc_target_g_l
-        while not self.final_conc_target_g_l or self.final_conc_target_g_l == 0.:
+        while not self.final_conc_target_g_l or self.final_conc_target_g_l == 0.0:
             # Aqueduct input for concentration target
             ipt = self._aqueduct.input(
                 message="Error! Can't enter '0' for target concentration!<br><br>"
-                        "Re-enter the final concentration target concentration in grams per liter (g/L). "
-                        "Press <b>submit</b> to continue.",
+                "Re-enter the final concentration target concentration in grams per liter (g/L). "
+                "Press <b>submit</b> to continue.",
                 pause_recipe=True,
                 dtype=float.__name__,
             )
@@ -1441,20 +1511,21 @@ class Process(object):
             self.final_conc_target_g_l = ipt.get_value()
 
         """
-        Target mass (scale 3) = 
-        initial mass of product [2.a.viii] / initial concentration target [2.a.ix] - 
+        Target mass (scale 3) =
+        initial mass of product [2.a.viii] / initial concentration target [2.a.ix] -
         initial mass of product [2.a.viii] / final concentration target [5.d.i]
         """
         self.final_conc_target_mass_g = tff.helpers.calc_final_conc_target_mass_g(
             polysaccharide_mass_mg=self.polysaccharide_mass_mg,
             init_conc_target_g_l=self.init_conc_target_g_l,
-            final_conc_target_g_l=self.final_conc_target_g_l
+            final_conc_target_g_l=self.final_conc_target_g_l,
         )
 
-        print("[PHASE (DIA->FINAL)] Final Concentration target mass (g) for SCALE3: {}".format(
-            tff.helpers.format_float(
-                self.final_conc_target_mass_g, 2)
-        ))
+        print(
+            "[PHASE (DIA->FINAL)] Final Concentration target mass (g) for SCALE3: {}".format(
+                tff.helpers.format_float(self.final_conc_target_mass_g, 2)
+            )
+        )
 
     def do_final_concentration(self):
         """
@@ -1479,7 +1550,9 @@ class Process(object):
         print("[PHASE (FINAL)] Beginning Final Concentration Step 1: PUMP3 Ramp Up.")
 
         status = tff.methods.pump_ramp(
-            interval_s=1, pump=self._devices.PUMP3, pump_name="PUMP3",
+            interval_s=1,
+            pump=self._devices.PUMP3,
+            pump_name="PUMP3",
             start_flowrate_ml_min=self.final_conc_pump_3_target_flowrate_ml_min / 2,
             end_flowrate_ml_min=self.final_conc_pump_3_target_flowrate_ml_min,
             rate_change_interval_s=self.final_conc_pump3_ramp_interval_s,
@@ -1489,48 +1562,51 @@ class Process(object):
             scale3_target_mass_g=self.final_conc_target_mass_g,
             devices_obj=self._devices,
             data=self._data,
-            watchdog=self._watchdog
+            watchdog=self._watchdog,
         )
 
         """
         ************************
             Final Concentration
-            Step 2: Pinch Valve Lock In      
+            Step 2: Pinch Valve Lock In
         ************************
         """
         if status != STATUS_TARGET_MASS_HIT:
             print("[PHASE (FINAL)] Setting pinch valve.")
             commands = self._devices.PV.make_commands()
-            command = self._devices.PV.make_set_poisition_command(
-                pct_open=0.3)
+            command = self._devices.PV.make_set_poisition_command(pct_open=0.3)
             self._devices.PV.set_command(commands, 0, command)
             self._devices.PV.set_position(commands, record=True)
             time.sleep(5)
             print(
-                "[PHASE (FINAL)] Beginning Final Concentration Step 2: Pinch Valve Lock-In.")
+                "[PHASE (FINAL)] Beginning Final Concentration Step 2: Pinch Valve Lock-In."
+            )
             status = tff.methods.pinch_valve_lock_in(
                 interval=1,
                 target_p3_psi=self._setpoints.P3_target_pressure.value,
                 timeout_min=self.pinch_valve_lock_in_min,
                 scale3_target_mass_g=self.final_conc_target_mass_g,
                 devices_obj=self._devices,
-                data=self._data)
+                data=self._data,
+            )
 
         self._data.update_data()
 
         """
         ************************
             Final Concentration
-            Step 3: Wait for Target Mass on Scale 3   
+            Step 3: Wait for Target Mass on Scale 3
         ************************
         turn on over pressure and low pressure alarms
-        wait for target mass or timeout 
+        wait for target mass or timeout
         """
         # avoid lag in waiting here if final conc target hit in ramp by jumping straight through
         # if we already hit the target mass, skip jump straight through final conc wait
         if status != STATUS_TARGET_MASS_HIT:
-            print("[PHASE (FINAL)] Waiting for final concentration SCALE3 target mass {:.2f}g".format(
-                self.final_conc_target_mass_g)
+            print(
+                "[PHASE (FINAL)] Waiting for final concentration SCALE3 target mass {:.2f}g".format(
+                    self.final_conc_target_mass_g
+                )
             )
 
             # turn on the overpressure, underpressure alarms
@@ -1543,8 +1619,9 @@ class Process(object):
 
             # find the timeout time to break from loop
             time_start = datetime.datetime.utcnow()
-            timeout = time_start + \
-                datetime.timedelta(seconds=self.final_conc_timeout_min * 60)
+            timeout = time_start + datetime.timedelta(
+                seconds=self.final_conc_timeout_min * 60
+            )
 
             self._setpoints.pinch_valve_control_active.update(False)
 
@@ -1560,7 +1637,8 @@ class Process(object):
                 # check to see whether we've timed out
                 if datetime.datetime.utcnow() > timeout:
                     print(
-                        "[PHASE (FINAL)] Timed out waiting for final concentration SCALE3 target mass.")
+                        "[PHASE (FINAL)] Timed out waiting for final concentration SCALE3 target mass."
+                    )
                     break
 
                 tff.methods.monitor(
@@ -1588,7 +1666,10 @@ class Process(object):
         print("[PHASE (FINAL)] Final Concentration Step complete.")
 
         # stop Pumps 2 (if present) and 3
-        if isinstance(self._devices.PUMP2, PeristalticPump) and self.two_pump_config is False:
+        if (
+            isinstance(self._devices.PUMP2, PeristalticPump)
+            and self.two_pump_config is False
+        ):
             print("[PHASE (FINAL)] Stopping PUMP2 and PUMP3.")
             self._devices.PUMP2.stop()
         else:
@@ -1603,8 +1684,11 @@ class Process(object):
         self._data.log_data_at_interval(5)
         self.final_conc_actual_mass_g = self._data.W3
 
-        print("[PHASE (FINAL)] End Final Concentration SCALE3 mass: {}g".format(
-            self.final_conc_actual_mass_g))
+        print(
+            "[PHASE (FINAL)] End Final Concentration SCALE3 mass: {}g".format(
+                self.final_conc_actual_mass_g
+            )
+        )
 
         # log final conc end time
         self.final_conc_end_time = datetime.datetime.utcnow().isoformat()
@@ -1622,19 +1706,21 @@ class Process(object):
 
         # slowly open pinch valve to 30%
         print(
-            f"[PHASE (CLN)] Beginning clean-up, open pinch valve to {self.pinch_valve_init_pct_open * 100}%")
+            f"[PHASE (CLN)] Beginning clean-up, open pinch valve to {self.pinch_valve_init_pct_open * 100}%"
+        )
         tff.methods.open_pinch_valve(
             target_pct_open=self.pinch_valve_init_pct_open,
             increment_pct_open=0.005,
             interval_s=1,
             devices_obj=self._devices,
             data=self._data,
-            watchdog=self._watchdog)
+            watchdog=self._watchdog,
+        )
 
         # prompt operator to confirm that the retentate line is blown down (wait here)
         p = self._aqueduct.prompt(
             message="Confirm that the retentate line is blown down. Press <b>continue</b> to continue.",
-            pause_recipe=False
+            pause_recipe=False,
         )
 
         # while the prompt hasn't been executed, log data and monitor alarms
@@ -1667,8 +1753,8 @@ class Process(object):
         # prompt operator to set up recovery flush
         p = self._aqueduct.prompt(
             message="Set up recovery flush. Place the feed and retentate lines in a conical with the desired wash"
-                    " volume. Press <b>continue</b> to start wash.",
-            pause_recipe=True
+            " volume. Press <b>continue</b> to start wash.",
+            pause_recipe=True,
         )
 
         # start Pump !
@@ -1681,9 +1767,7 @@ class Process(object):
         )
         self._devices.PUMP1.set_command(commands, 0, command)
 
-        self._devices.PUMP1.start(
-            commands, record=True
-        )
+        self._devices.PUMP1.start(commands, record=True)
 
         # clear the trailing rates cache
         self._data._cache.clear_cache()
@@ -1716,11 +1800,9 @@ class Process(object):
 
             if counter > 30:
                 seconds_left = tff.helpers.format_float(
-                    (timeout - datetime.datetime.utcnow()).total_seconds(),
-                    1
+                    (timeout - datetime.datetime.utcnow()).total_seconds(), 1
                 )
-                print(
-                    f"[PHASE (WASH)] Washing for {seconds_left} more seconds...")
+                print(f"[PHASE (WASH)] Washing for {seconds_left} more seconds...")
                 counter = 0
 
         # stop Pump 1
@@ -1799,7 +1881,8 @@ class Process(object):
 
         print("Doing Pump 1 Ramp Up...")
         tff.methods.pump_ramp(
-            interval_s=1, pump=self._devices.PUMP1,
+            interval_s=1,
+            pump=self._devices.PUMP1,
             pump_name="PUMP1",
             start_flowrate_ml_min=self.pump_1_target_flowrate_ml_min / 2,
             end_flowrate_ml_min=self.pump_1_target_flowrate_ml_min,
@@ -1809,7 +1892,8 @@ class Process(object):
             adjust_pinch_valve=False,
             devices_obj=self._devices,
             data=self._data,
-            watchdog=self._watchdog)
+            watchdog=self._watchdog,
+        )
 
         print("Doing Pumps 2 and 3 Ramp Up...")
         tff.methods.pumps_2_and_3_ramp(
@@ -1821,8 +1905,10 @@ class Process(object):
             rate_change_interval_s=1,
             number_rate_changes=self.init_conc_pumps_2_3_ramp_number_rate_changes,
             timeout_min=self.init_conc_pumps_2_3_ramp_timeout_min,
-            adjust_pinch_valve=False, devices_obj=self._devices, data=self._data,
-            watchdog=self._watchdog
+            adjust_pinch_valve=False,
+            devices_obj=self._devices,
+            data=self._data,
+            watchdog=self._watchdog,
         )
 
         self._devices.SCIP.set_sim_noise((0, 0, 0))

@@ -4,10 +4,10 @@ Name: text_input_no_pause.py
 Description:
 
 This demo illustrates creating a text `Input` named
-`text_input` that expects a numeric value. 
+`text_input` that expects a numeric value.
 
-In this demo, we won't pause the recipe while waiting for 
-the Input to receive data - we'll just print out the number 
+In this demo, we won't pause the recipe while waiting for
+the Input to receive data - we'll just print out the number
 of times we've waited...
 """
 import time
@@ -39,4 +39,3 @@ while not text_input.is_set():
     i += 1
 
 print(f"Input has received data: {text_input.get_value()}")
-
