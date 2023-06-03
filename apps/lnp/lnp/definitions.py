@@ -1,5 +1,4 @@
 # device names saved on Firmware
-
 # aqueous input pump
 AQ_PUMP = "AQ_PUMP"
 # oil input pump

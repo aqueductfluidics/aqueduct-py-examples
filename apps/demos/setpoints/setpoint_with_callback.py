@@ -22,8 +22,8 @@ as kwargs.
 The `my_counter` Setpoint increments itself by 1 in an infinite while loop.
 
 """
-
 import time
+
 import aqueduct.aqueduct as aq_module
 
 # a guard to make sure we have an Aqueduct instance "aqueduct" in scope

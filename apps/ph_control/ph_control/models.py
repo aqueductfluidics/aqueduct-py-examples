@@ -1,9 +1,9 @@
-import time
 import random
 import threading
+import time
 
-import ph_control.definitions
 import ph_control.classes
+import ph_control.definitions
 
 
 class ReactionModel:

@@ -1,21 +1,20 @@
 import datetime
-import time
 import enum
 import json
+import time
+from typing import Callable
+from typing import List
+from typing import Tuple
 
+import aqueduct.devices.trcx.constants
+import aqueduct.devices.trcx.obj
 import dispensing.helpers
 import dispensing.methods
+from aqueduct.core.aq import Aqueduct
+from aqueduct.core.setpoint import ALLOWED_DTYPES
+from aqueduct.core.setpoint import Setpoint
 from dispensing.classes import Devices
 from dispensing.definitions import *
-
-from aqueduct.core.aq import Aqueduct
-from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES
-
-import aqueduct.devices.trcx.obj
-import aqueduct.devices.trcx.constants
-
-
-from typing import List, Tuple, Callable
 
 
 class Enabled(enum.Enum):

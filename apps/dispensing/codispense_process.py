@@ -1,9 +1,9 @@
-from aqueduct.core.aq import Aqueduct, InitParams
-
-import dispensing.helpers
 import dispensing.classes
-import dispensing.processes.ProcessRunner
+import dispensing.helpers
 import dispensing.processes.CoDispense
+import dispensing.processes.ProcessRunner
+from aqueduct.core.aq import Aqueduct
+from aqueduct.core.aq import InitParams
 
 params = InitParams.parse()
 aq = Aqueduct(params.user_id, params.ip_address, params.port)

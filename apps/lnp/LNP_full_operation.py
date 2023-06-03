@@ -1,9 +1,9 @@
-from aqueduct.core.aq import Aqueduct, InitParams
-
-import lnp.helpers
 import lnp.classes
-import lnp.devices
 import lnp.data
+import lnp.devices
+import lnp.helpers
+from aqueduct.core.aq import Aqueduct
+from aqueduct.core.aq import InitParams
 
 params = InitParams.parse()
 aq = Aqueduct(params.user_id, params.ip_address, params.port)

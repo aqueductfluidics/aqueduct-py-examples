@@ -15,6 +15,7 @@ process of creating an externally modifiable value
 that can be used in your Recipe logic.
 """
 import time
+
 import aqueduct.aqueduct as aq_module
 
 # a guard to make sure we have an Aqueduct instance "aqueduct" in scope

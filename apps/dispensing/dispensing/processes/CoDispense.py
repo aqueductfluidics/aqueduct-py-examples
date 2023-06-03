@@ -1,22 +1,21 @@
 # pylint: disable=pointless-string-statement
-
 import datetime
-import time
 import enum
 import json
+import time
+from typing import Callable
+from typing import List
+from typing import Tuple
 
 import dispensing.helpers
 import dispensing.methods
+from aqueduct.core.aq import Aqueduct
+from aqueduct.core.recordable import Recordable
+from aqueduct.core.setpoint import ALLOWED_DTYPES
+from aqueduct.core.setpoint import Setpoint
+from aqueduct.devices.pump import SyringePump
 from dispensing.classes import Devices
 from dispensing.definitions import *
-
-from aqueduct.core.aq import Aqueduct
-from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES
-from aqueduct.core.recordable import Recordable
-
-from aqueduct.devices.pump import SyringePump
-
-from typing import List, Tuple, Callable
 
 DELAY_S = 0.1
 

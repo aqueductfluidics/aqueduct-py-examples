@@ -1,27 +1,23 @@
 """TFF Classes Module"""
 # pylint: disable=pointless-string-statement
-
 import datetime
-import time
-import pprint
 import inspect
-
+import pprint
+import time
 from typing import Union
 
-from aqueduct.core.aq import Aqueduct
-from aqueduct.core.setpoint import Setpoint
-
-from aqueduct.devices.pump import PeristalticPump
-from aqueduct.devices.balance import Balance
-from aqueduct.devices.pressure import PressureTransducer
-from aqueduct.devices.valve import PinchValve
-
+import tff.alarms
+import tff.data
 import tff.helpers
 import tff.methods
 import tff.models
-import tff.alarms
-import tff.data
 import tff.pid
+from aqueduct.core.aq import Aqueduct
+from aqueduct.core.setpoint import Setpoint
+from aqueduct.devices.balance import Balance
+from aqueduct.devices.pressure import PressureTransducer
+from aqueduct.devices.pump import PeristalticPump
+from aqueduct.devices.valve import PinchValve
 from tff.definitions import *
 
 

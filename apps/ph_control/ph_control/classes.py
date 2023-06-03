@@ -1,23 +1,25 @@
 """pH Control Classes Module"""
-import time
+import datetime
 import enum
 import json
-import datetime
 import threading
+import time
+from typing import Callable
+from typing import List
+from typing import Tuple
+from typing import Union
 
-from typing import List, Tuple, Callable, Union
-
-from aqueduct.core.aq import Aqueduct, UserInputTypes
+from aqueduct.core.aq import Aqueduct
+from aqueduct.core.aq import UserInputTypes
 from aqueduct.core.setpoint import Setpoint
-
-from aqueduct.devices.pump import PeristalticPump
 from aqueduct.devices.ph import PhProbe
+from aqueduct.devices.pump import PeristalticPump
+from ph_control.helpers import format_float
 
 from .definitions import *
-from .models import ReactionModel, PidModel
+from .models import PidModel
+from .models import ReactionModel
 from .pid import PID
-
-from ph_control.helpers import format_float
 
 
 class Devices:

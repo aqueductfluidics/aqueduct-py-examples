@@ -1,5 +1,6 @@
 import time
-from typing import Tuple, Union
+from typing import Tuple
+from typing import Union
 
 
 def _clamp(value: Union[int, float], limits: Tuple[float, float]):

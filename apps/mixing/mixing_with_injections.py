@@ -1,24 +1,22 @@
 import datetime
-import time
 import enum
 import json
 import threading
+import time
+from typing import Callable
+from typing import List
+from typing import Tuple
+from typing import Union
 
-from aqueduct.aqueduct import (
-    Aqueduct,
-    Setpoint,
-    Recordable,
-    UserInputTypes,
-    ALLOWED_DTYPES,
-)
-
-import devices.aqueduct.trcx.obj
-import devices.aqueduct.trcx.constants
-import devices.aqueduct.eust.obj
 import devices.aqueduct.eust.constants
-
-from typing import List, Tuple, Callable, Union
-
+import devices.aqueduct.eust.obj
+import devices.aqueduct.trcx.constants
+import devices.aqueduct.trcx.obj
+from aqueduct.aqueduct import ALLOWED_DTYPES
+from aqueduct.aqueduct import Aqueduct
+from aqueduct.aqueduct import Recordable
+from aqueduct.aqueduct import Setpoint
+from aqueduct.aqueduct import UserInputTypes
 from local.lib.ph_control.helpers import format_float
 
 

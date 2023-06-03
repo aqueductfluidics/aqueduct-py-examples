@@ -1,15 +1,13 @@
 import time
-
-from aqueduct.core.aq import Aqueduct
-
-from aqueduct.devices.pump import PeristalticPump
-from aqueduct.devices.balance import Balance
-from aqueduct.devices.pressure import PressureTransducer
-from aqueduct.devices.valve import PinchValve
+from typing import List
+from typing import Union
 
 import tff.classes
-from typing import List, Union
-
+from aqueduct.core.aq import Aqueduct
+from aqueduct.devices.balance import Balance
+from aqueduct.devices.pressure import PressureTransducer
+from aqueduct.devices.pump import PeristalticPump
+from aqueduct.devices.valve import PinchValve
 from tff.definitions import *
 
 

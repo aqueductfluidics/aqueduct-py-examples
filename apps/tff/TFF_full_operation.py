@@ -1,8 +1,8 @@
-from aqueduct.core.aq import Aqueduct, InitParams
-
-import tff.data
 import tff.classes
+import tff.data
 import tff.helpers
+from aqueduct.core.aq import Aqueduct
+from aqueduct.core.aq import InitParams
 
 params = InitParams.parse()
 aq = Aqueduct(params.user_id, params.ip_address, params.port)

@@ -3,26 +3,26 @@ import inspect
 import pprint
 import time
 
-from aqueduct.core.aq import Aqueduct
-from aqueduct.core.setpoint import ALLOWED_DTYPES, Setpoint
-import aqueduct.devices.mfpp.constants
-import aqueduct.devices.mfpp.obj
 import aqueduct.devices.mfm.constants
 import aqueduct.devices.mfm.obj
-import aqueduct.devices.sol4.constants
-import aqueduct.devices.sol4.obj
+import aqueduct.devices.mfpp.constants
+import aqueduct.devices.mfpp.obj
 import aqueduct.devices.scip.constants
 import aqueduct.devices.scip.obj
+import aqueduct.devices.sol4.constants
+import aqueduct.devices.sol4.obj
 import aqueduct.devices.tempx.constants
 import aqueduct.devices.tempx.obj
-
 import lnp.alarms
-import lnp.devices
 import lnp.data
+import lnp.devices
 import lnp.helpers
 import lnp.methods
 import lnp.models
 import lnp.pid
+from aqueduct.core.aq import Aqueduct
+from aqueduct.core.setpoint import ALLOWED_DTYPES
+from aqueduct.core.setpoint import Setpoint
 from lnp.definitions import *
 
 

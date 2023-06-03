@@ -1,10 +1,10 @@
 """Dispensing Methods Module"""
 # pylint: disable=pointless-string-statement
-
 import time
 import typing
 
-from aqueduct.devices.pump import SyringePump, syringe
+from aqueduct.devices.pump import syringe
+from aqueduct.devices.pump import SyringePump
 
 DELAY_S = 0.01
 

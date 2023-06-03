@@ -1,6 +1,7 @@
 """PID Controller Module"""
 import time
-from typing import Union, Tuple
+from typing import Tuple
+from typing import Union
 
 
 def _clamp(value: Union[int, float], limits: Tuple[float, float]):

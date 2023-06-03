@@ -8,8 +8,8 @@ in a timeseries and makes it accessible in the user interface.
 
 
 """
-
 import time
+
 import aqueduct.aqueduct as aq_module
 
 # a guard to make sure we have an Aqueduct instance "aqueduct" in scope

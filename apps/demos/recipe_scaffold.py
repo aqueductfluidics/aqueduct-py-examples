@@ -13,7 +13,6 @@ from the Python interpreters Globals() dict
 The Data, Setpoints, Watchdog, and Process Objects are constructed
 using the appropriate Aqueduct and Devices objects.
 """
-
 import config
 
 # local imports

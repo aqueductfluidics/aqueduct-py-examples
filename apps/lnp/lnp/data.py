@@ -1,8 +1,9 @@
 import time
-from typing import List, Union
+from typing import List
+from typing import Union
 
-from aqueduct.core.aq import Aqueduct
 import lnp.helpers
+from aqueduct.core.aq import Aqueduct
 from lnp.definitions import *
 from lnp.devices import *
 

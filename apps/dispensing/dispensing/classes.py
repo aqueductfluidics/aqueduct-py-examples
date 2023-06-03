@@ -1,19 +1,19 @@
 """Dispensing Classes Module"""
 # pylint: disable=pointless-string-statement
-
-import time
 import enum
 import json
-
-from typing import List, Tuple, Callable, Union
-
-from aqueduct.core.aq import Aqueduct
-from aqueduct.core.setpoint import Setpoint, ALLOWED_DTYPES
-
-from aqueduct.devices.pump import SyringePump
+import time
+from typing import Callable
+from typing import List
+from typing import Tuple
+from typing import Union
 
 import dispensing.helpers
 import dispensing.methods
+from aqueduct.core.aq import Aqueduct
+from aqueduct.core.setpoint import ALLOWED_DTYPES
+from aqueduct.core.setpoint import Setpoint
+from aqueduct.devices.pump import SyringePump
 from dispensing.definitions import *
 
 
