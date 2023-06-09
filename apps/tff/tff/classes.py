@@ -17,8 +17,22 @@ from aqueduct.core.setpoint import Setpoint
 from aqueduct.devices.balance import Balance
 from aqueduct.devices.pressure import PressureTransducer
 from aqueduct.devices.pump import PeristalticPump
+from aqueduct.devices.pump.peristaltic import Status
 from aqueduct.devices.valve import PinchValve
-from tff.definitions import *
+from tff.definitions import OHSA_NAME
+from tff.definitions import PUMP1_NAME
+from tff.definitions import PUMP2_NAME
+from tff.definitions import PUMP3_NAME
+from tff.definitions import PV_NAME
+from tff.definitions import SCALE1_INDEX
+from tff.definitions import SCALE2_INDEX
+from tff.definitions import SCALE3_INDEX
+from tff.definitions import SCIP_INDEX
+from tff.definitions import SCIP_NAME
+from tff.definitions import STATUS_TARGET_MASS_HIT
+from tff.definitions import TXDCR1_INDEX
+from tff.definitions import TXDCR2_INDEX
+from tff.definitions import TXDCR3_INDEX
 
 
 class Devices:
@@ -99,21 +113,21 @@ class Setpoints:
 
         # create a Setpoint to adjust the proportional PID constant
         self.k_p = self._aqueduct.setpoint(
-            name=f"k_p",
+            name="k_p",
             value=0.0005,
             dtype=float.__name__,
         )
 
         # create a Setpoint to adjust the integral PID constant
         self.k_i = self._aqueduct.setpoint(
-            name=f"k_i",
+            name="k_i",
             value=0.0,
             dtype=float.__name__,
         )
 
         # create a Setpoint to adjust the derivative PID constant
         self.k_d = self._aqueduct.setpoint(
-            name=f"k_d",
+            name="k_d",
             value=0.0,
             dtype=float.__name__,
         )
@@ -190,7 +204,7 @@ class Watchdog:
         Args:
             process: The process to assign to the alarms.
         """
-        for n, m in self.__dict__.items():
+        for n, _m in self.__dict__.items():
             a = getattr(self, n)
             if isinstance(a, tff.alarms.Alarm):
                 setattr(a, "_process", process)
@@ -224,7 +238,7 @@ class Watchdog:
         """
         Set quick run parameters for the alarms.
         """
-        for n, m in self.__dict__.items():
+        for n, _m in self.__dict__.items():
             a = getattr(self, n)
             if isinstance(a, tff.alarms.Alarm):
                 for attr in [
@@ -464,15 +478,16 @@ class Process:
         self._setpoints = setpoints
         self._watchdog = watchdog
 
-        if isinstance(self._watchdog, Watchdog):
-            self._watchdog.assign_process_to_alarms(self)
+        if isinstance(self.watchdog, Watchdog):
+            self.watchdog.assign_process_to_alarms(self)
 
         self._model = tff.models.PressureModel(
-            aqueduct=self._aqueduct,
-            devices_obj=self._devices,
-            data=self._data,
+            aqueduct=self.aqueduct,
+            devices_obj=self.devices,
+            data=self.data,
         )
-        self._data._model = self._model
+
+        self.data._model = self._model
 
         self._pid = tff.pid.PID(
             k_p=self._setpoints.k_p.value,
@@ -615,7 +630,7 @@ class Process:
         self.pinch_valve_lock_in_min = pv_lock_in_min
 
         if accelerate_watchdog:
-            self._watchdog.set_quick_run_params()
+            self.watchdog.set_quick_run_params()
 
     def do_tff_protocol(self, quick: bool = False):
         """
@@ -684,28 +699,25 @@ class Process:
 
         print("[PHASE (INIT)] Stopping all Pumps.")
 
-        self._devices.PUMP1.stop()
+        self.devices.PUMP1.stop()
+
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.PUMP2, PeristalticPump)
             and self.two_pump_config is False
         ):
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+            self.devices.PUMP2.stop()
 
-        commands = self._devices.PV.make_commands()
-        command = self._devices.PV.make_set_poisition_command(
-            pct_open=self.pinch_valve_init_pct_open
-        )
-        self._devices.PV.set_command(commands, 0, command)
-        self._devices.PV.set_position(commands, record=True)
+        self.devices.PUMP3.stop()
+
+        tff.methods.set_pinch_valve(self.devices.PV, self.pinch_valve_init_pct_open)
 
         # start reading the outputs of the Parker SciLog
         # at an interval of once per second
-        self._devices.SCIP.update_record(True)
+        self.devices.SCIP.update_record(True)
 
         # start reading the outputs of the OHSA balance device
         # at an interval of once per second
-        self._devices.OHSA.update_record(True)
+        self.devices.OHSA.update_record(True)
 
     def do_initial_conc_prompts(self):
         """
@@ -756,7 +768,7 @@ class Process:
 
             # tare scale 2
             print("[PHASE (INIT)] Taring SCALE2.")
-            self._devices.OHSA.tare(SCALE2_INDEX)
+            self.devices.OHSA.tare(SCALE2_INDEX)
 
             # prompt operator to pour product into buffer vessel, press prompt to continue
             self._aqueduct.prompt(
@@ -774,7 +786,7 @@ class Process:
 
             # tare scale 3
             print("[PHASE (INIT)] Taring SCALE3.")
-            self._devices.OHSA.tare(SCALE3_INDEX)
+            self.devices.OHSA.tare(SCALE3_INDEX)
 
             # Aqueduct input for the Polysaccharide mass
             ipt = self._aqueduct.input(
@@ -848,7 +860,7 @@ class Process:
         :return: None
         """
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.PUMP2, PeristalticPump)
             and self.two_pump_config is False
         ):
 
@@ -870,7 +882,7 @@ class Process:
 
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
-            self._devices.OHSA.tare(SCALE1_INDEX)
+            self.devices.OHSA.tare(SCALE1_INDEX)
             time.sleep(5)
 
             if self.do_prompts:
@@ -891,20 +903,11 @@ class Process:
 
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
-            self._devices.OHSA.tare(SCALE1_INDEX)
+            self.devices.OHSA.tare(SCALE1_INDEX)
 
-            commands = self._devices.PUMP2.make_commands()
-            command = self._devices.PUMP2.make_start_command(
-                mode=self._devices.PUMP2.MODE.Continuous,
-                direction=self._devices.PUMP2.STATUS.Clockwise,
-                rate_value=50.0,
-                rate_units=self._devices.PUMP2.RATE_UNITS.MlMin,
-            )
-            self._devices.PUMP2.set_command(commands, 0, command)
+            tff.methods.start_pump(self.devices.PUMP2, 50.0, Status.Clockwise)
 
-            self._devices.PUMP2.start(commands, record=True)
-
-            self._data.update_data(debug=True, pause_on_error=True)
+            self.data.update_data(debug=True, pause_on_error=True)
             time_start = time.time()
             timeout = time_start + 3 * 60
 
@@ -914,28 +917,28 @@ class Process:
 
                 # check to see whether we've timed out
                 if time.time() > timeout:
-                    self._devices.PUMP2.stop()
-                    self._data.update_data()
+                    self.devices.PUMP2.stop()
+                    self.data.update_data()
                     print("[PHASE (INIT)] Transfer complete.")
                     time.sleep(2)
                     print(
                         "[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(
-                            self._data.W1
+                            self.data.W1
                         )
                     )
                     break
 
                 if (
-                    isinstance(self._data.W1, float)
-                    and self._data.W1 > self.initial_transfer_volume
+                    isinstance(self.data.W1, float)
+                    and self.data.W1 > self.initial_transfer_volume
                 ):
-                    self._devices.PUMP2.stop()
-                    self._data.update_data()
+                    self.devices.PUMP2.stop()
+                    self.data.update_data()
                     print("[PHASE (INIT)] Transfer complete.")
                     time.sleep(2)
                     print(
                         "[PHASE (INIT)] Actual amount transferred: {:.2f} g".format(
-                            self._data.W1
+                            self.data.W1
                         )
                     )
                     break
@@ -943,9 +946,9 @@ class Process:
                 tff.methods.monitor(
                     interval_s=0.2,
                     adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
-                    devices_obj=self._devices,
-                    data=self._data,
-                    watchdog=self._watchdog,
+                    devices_obj=self.devices,
+                    data=self.data,
+                    watchdog=self.watchdog,
                     process=self,
                 )
 
@@ -960,7 +963,7 @@ class Process:
                 # increment loops by 1
                 loops += 1
 
-            self._data.update_data()
+            self.data.update_data()
 
             if self.do_prompts:
                 # prompt to confirm completion of transfer and start initial concentration
@@ -982,7 +985,7 @@ class Process:
 
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
-            self._devices.OHSA.tare(SCALE1_INDEX)
+            self.devices.OHSA.tare(SCALE1_INDEX)
 
             if self.do_prompts:
                 # prompt operator to pour product into feed vessel, press prompt to continue
@@ -1015,7 +1018,7 @@ class Process:
         print("[PHASE (INIT)] Beginning Initial Concentration Step 1: Pump 1 Ramp Up.")
         tff.methods.pump_ramp(
             interval_s=1,
-            pump=self._devices.PUMP1,
+            pump=self.devices.PUMP1,
             pump_name="PUMP1",
             start_flowrate_ml_min=self.init_conc_pump_1_target_flowrate_ml_min / 2,
             end_flowrate_ml_min=self.init_conc_pump_1_target_flowrate_ml_min,
@@ -1023,9 +1026,9 @@ class Process:
             rate_change_pct=self.init_conc_pump1_ramp_pct_inc,
             timeout_min=self.init_conc_pump1_ramp_timeout_min,
             adjust_pinch_valve=True,
-            devices_obj=self._devices,
-            data=self._data,
-            watchdog=self._watchdog,
+            devices_obj=self.devices,
+            data=self.data,
+            watchdog=self.watchdog,
         )
 
         """
@@ -1039,7 +1042,7 @@ class Process:
         """
 
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.PUMP2, PeristalticPump)
             and self.two_pump_config is False
         ):
             print(
@@ -1052,10 +1055,10 @@ class Process:
 
         # ***UPDATE 1/30/2021 this is the point where we not want to cache the scale1 target mass
         # force an update of data to make sure the reading is latest before caching
-        self._data.update_data()
-        self._watchdog.volume_accumulation_alarm.set_scale1_target_mass()
+        self.data.update_data()
+        self.watchdog.volume_accumulation_alarm.set_scale1_target_mass()
 
-        self._devices.SCIP.set_sim_rates_of_change(
+        self.devices.SCIP.set_sim_rates_of_change(
             roc=(
                 (
                     0.01,
@@ -1079,9 +1082,9 @@ class Process:
             timeout_min=self.init_conc_pumps_2_3_ramp_timeout_min,
             adjust_pinch_valve=True,
             scale3_target_mass_g=self.init_conc_target_mass_g,
-            devices_obj=self._devices,
-            data=self._data,
-            watchdog=self._watchdog,
+            devices_obj=self.devices,
+            data=self.data,
+            watchdog=self.watchdog,
         )
 
         """
@@ -1104,7 +1107,7 @@ class Process:
             )
 
         # update the data object
-        self._data.update_data()
+        self.data.update_data()
 
         """
         ************************
@@ -1130,13 +1133,13 @@ class Process:
             )
 
             # turn on the overpressure, low pressure, vacuum condition, and volume accumulation alarms
-            self._watchdog.over_pressure_alarm.on()
-            self._watchdog.low_pressure_alarm.on()
-            self._watchdog.vacuum_condition_alarm.on()
-            self._watchdog.volume_accumulation_alarm.on()
+            self.watchdog.over_pressure_alarm.on()
+            self.watchdog.low_pressure_alarm.on()
+            self.watchdog.vacuum_condition_alarm.on()
+            self.watchdog.volume_accumulation_alarm.on()
 
             # clear the trailing rates cache
-            self._data._cache.clear_cache()
+            self.data.clear_cache()
 
             # turn control on
             self._setpoints.pinch_valve_control_active.update(True)
@@ -1146,8 +1149,8 @@ class Process:
 
                 # if the mass on SCALE3 is greater than or equal to the process.init_conc_target_mass_g,
                 # break from the loop
-                if self._data.W3 is not None:
-                    if self._data.W3 >= self.init_conc_target_mass_g:
+                if self.data.W3 is not None:
+                    if self.data.W3 >= self.init_conc_target_mass_g:
                         break
 
                 # check to see whether we've timed out
@@ -1160,14 +1163,14 @@ class Process:
                 tff.methods.monitor(
                     interval_s=1,
                     adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
-                    devices_obj=self._devices,
-                    data=self._data,
-                    watchdog=self._watchdog,
+                    devices_obj=self.devices,
+                    data=self.data,
+                    watchdog=self.watchdog,
                     process=self,
                 )
 
             # turn off the volume accumulation alarm
-            self._watchdog.volume_accumulation_alarm.off()
+            self.watchdog.volume_accumulation_alarm.off()
 
             # turn off PV control
             self._setpoints.pinch_valve_control_active.update(False)
@@ -1186,23 +1189,23 @@ class Process:
         # Set PUMP2 (if present) and PUMP3 to no flow. Pump 1 will continue to operate at
         # target flowrate between Concentration and Diafiltration
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.PUMP2, PeristalticPump)
             and self.two_pump_config is False
         ):
             print("[PHASE (INIT)] Stopping PUMP2 and PUMP3.")
-            self._devices.PUMP2.stop()
+            self.devices.PUMP2.stop()
         else:
             print("[PHASE (INIT)] Stopping PUMP3.")
-        self._devices.PUMP3.stop()
-        self._data.update_data()
+        self.devices.PUMP3.stop()
+        self.data.update_data()
 
         # time delay to allow for pumps to decelerate to a stop before
         # recording init conc mass
         print("[PHASE (INIT)] Waiting for SCALE3 to stabilize...")
         time.sleep(self.record_mass_time_delay_s)
-        self._data.update_data()
-        self._data.log_data_at_interval(5)
-        self.init_conc_actual_mass_g = self._data.W3
+        self.data.update_data()
+        self.data.log_data_at_interval(5)
+        self.init_conc_actual_mass_g = self.data.W3
 
         print(
             "[PHASE (INIT)] End Initial Concentration SCALE3 mass: {}g".format(
@@ -1225,16 +1228,13 @@ class Process:
         """
         # tare scale 3
         print("[PHASE (INIT->DIA)] Taring SCALE3.")
-        self._devices.OHSA.tare(SCALE3_INDEX)
+        self.devices.OHSA.tare(SCALE3_INDEX)
         time.sleep(5)
 
         # open pinch valve
         print("[PHASE (INIT->DIA)] Opening pinch valve.")
 
-        commands = self._devices.PV.make_commands()
-        command = self._devices.PV.make_set_poisition_command(pct_open=0.3)
-        self._devices.PV.set_command(commands, 0, command)
-        self._devices.PV.set_position(commands, record=True)
+        tff.methods.set_pinch_valve(self.devices.PV, 0.3)
 
         if self.do_prompts:
 
@@ -1249,14 +1249,14 @@ class Process:
                 tff.methods.monitor(
                     interval_s=1,
                     adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
-                    devices_obj=self._devices,
-                    data=self._data,
-                    watchdog=self._watchdog,
+                    devices_obj=self.devices,
+                    data=self.data,
+                    watchdog=self.watchdog,
                     process=self,
                 )
 
             # tare scale 2 after empty vessel is placed on it
-            self._devices.OHSA.tare(SCALE2_INDEX)
+            self.devices.OHSA.tare(SCALE2_INDEX)
 
             # prompt operator to pour liquid into vessel, press prompt to continue
             p = self._aqueduct.prompt(
@@ -1270,9 +1270,9 @@ class Process:
                 tff.methods.monitor(
                     interval_s=1,
                     adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
-                    devices_obj=self._devices,
-                    data=self._data,
-                    watchdog=self._watchdog,
+                    devices_obj=self.devices,
+                    data=self.data,
+                    watchdog=self.watchdog,
                     process=self,
                 )
 
@@ -1314,11 +1314,11 @@ class Process:
         self.diafilt_start_time = datetime.datetime.utcnow().isoformat()
 
         # turn off the underpressure alarm during ramp and lock in
-        self._watchdog.low_pressure_alarm.off()
+        self.watchdog.low_pressure_alarm.off()
 
         # force an update of data to make sure the reading is latest before caching
-        self._data.update_data()
-        self._watchdog.volume_accumulation_alarm.set_scale1_target_mass()
+        self.data.update_data()
+        self.watchdog.volume_accumulation_alarm.set_scale1_target_mass()
 
         print("[PHASE (DIA)] Beginning Diafiltration Step 1: PUMP2 and PUMP3 Ramp Up.")
         status = tff.methods.pumps_2_and_3_ramp(
@@ -1332,9 +1332,9 @@ class Process:
             timeout_min=self.diafilt_pumps_2_3_ramp_timeout_min,
             adjust_pinch_valve=True,
             scale3_target_mass_g=self.diafilt_target_mass_g,
-            devices_obj=self._devices,
-            data=self._data,
-            watchdog=self._watchdog,
+            devices_obj=self.devices,
+            data=self.data,
+            watchdog=self.watchdog,
         )
 
         """
@@ -1355,7 +1355,7 @@ class Process:
             )
 
         # update the data object
-        self._data.update_data()
+        self.data.update_data()
 
         """
         ************************
@@ -1374,12 +1374,12 @@ class Process:
             )
 
             # turn on the overpressure, underpressure alarms
-            self._watchdog.over_pressure_alarm.on()
-            self._watchdog.low_pressure_alarm.on()
-            self._watchdog.volume_accumulation_alarm.on()
+            self.watchdog.over_pressure_alarm.on()
+            self.watchdog.low_pressure_alarm.on()
+            self.watchdog.volume_accumulation_alarm.on()
 
             # clear the trailing rates cache
-            self._data._cache.clear_cache()
+            self.data.clear_cache()
 
             # find the timeout time to break from loop
             time_start = datetime.datetime.utcnow()
@@ -1394,8 +1394,8 @@ class Process:
 
                 # if the mass on SCALE3 is greater than or equal to the process.diafilt_target_mass_g,
                 # break from the loop
-                if self._data.W3 is not None:
-                    if self._data.W3 >= self.diafilt_target_mass_g:
+                if self.data.W3 is not None:
+                    if self.data.W3 >= self.diafilt_target_mass_g:
                         break
 
                 # check to see whether we've timed out
@@ -1408,14 +1408,14 @@ class Process:
                 tff.methods.monitor(
                     interval_s=1,
                     adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
-                    devices_obj=self._devices,
-                    data=self._data,
-                    watchdog=self._watchdog,
+                    devices_obj=self.devices,
+                    data=self.data,
+                    watchdog=self.watchdog,
                     process=self,
                 )
 
             # turn off the volume accumulation alarm
-            self._watchdog.volume_accumulation_alarm.off()
+            self.watchdog.volume_accumulation_alarm.off()
 
         """
         ************************
@@ -1432,23 +1432,23 @@ class Process:
         # Set PUMP2 (if present) and PUMP3 to no flow. Pump 1 will continue to operate at
         # target flowrate between Diafiltration and Final Conc.
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.PUMP2, PeristalticPump)
             and self.two_pump_config is False
         ):
             print("[PHASE (DIA)] Stopping PUMP2 and PUMP3.")
-            self._devices.PUMP2.stop()
+            self.devices.PUMP2.stop()
         else:
             print("[PHASE (DIA)] Stopping PUMP3.")
-        self._devices.PUMP3.stop()
-        self._data.update_data()
+        self.devices.PUMP3.stop()
+        self.data.update_data()
 
         # time delay to allow for pumps to decelerate to a stop before
         # recording diafiltration mass
         print("[PHASE (DIA)] Waiting for SCALE3 to stabilize...")
         time.sleep(self.record_mass_time_delay_s)
-        self._data.update_data()
-        self._data.log_data_at_interval(5)
-        self.diafilt_actual_mass_g = self._data.W3
+        self.data.update_data()
+        self.data.log_data_at_interval(5)
+        self.diafilt_actual_mass_g = self.data.W3
 
         print(
             "[PHASE (DIA)] End Diafiltration SCALE3 mass: {}g".format(
@@ -1472,15 +1472,12 @@ class Process:
 
         # tare permeate scale
         print("[PHASE (DIA->FINAL)] Taring SCALE3 (permeate scale).")
-        self._devices.OHSA.tare(SCALE3_INDEX)
+        self.devices.OHSA.tare(SCALE3_INDEX)
         time.sleep(5)
 
         # open pinch valve
         print("[PHASE (DIA->FINAL)] Opening pinch valve.")
-        commands = self._devices.PV.make_commands()
-        command = self._devices.PV.make_set_poisition_command(pct_open=0.4)
-        self._devices.PV.set_command(commands, 0, command)
-        self._devices.PV.set_position(commands, record=True)
+        tff.methods.set_pinch_valve(self.devices.PV, 0.4)
 
         if self.do_prompts:
             # Aqueduct input for final concentration target
@@ -1541,13 +1538,13 @@ class Process:
         self.final_conc_start_time = datetime.datetime.utcnow().isoformat()
 
         # turn off the underpressure alarms
-        self._watchdog.low_pressure_alarm.off()
+        self.watchdog.low_pressure_alarm.off()
 
         print("[PHASE (FINAL)] Beginning Final Concentration Step 1: PUMP3 Ramp Up.")
 
         status = tff.methods.pump_ramp(
             interval_s=1,
-            pump=self._devices.PUMP3,
+            pump=self.devices.PUMP3,
             pump_name="PUMP3",
             start_flowrate_ml_min=self.final_conc_pump_3_target_flowrate_ml_min / 2,
             end_flowrate_ml_min=self.final_conc_pump_3_target_flowrate_ml_min,
@@ -1556,9 +1553,9 @@ class Process:
             timeout_min=self.final_conc_pump3_ramp_timeout_min,
             adjust_pinch_valve=True,
             scale3_target_mass_g=self.final_conc_target_mass_g,
-            devices_obj=self._devices,
-            data=self._data,
-            watchdog=self._watchdog,
+            devices_obj=self.devices,
+            data=self.data,
+            watchdog=self.watchdog,
         )
 
         """
@@ -1569,10 +1566,7 @@ class Process:
         """
         if status != STATUS_TARGET_MASS_HIT:
             print("[PHASE (FINAL)] Setting pinch valve.")
-            commands = self._devices.PV.make_commands()
-            command = self._devices.PV.make_set_poisition_command(pct_open=0.3)
-            self._devices.PV.set_command(commands, 0, command)
-            self._devices.PV.set_position(commands, record=True)
+            tff.methods.set_pinch_valve(self.devices.PV, 0.3)
             time.sleep(5)
             print(
                 "[PHASE (FINAL)] Beginning Final Concentration Step 2: Pinch Valve Lock-In."
@@ -1582,11 +1576,11 @@ class Process:
                 target_p3_psi=self._setpoints.P3_target_pressure.value,
                 timeout_min=self.pinch_valve_lock_in_min,
                 scale3_target_mass_g=self.final_conc_target_mass_g,
-                devices_obj=self._devices,
-                data=self._data,
+                devices_obj=self.devices,
+                data=self.data,
             )
 
-        self._data.update_data()
+        self.data.update_data()
 
         """
         ************************
@@ -1606,12 +1600,12 @@ class Process:
             )
 
             # turn on the overpressure, underpressure alarms
-            self._watchdog.over_pressure_alarm.on()
-            self._watchdog.low_pressure_alarm.on()
-            self._watchdog.volume_accumulation_alarm.on()
+            self.watchdog.over_pressure_alarm.on()
+            self.watchdog.low_pressure_alarm.on()
+            self.watchdog.volume_accumulation_alarm.on()
 
             # clear the trailing rates cache
-            self._data._cache.clear_cache()
+            self.data.clear_cache()
 
             # find the timeout time to break from loop
             time_start = datetime.datetime.utcnow()
@@ -1626,8 +1620,8 @@ class Process:
 
                 # if the mass on SCALE3 is greater than or equal to the process.final_conc_target_mass_g,
                 # break from the loop
-                if self._data.W3 is not None:
-                    if self._data.W3 >= self.final_conc_target_mass_g:
+                if self.data.W3 is not None:
+                    if self.data.W3 >= self.final_conc_target_mass_g:
                         break
 
                 # check to see whether we've timed out
@@ -1640,14 +1634,14 @@ class Process:
                 tff.methods.monitor(
                     interval_s=1,
                     adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
-                    devices_obj=self._devices,
-                    data=self._data,
-                    watchdog=self._watchdog,
+                    devices_obj=self.devices,
+                    data=self.data,
+                    watchdog=self.watchdog,
                     process=self,
                 )
 
             # turn off the volume accumulation alarm
-            self._watchdog.volume_accumulation_alarm.off()
+            self.watchdog.volume_accumulation_alarm.off()
 
         """
         ************************
@@ -1663,22 +1657,22 @@ class Process:
 
         # stop Pumps 2 (if present) and 3
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.PUMP2, PeristalticPump)
             and self.two_pump_config is False
         ):
             print("[PHASE (FINAL)] Stopping PUMP2 and PUMP3.")
-            self._devices.PUMP2.stop()
+            self.devices.PUMP2.stop()
         else:
             print("[PHASE (FINAL)] Stopping PUMP3.")
-        self._devices.PUMP3.stop()
+        self.devices.PUMP3.stop()
 
         # time delay to allow for pumps to decelerate to a stop before
         # recording final conc mass
         print("[PHASE (FINAL)] Waiting for SCALE3 to stabilize...")
         time.sleep(self.record_mass_time_delay_s)
-        self._data.update_data()
-        self._data.log_data_at_interval(5)
-        self.final_conc_actual_mass_g = self._data.W3
+        self.data.update_data()
+        self.data.log_data_at_interval(5)
+        self.final_conc_actual_mass_g = self.data.W3
 
         print(
             "[PHASE (FINAL)] End Final Concentration SCALE3 mass: {}g".format(
@@ -1708,9 +1702,9 @@ class Process:
             target_pct_open=self.pinch_valve_init_pct_open,
             increment_pct_open=0.005,
             interval_s=1,
-            devices_obj=self._devices,
-            data=self._data,
-            watchdog=self._watchdog,
+            devices_obj=self.devices,
+            data=self.data,
+            watchdog=self.watchdog,
         )
 
         # prompt operator to confirm that the retentate line is blown down (wait here)
@@ -1724,15 +1718,15 @@ class Process:
             tff.methods.monitor(
                 interval_s=1,
                 adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
-                devices_obj=self._devices,
-                data=self._data,
-                watchdog=self._watchdog,
+                devices_obj=self.devices,
+                data=self.data,
+                watchdog=self.watchdog,
                 process=self,
             )
 
         # stop Pump 1
         print("[PHASE (CLN)] Stopping PUMP1.")
-        self._devices.PUMP1.stop()
+        self.devices.PUMP1.stop()
 
     def do_wash(self):
         """
@@ -1747,26 +1741,21 @@ class Process:
         """
 
         # prompt operator to set up recovery flush
-        p = self._aqueduct.prompt(
+        _p = self._aqueduct.prompt(
             message="Set up recovery flush. Place the feed and retentate lines in a conical with the desired wash"
             " volume. Press <b>continue</b> to start wash.",
             pause_recipe=True,
         )
 
         # start Pump !
-        commands = self._devices.PUMP1.make_commands()
-        command = self._devices.PUMP1.make_start_command(
-            mode=self._devices.PUMP2.MODE.Continuous,
-            direction=self._devices.PUMP2.STATUS.Clockwise,
-            rate_value=self.init_conc_pump_1_target_flowrate_ml_min,
-            rate_units=self._devices.PUMP2.RATE_UNITS.MlMin,
+        tff.methods.start_pump(
+            self.devices.PUMP1,
+            self.init_conc_pump_1_target_flowrate_ml_min,
+            Status.Clockwise,
         )
-        self._devices.PUMP1.set_command(commands, 0, command)
-
-        self._devices.PUMP1.start(commands, record=True)
 
         # clear the trailing rates cache
-        self._data._cache.clear_cache()
+        self.data.clear_cache()
 
         # find the timeout time to break from loop
         time_start = datetime.datetime.utcnow()
@@ -1786,9 +1775,9 @@ class Process:
             tff.methods.monitor(
                 interval_s=1,
                 adjust_pinch_valve=self._setpoints.pinch_valve_control_active.value,
-                devices_obj=self._devices,
-                data=self._data,
-                watchdog=self._watchdog,
+                devices_obj=self.devices,
+                data=self.data,
+                watchdog=self.watchdog,
                 process=self,
             )
 
@@ -1803,7 +1792,9 @@ class Process:
 
         # stop Pump 1
         print("[PHASE (WASH)] Stopping PUMP1.")
-        self._devices.PUMP1.stop()
+        self.devices.PUMP1.stop()
+
+        self.data.update_data()
 
         # save log file
         self.add_process_info_to_log()
@@ -1824,9 +1815,9 @@ class Process:
         :return: None
         """
 
-        self._watchdog.over_pressure_alarm.on()
-        self._watchdog.low_pressure_alarm.on()
-        self._watchdog.vacuum_condition_alarm.on()
+        self.watchdog.over_pressure_alarm.on()
+        self.watchdog.low_pressure_alarm.on()
+        self.watchdog.vacuum_condition_alarm.on()
 
         # turn on any other alarms you want to trip here
 
@@ -1839,9 +1830,9 @@ class Process:
             tff.methods.monitor(
                 interval_s=1,
                 adjust_pinch_valve=False,
-                devices_obj=self._devices,
-                data=self._data,
-                watchdog=self._watchdog,
+                devices_obj=self.devices,
+                data=self.data,
+                watchdog=self.watchdog,
                 process=self,
             )
 
@@ -1867,18 +1858,18 @@ class Process:
         """
 
         self.set_quick_run_params()
-        self._watchdog.set_quick_run_params()
+        self.watchdog.set_quick_run_params()
 
         self.initialize()
 
         def reset_sim_pressures_to_3_psi():
-            for tn in [TXDCR1_INDEX, TXDCR2_INDEX, TXDCR3_INDEX]:
-                self._devices.SCIP.set_sim_pressures((3, 3, 3))
+            for _ in [TXDCR1_INDEX, TXDCR2_INDEX, TXDCR3_INDEX]:
+                self.devices.SCIP.set_sim_pressures((3, 3, 3))
 
         print("Doing Pump 1 Ramp Up...")
         tff.methods.pump_ramp(
             interval_s=1,
-            pump=self._devices.PUMP1,
+            pump=self.devices.PUMP1,
             pump_name="PUMP1",
             start_flowrate_ml_min=self.pump_1_target_flowrate_ml_min / 2,
             end_flowrate_ml_min=self.pump_1_target_flowrate_ml_min,
@@ -1886,9 +1877,9 @@ class Process:
             rate_change_ml_min=self.init_conc_pump1_ramp_increment_ml_min,
             timeout_min=self.init_conc_pump1_ramp_timeout_min,
             adjust_pinch_valve=False,
-            devices_obj=self._devices,
-            data=self._data,
-            watchdog=self._watchdog,
+            devices_obj=self.devices,
+            data=self.data,
+            watchdog=self.watchdog,
         )
 
         print("Doing Pumps 2 and 3 Ramp Up...")
@@ -1902,15 +1893,15 @@ class Process:
             number_rate_changes=self.init_conc_pumps_2_3_ramp_number_rate_changes,
             timeout_min=self.init_conc_pumps_2_3_ramp_timeout_min,
             adjust_pinch_valve=False,
-            devices_obj=self._devices,
-            data=self._data,
-            watchdog=self._watchdog,
+            devices_obj=self.devices,
+            data=self.data,
+            watchdog=self.watchdog,
         )
 
-        self._devices.SCIP.set_sim_noise((0, 0, 0))
-        self._watchdog.over_pressure_alarm.on()
-        self._watchdog.low_pressure_alarm.on()
-        self._watchdog.vacuum_condition_alarm.on()
+        self.devices.SCIP.set_sim_noise((0, 0, 0))
+        self.watchdog.over_pressure_alarm.on()
+        self.watchdog.low_pressure_alarm.on()
+        self.watchdog.vacuum_condition_alarm.on()
 
         pressures = [
             (40, TXDCR1_INDEX),
@@ -1925,16 +1916,16 @@ class Process:
         for tp in pressures:
             v = SCIP_INDEX * tp[1] * [None]
             v[SCIP_INDEX * tp[1]] = tp[0]
-            self._devices.SCIP.set_sim_pressures(v)
+            self.devices.SCIP.set_sim_pressures(v)
             time.sleep(1)
 
             while True:
                 tff.methods.monitor(
                     interval_s=1,
                     adjust_pinch_valve=False,
-                    devices_obj=self._devices,
-                    data=self._data,
-                    watchdog=self._watchdog,
+                    devices_obj=self.devices,
+                    data=self.data,
+                    watchdog=self.watchdog,
                     process=self,
                 )
 

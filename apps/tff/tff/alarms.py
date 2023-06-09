@@ -2,12 +2,10 @@ import time
 from typing import Union
 
 import tff.classes
+import tff.data
 import tff.methods
 from aqueduct.core.aq import Aqueduct
-from aqueduct.devices.balance import Balance
-from aqueduct.devices.pressure import PressureTransducer
 from aqueduct.devices.pump import PeristalticPump
-from aqueduct.devices.valve import PinchValve
 
 
 class Alarm:
@@ -18,13 +16,16 @@ class Alarm:
     """
 
     active: bool = False
-    _data: "Data" = None  # pointer to Data object
-    _devices: "Devices" = None  # pointer to Devices object
+    _data: "tff.data.Data" = None  # pointer to Data object
+    _devices: "tff.classes.Devices" = None  # pointer to Devices object
     _aqueduct: Aqueduct = None  # pointer to Aqueduct object
     _process = None  # pointer to Process object
 
     def __init__(
-        self, data_obj: "Data", devices_obj: "Devices", aqueduct_obj: Aqueduct
+        self,
+        data_obj: "tff.data.Data",
+        devices_obj: "tff.classes.Devices",
+        aqueduct_obj: Aqueduct,
     ):
         """
         Instantiation method.
@@ -33,8 +34,8 @@ class Alarm:
         :param devices_obj:
         :param aqueduct_obj:
         """
-        self._data: "Data" = data_obj
-        self._devices: "Devices" = devices_obj
+        self._data: "tff.data.Data" = data_obj
+        self._devices: "tff.classes.Devices" = devices_obj
         self._aqueduct: Aqueduct = aqueduct_obj
         return
 
@@ -681,16 +682,6 @@ class RetentateVesselLowAlarm(Alarm):
     _pumps_2_3_ramp_number_rate_changes: int = 6
     _pumps_2_3_ramp_timeout_min: float = 60
 
-    def __init__(self, data_obj, devices_obj, aqueduct_obj):
-        """
-        Instantiation method.
-
-        :param data_obj:
-        :param devices_obj:
-        :param aqueduct_obj:
-        """
-        super().__init__(data_obj, devices_obj, aqueduct_obj)
-
     def condition(self) -> bool:
         """
         If W2 < min_buffer_liquid_mass_g, raise alarm
@@ -912,7 +903,7 @@ class VolumeAccumulationAlarm(Alarm):
                     if self.mode == 2:
                         self.handle_mode2(rates)
 
-                except BaseException as e:
+                except BaseException as _e:
                     pass
 
         self.last_time_check = time.time()
@@ -971,7 +962,7 @@ class VolumeAccumulationAlarm(Alarm):
             self._data.update_data()
             n += 1
 
-    def check_max_deviation(self, rates: "TrailingRates") -> None:
+    def check_max_deviation(self, rates: "tff.data.TrailingRates") -> None:
         if (
             abs(abs(rates.W2_ml_min) - abs(rates.R2_ml_min))
             > self.pump2_max_deviation_ml_min
@@ -984,7 +975,7 @@ class VolumeAccumulationAlarm(Alarm):
                 )
             )
 
-    def handle_mode1(self, rates: "TrailingRates"):
+    def handle_mode1(self, rates: "tff.data.TrailingRates"):
         """
         Handler to adjust buffer pump rate to drive delta_m/delta_t on feed balance to 0
         """
@@ -1037,10 +1028,10 @@ class VolumeAccumulationAlarm(Alarm):
                 clear_cache = True
 
         if clear_cache is True:
-            self._data._cache.clear_cache()
+            self._data.clear_cache()
             self._data._cache._scheduled_time = time.time() + self.check_interval_s
 
-    def handle_mode2(self, rates: "TrailingRates"):
+    def handle_mode2(self, rates: "tff.data.TrailingRates"):
         """
         Handler to adjust buffer pump rate to drive feed balance mass to setpoint
         in specified amount of time

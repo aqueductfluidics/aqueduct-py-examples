@@ -27,16 +27,10 @@ class Devices:
     Class with members to contain each Aqueduct Device
     Object in the Setup.
 
-    PUMP0 is the peristaltic pump dedicated to the addition of the base (device type PP)
-    PUMP1 is the peristaltic pump dedicated to the addition of the acid (device type PP)
-    PUMP2 is the peristaltic pump dedicated to the addition of the reagent (device type PP)
+    PUMP0 is the peristaltic pump dedicated to the addition of base for station 0 
+    PUMP1 is the peristaltic pump dedicated to the addition of base for station 1 
+    PUMP2 is the peristaltic pump dedicated to the addition of base for station 2 
     PH_PROBE is the 3 x pH probe with one input active (device type PH3)
-
-    In DEV MODE, we create 3 x `aqueduct.devices.pp.obj` and 1 x
-    `PhProbe` for easy access to the methods & constants for each device type.
-
-    In LAB MODE, we associate each Device with the Name for the device
-    that is saved on its firmware.
     """
 
     PUMP0: PeristalticPump = None
@@ -419,14 +413,13 @@ class Data:
 
         :return: None
         """
-        pass
-        # self._aqueduct.log(
-        #     "pH_0: {0}, pH_1: {1}, pH_2: {2}".format(
-        #         format_float(self.pH_0, 3),
-        #         format_float(self.pH_1, 3),
-        #         format_float(self.pH_2, 3),
-        #     )
-        # )
+        self._aqueduct.log(
+            "pH_0: {0}, pH_1: {1}, pH_2: {2}".format(
+                format_float(self.pH_0, 3),
+                format_float(self.pH_1, 3),
+                format_float(self.pH_2, 3),
+            )
+        )
 
     def log_data_at_interval(
         self,
@@ -459,9 +452,6 @@ class Data:
             self.update_data()
 
         self.log_data()
-
-        if overwrite_file is True:
-            self._process.save_log_file()
 
         self.log_timestamp = now
 
@@ -723,7 +713,6 @@ class ReactionStation:
 
         if self.logging_enabled:
             self._aqueduct.log(log_str)
-            self._aqueduct.save_log_file(self.log_file_name, overwrite=True)
 
         if repeat is True:
             self.do_next_phase()
@@ -1024,10 +1013,6 @@ class ProcessHandler:
         """
         for s in self.stations:
             print(s)
-
-    def save_log_file(self):
-        pass
-        # self._aqueduct.save_log_file(self.log_file_name, overwrite=True)
 
     def print_station_status_at_interval(self):
         """

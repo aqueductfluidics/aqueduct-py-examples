@@ -8,7 +8,12 @@ from aqueduct.devices.balance import Balance
 from aqueduct.devices.pressure import PressureTransducer
 from aqueduct.devices.pump import PeristalticPump
 from aqueduct.devices.valve import PinchValve
-from tff.definitions import *
+from tff.definitions import SCALE1_INDEX
+from tff.definitions import SCALE2_INDEX
+from tff.definitions import SCALE3_INDEX
+from tff.definitions import TXDCR1_INDEX
+from tff.definitions import TXDCR2_INDEX
+from tff.definitions import TXDCR3_INDEX
 
 
 class TrailingRates:
@@ -111,9 +116,9 @@ class DataCache:
     _interval_s: float = 5.0
 
     # ref to Devices
-    _devices: "Devices" = None
+    _devices: "tff.classes.Devices" = None
 
-    def __init__(self, devices_obj: "Devices"):
+    def __init__(self, devices_obj: "tff.classes.Devices"):
         self._devices = devices_obj
 
     # enclose the Data close in quotes
@@ -139,7 +144,7 @@ class DataCache:
             self._cache.append(item)
 
             # trim cache length if it exceeds the set length
-            self._cache = self._cache[-1 * self._length :]
+            self._cache = self._cache[-1 * self._length:]
 
             # schedule the next recording time
             self._scheduled_time = self._interval_s + data.timestamp
@@ -187,7 +192,8 @@ class DataCache:
             for i in range(1, len(self._cache) - 1):
 
                 # calculate the time interval between the cache timestamps
-                _dt = self._cache[-i].timestamp - self._cache[-(i + 1)].timestamp
+                _dt = self._cache[-i].timestamp - \
+                    self._cache[-(i + 1)].timestamp
 
                 # if we're on loop iteration greater than 1
                 if i > 1:
@@ -220,7 +226,8 @@ class DataCache:
                         + getattr(self._cache[-(i + 1)], k[1])
                     ) / 2.0
 
-                    pump_nominal_rate_list_ml_min[jj].append(pump_nominal_rate_ml_min)
+                    pump_nominal_rate_list_ml_min[jj].append(
+                        pump_nominal_rate_ml_min)
 
                 counts += 1
 
@@ -236,7 +243,8 @@ class DataCache:
                     if (rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)
                 ]
                 # set the mean with the good values
-                balance_accumulation_mean_g_min[i] = sum(good_rates) / len(good_rates)
+                balance_accumulation_mean_g_min[i] = sum(
+                    good_rates) / len(good_rates)
 
             # remove outliers from the the pump_nominal_rate_list_ml_min
             for i, rate_list in enumerate(pump_nominal_rate_list_ml_min):
@@ -250,7 +258,8 @@ class DataCache:
                     if (rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)
                 ]
                 # set the mean with the good values
-                pump_nominal_rate_mean_ml_min[i] = sum(good_rates) / len(good_rates)
+                pump_nominal_rate_mean_ml_min[i] = sum(
+                    good_rates) / len(good_rates)
 
             if counts > 0:
                 if isinstance(self._devices.PUMP2, PeristalticPump):
@@ -299,12 +308,13 @@ class Data:
     ] = None  # pinch valve percent open, 1. == fully open, 0. == fully closed
 
     timestamp: Union[float, None] = None  # timestamp of last update
-    log_timestamp: Union[float, None] = None  # timestamp of last write to log file
+    # timestamp of last write to log file
+    log_timestamp: Union[float, None] = None
     _logging_interval_s: Union[
         int, float
     ] = 5  # interval in seconds between writes to log file
 
-    _devices: "Devices" = None  # pointer to Devices object
+    _devices: "tff.classes.Devices" = None  # pointer to Devices object
     _aqueduct: Aqueduct = None  # pointer to Aqueduct object
     _process = None  # pointer to Process object
     _model = None  # pointer to Model object
@@ -320,7 +330,7 @@ class Data:
 
     _extrapolation_timestamp: float = None
 
-    def __init__(self, devices_obj: "Devices", aqueduct_obj: Aqueduct):
+    def __init__(self, devices_obj: "tff.classes.Devices", aqueduct_obj: Aqueduct):
         """
         Instantiation method.
 
@@ -400,7 +410,8 @@ class Data:
                 balance_rocs[SCALE2_INDEX] = (-1 * self.R3) * (
                     1.0 + self._scale2_sim_error_pct
                 )
-            balance_rocs[SCALE3_INDEX] = self.R3 * (1.0 + self._scale3_sim_error_pct)
+            balance_rocs[SCALE3_INDEX] = self.R3 * \
+                (1.0 + self._scale3_sim_error_pct)
             balance_rocs[SCALE1_INDEX] = -1 * (
                 balance_rocs[SCALE2_INDEX] + balance_rocs[SCALE3_INDEX]
             )
@@ -411,6 +422,10 @@ class Data:
 
         # save the data to the cache
         self._cache.cache(data=self)
+
+    def clear_cache(self) -> None:
+        """Clear the data cache."""
+        self._cache.clear_cache()
 
     def log_data(self) -> None:
         """
@@ -473,11 +488,13 @@ class Data:
         for k in keys:
             if k[0] == "timestamp":
                 d.update(
-                    {k[0]: getattr(self, k[0], None).strftime("%Y-%m-%dT%H:%M:%S.%f")}
+                    {k[0]: getattr(self, k[0], None).strftime(
+                        "%Y-%m-%dT%H:%M:%S.%f")}
                 )
             else:
                 d.update(
-                    {k[0]: tff.helpers.format_float(getattr(self, k[0], None), k[1])}
+                    {k[0]: tff.helpers.format_float(
+                        getattr(self, k[0], None), k[1])}
                 )
         return d
 
@@ -513,7 +530,8 @@ class Data:
         try:
             if self._extrapolation_timestamp is not None:
                 scale3_delta_m_g = (
-                    self.R3 / 60.0 * (self.timestamp - self._extrapolation_timestamp)
+                    self.R3 / 60.0 * (self.timestamp -
+                                      self._extrapolation_timestamp)
                 )
 
                 scale3_mass_g = self.W3 + scale3_delta_m_g * (
