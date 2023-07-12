@@ -52,7 +52,7 @@ def set_pinch_valve(valve: PinchValve, pct_open: float):
     :param pct_open: The percentage open of the valve (0-100).
     """
     commands = valve.make_commands()
-    command = valve.make_set_poisition_command(pct_open=pct_open)
+    command = valve.make_set_position_command(pct_open=pct_open)
     valve.set_command(commands, 0, command)
     valve.set_position(commands, record=True)
 
