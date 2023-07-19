@@ -49,4 +49,6 @@ process.diafilt_target_mass_g = 300
 process.final_conc_target_mass_g = 100
 process.pinch_valve_lock_in_min = 2
 
+process.init_conc_timeout_min = 60
+
 process.do_tff_protocol()

@@ -5,6 +5,8 @@ import typing
 
 from aqueduct.devices.pump import syringe
 from aqueduct.devices.pump import SyringePump
+from aqueduct.devices.pump.syringe import ResolutionMode
+from aqueduct.devices.pump.syringe import tricontinent
 
 DELAY_S = 0.01
 
@@ -51,11 +53,15 @@ def pump_finite(
     ):
         pump_command_t = pump.make_start_command(
             mode=pump.MODE.Finite,  # pump.finite is a constant that belongs to the SyringePump class
-            direction=direction,  # pump.STATUS.Withdraw is a constant that belongs to the SyringePump class
-            rate_units=pump.RATE_UNITS.UlMin,  # pump.ul_min is a constant that belongs to the SyringePump class
+            # pump.STATUS.Withdraw is a constant that belongs to the SyringePump class
+            direction=direction,
+            # pump.ul_min is a constant that belongs to the SyringePump class
+            rate_units=pump.RATE_UNITS.UlMin,
             rate_value=rate,  # set the rate value to the argument passed into this function
-            finite_value=volume,  # set the volume to withdraw to the argument passed into this function
-            finite_units=pump.FINITE_UNITS.Ul,  # pump.ul is a constant that belongs to the SyringePump class
+            # set the volume to withdraw to the argument passed into this function
+            finite_value=volume,
+            # pump.ul is a constant that belongs to the SyringePump class
+            finite_units=pump.FINITE_UNITS.Ul,
         )
         pump.set_command(commands, index, pump_command_t)
 
@@ -118,6 +124,9 @@ def set_valves(
 
     :return: None
     """
+    # need a long valve delay to allow for actuation
+    VALVE_DELAY = 1
+
     # "construct" a list of Valve Commands
     commands = pump.make_commands()
     for index, port in zip(pump_indices, ports):
@@ -127,7 +136,12 @@ def set_valves(
     # send the constructed valve commands to the pumps
     pump.set_valves(commands=commands)
 
-    time.sleep(DELAY_S)
+    time.sleep(VALVE_DELAY)
+
+    # # send the constructed valve commands to the pumps
+    # pump.set_valves(commands=commands)
+
+    # time.sleep(VALVE_DELAY)
 
 
 def set_valves_and_withdraw(
@@ -274,23 +288,16 @@ def prime_and_fill_tubing(pump: SyringePump):
     )
 
 
-def get_current_position_ul(
-    pump: SyringePump, index: int, plunger_position: int, plunger_resolution: int
-) -> float:
+def get_current_position_ul(pump: SyringePump, index: int) -> float:
     """
     Calculate the current position, in uL, of the selected input.
 
-    :param plunger_resolution:
-    :param plunger_position:
+
     :param pump:
     :param index:
     :return: float
     """
-    return pump.calc_current_ul(
-        index=index,
-        plunger_position=plunger_position,
-        plunger_resolution=plunger_resolution,
-    )
+    return pump.get_plunger_position_volume()[index]
 
 
 def get_syringe_volume_ul(pump: SyringePump, index: int) -> float:
@@ -301,8 +308,7 @@ def get_syringe_volume_ul(pump: SyringePump, index: int) -> float:
     :param index:
     :return: float
     """
-    # return pump.config[index].syringe_vol_ul
-    return 5000
+    return pump.stat[index].syringe_volume_ul
 
 
 def get_max_rate_ul_min(pump: SyringePump, index: int) -> float:
@@ -313,8 +319,7 @@ def get_max_rate_ul_min(pump: SyringePump, index: int) -> float:
     :param index:
     :return: float
     """
-    # return pump.get_max_rate_ul_min(index)
-    return 50000
+    return pump.get_max_flow_rate_ul_min()[index]
 
 
 def get_min_rate_ul_min(pump: SyringePump, index: int) -> float:
@@ -325,12 +330,13 @@ def get_min_rate_ul_min(pump: SyringePump, index: int) -> float:
     :param index:
     :return: float
     """
-    # return pump.get_min_rate_ul_min(index)
-    return 5
+    return pump.get_min_flow_rate_ul_min()[index]
 
 
 def set_plunger_mode(
-    pump: SyringePump, index: int, target_mode: int, force: bool = False
+    pump: SyringePump,
+    index: int,
+    mode: ResolutionMode,
 ):
     """
     Helper method to change the plunger stepping mode of a given input.
@@ -339,23 +345,17 @@ def set_plunger_mode(
     member is set to True, will log the change to the process log file.
 
     :param pump:
-    :param target_mode:
+    :param mode:
     :param index:
-    :param force:
     :return:
     """
-    # if int(pump.config[index].plgr_mode) != int(target_mode) or force is True:
-    #     pump.set_plunger_resolution(**{f"pump{index}": target_mode})
-    #     pump.config[index].plgr_mode = target_mode
-    #     time.sleep(DELAY_S)
-    None
+    set_plunger_modes(pump, pump_indices=[index], modes=[mode])
 
 
 def set_plunger_modes(
     pump: SyringePump,
     pump_indices: typing.List[int],
-    target_modes: typing.List[int],
-    force_pumps: typing.List[bool] = [False, False],
+    modes: typing.List[ResolutionMode],
 ) -> None:
     """
     Helper method to change the plunger stepping modes of the given inputs.
@@ -369,9 +369,55 @@ def set_plunger_modes(
     :param force:
     :return:
     """
-    # for index, target_mode, force in zip(pump_indices, target_modes, force_pumps):
-    #     if int(pump.config[index].plgr_mode) != int(target_mode) or force is True:
-    #         pump.set_plunger_resolution(**{f"pump{index}": target_mode})
-    #         pump.config[index].plgr_mode = target_mode
-    #         time.sleep(DELAY_S)
-    None
+    commands = pump.make_commands()
+    for index, mode in zip(pump_indices, modes):
+        pump_command_t = pump.make_set_plunger_mode_command(mode=mode)
+        pump.set_command(commands, index, pump_command_t)
+
+    pump.set_plunger_mode(commands)
+    time.sleep(DELAY_S)
+
+
+class PumpError:
+    """
+    Represents an error in a pump.
+
+    :param missing: Flag indicating if the pump is missing.
+    :type missing: bool
+    :param c_series_error: The error status of the pump.
+    :type c_series_error: typing.Union[None, tricontinent.CSeriesError]
+    """
+
+    def __init__(
+        self,
+        missing: bool,
+        c_series_error: typing.Union[None, tricontinent.CSeriesError],
+    ):
+        self.missing = missing
+        self.c_series_error = c_series_error
+
+
+def has_error(
+    pump: SyringePump,
+) -> typing.Tuple[PumpError]:
+    """
+    Check if the pump has any errors.
+
+    :param pump: The SyringePump instance.
+    :type pump: SyringePump
+
+    :return: Tuple of error flags for each pump.
+    :rtype: typing.Tuple[bool]
+    """
+    config = pump.config
+
+    if config is not None:
+        errors = []
+
+        conf: tricontinent.TriContinentConfig
+        for conf in config.get("config").get("data"):
+            err = PumpError(conf.booted == 0, conf.c_series_error)
+            errors.append(err)
+        return tuple(errors)
+
+    return tuple(pump.len * [PumpError(False, tricontinent.CSeriesError.NoError)])

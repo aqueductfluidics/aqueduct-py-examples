@@ -78,9 +78,9 @@ class DataCacheItem:
     W1: Union[float, None] = None  # scale 1 weight, grams
     W2: Union[float, None] = None  # scale 2 weight, grams
     W3: Union[float, None] = None  # scale 3 weight, grams
-    R1: Union[float, None] = None  # PUMP1 flowrate, mL/min
-    R2: Union[float, None] = None  # PUMP2 flowrate, mL/min
-    R3: Union[float, None] = None  # PUMP3 flowrate, mL/min
+    R1: Union[float, None] = None  # FEED_PUMP flowrate, mL/min
+    R2: Union[float, None] = None  # BUFFER PUMP flowrate, mL/min
+    R3: Union[float, None] = None  # PERMEATE PUMP flowrate, mL/min
     PV: Union[
         float, None
     ] = None  # pinch valve percent open, 1. == fully open, 0. == fully closed
@@ -143,7 +143,7 @@ class DataCache:
             self._cache.append(item)
 
             # trim cache length if it exceeds the set length
-            self._cache = self._cache[-1 * self._length:]
+            self._cache = self._cache[-1 * self._length :]
 
             # schedule the next recording time
             self._scheduled_time = self._interval_s + data.timestamp
@@ -159,7 +159,7 @@ class DataCache:
 
         Returns a tuple of format:
 
-            (dBALANCE1/dt, <PUMP1 rate>, dBALANCE2/dt, <PUMP2 rate>, dBALANCE3/dt, <PUMP3 rate>)
+            (dBALANCE1/dt, <FEED_PUMP rate>, dBALANCE2/dt, <BUFFER_PUMP rate>, dBALANCE3/dt, <RETENTATE_PUMP rate>)
 
         Units are:
 
@@ -181,18 +181,17 @@ class DataCache:
             delta_t_interval_s = 0
             delta_t_interval_tolerance_s = 1
 
-            if isinstance(self._devices.PUMP2, PeristalticPump):
+            if isinstance(self._devices.BUFFER_PUMP, PeristalticPump):
                 enum_keys = (("W1", "R1"), ("W2", "R2"), ("W3", "R3"))
             else:
-                # have to use R3 in lieu of R2 when PUMP2 is absent
+                # have to use R3 in lieu of R2 when BUFFER PUMP is absent
                 enum_keys = (("W1", "R1"), ("W2", "R3"), ("W3", "R3"))
 
             # loop through the cache in reverse
             for i in range(1, len(self._cache) - 1):
 
                 # calculate the time interval between the cache timestamps
-                _dt = self._cache[-i].timestamp - \
-                    self._cache[-(i + 1)].timestamp
+                _dt = self._cache[-i].timestamp - self._cache[-(i + 1)].timestamp
 
                 # if we're on loop iteration greater than 1
                 if i > 1:
@@ -225,8 +224,7 @@ class DataCache:
                         + getattr(self._cache[-(i + 1)], k[1])
                     ) / 2.0
 
-                    pump_nominal_rate_list_ml_min[jj].append(
-                        pump_nominal_rate_ml_min)
+                    pump_nominal_rate_list_ml_min[jj].append(pump_nominal_rate_ml_min)
 
                 counts += 1
 
@@ -242,8 +240,7 @@ class DataCache:
                     if (rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)
                 ]
                 # set the mean with the good values
-                balance_accumulation_mean_g_min[i] = sum(
-                    good_rates) / len(good_rates)
+                balance_accumulation_mean_g_min[i] = sum(good_rates) / len(good_rates)
 
             # remove outliers from the the pump_nominal_rate_list_ml_min
             for i, rate_list in enumerate(pump_nominal_rate_list_ml_min):
@@ -257,11 +254,10 @@ class DataCache:
                     if (rate_mean - threshold_ml_min < r < rate_mean + threshold_ml_min)
                 ]
                 # set the mean with the good values
-                pump_nominal_rate_mean_ml_min[i] = sum(
-                    good_rates) / len(good_rates)
+                pump_nominal_rate_mean_ml_min[i] = sum(good_rates) / len(good_rates)
 
             if counts > 0:
-                if isinstance(self._devices.PUMP2, PeristalticPump):
+                if isinstance(self._devices.BUFFER_PUMP, PeristalticPump):
                     R2_ml_min = round(pump_nominal_rate_mean_ml_min[1], 4)
                 else:
                     R2_ml_min = None
@@ -299,9 +295,9 @@ class Data:
     W1: Union[float, None] = None  # scale 1 weight, grams
     W2: Union[float, None] = None  # scale 2 weight, grams
     W3: Union[float, None] = None  # scale 3 weight, grams
-    R1: Union[float, None] = None  # PUMP1 flowrate, mL/min
-    R2: Union[float, None] = None  # PUMP2 flowrate, mL/min
-    R3: Union[float, None] = None  # PUMP3 flowrate, mL/min
+    R1: Union[float, None] = None  # FEED_PUMP flowrate, mL/min
+    R2: Union[float, None] = None  # BUFFER_PUMP flowrate, mL/min
+    R3: Union[float, None] = None  # RETENTATE_PUMP flowrate, mL/min
     PV: Union[
         float, None
     ] = None  # pinch valve percent open, 1. == fully open, 0. == fully closed
@@ -360,8 +356,8 @@ class Data:
         :param debug: bool, if True will print out error info
         :return:
         """
-        pressures = self._devices.SCIP.get_all_values()
-        weights = self._devices.OHSA.get_all_values()
+        pressures = self._devices.PRES_XDCR.psi
+        weights = self._devices.BALANCE.grams
         self.P1 = pressures[TXDCR1_INDEX]
         self.P2 = pressures[TXDCR2_INDEX]
         self.P3 = pressures[TXDCR3_INDEX]
@@ -390,33 +386,32 @@ class Data:
                 time.sleep(0.5)
                 self.update_data(retries=retries - 1)
 
-        self.R1 = self._devices.PUMP1.get_ml_min()[0]
-        if isinstance(self._devices.PUMP2, PeristalticPump):
-            self.R2 = self._devices.PUMP2.get_ml_min()[0]
-        self.R3 = self._devices.PUMP3.get_ml_min()[0]
-        self.PV = self._devices.PV.get_pct_open()[0]
+        self.R1 = self._devices.FEED_PUMP.get_ml_min()[0]
+        if isinstance(self._devices.BUFFER_PUMP, PeristalticPump):
+            self.R2 = self._devices.BUFFER_PUMP.get_ml_min()[0]
+        self.R3 = self._devices.RETENTATE_PUMP.get_ml_min()[0]
+        self.PV = self._devices.PINCH_VALVE.get_pct_open()[0]
         self.timestamp = time.time()
 
         if not self._is_lab_mode:
             balance_rocs = [0, 0, 0, 0]
-            # if PUMP2 is present, use this to drive sim value balance
-            if isinstance(self._devices.PUMP2, PeristalticPump):
+            # if BUFFER PUMP is present, use this to drive sim value balance
+            if isinstance(self._devices.BUFFER_PUMP, PeristalticPump):
                 balance_rocs[SCALE2_INDEX] = (-1 * self.R2) * (
                     1.0 + self._scale2_sim_error_pct
                 )
-            # else, use PUMP3 to drive it
+            # else, use RETENTATE PUMP to drive it
             else:
                 balance_rocs[SCALE2_INDEX] = (-1 * self.R3) * (
                     1.0 + self._scale2_sim_error_pct
                 )
-            balance_rocs[SCALE3_INDEX] = self.R3 * \
-                (1.0 + self._scale3_sim_error_pct)
+            balance_rocs[SCALE3_INDEX] = self.R3 * (1.0 + self._scale3_sim_error_pct)
             balance_rocs[SCALE1_INDEX] = -1 * (
                 balance_rocs[SCALE2_INDEX] + balance_rocs[SCALE3_INDEX]
             )
             # mL/min to mL/s
             balance_rocs = [r / 60.0 for r in balance_rocs]
-            self._devices.OHSA.set_sim_rates_of_change(balance_rocs)
+            self._devices.BALANCE.set_sim_rates_of_change(balance_rocs)
             self._model.calc_pressures()
 
         # save the data to the cache
@@ -487,13 +482,11 @@ class Data:
         for k in keys:
             if k[0] == "timestamp":
                 d.update(
-                    {k[0]: getattr(self, k[0], None).strftime(
-                        "%Y-%m-%dT%H:%M:%S.%f")}
+                    {k[0]: getattr(self, k[0], None).strftime("%Y-%m-%dT%H:%M:%S.%f")}
                 )
             else:
                 d.update(
-                    {k[0]: tff.helpers.format_float(
-                        getattr(self, k[0], None), k[1])}
+                    {k[0]: tff.helpers.format_float(getattr(self, k[0], None), k[1])}
                 )
         return d
 
@@ -529,8 +522,7 @@ class Data:
         try:
             if self._extrapolation_timestamp is not None:
                 scale3_delta_m_g = (
-                    self.R3 / 60.0 * (self.timestamp -
-                                      self._extrapolation_timestamp)
+                    self.R3 / 60.0 * (self.timestamp - self._extrapolation_timestamp)
                 )
 
                 scale3_mass_g = self.W3 + scale3_delta_m_g * (
@@ -538,8 +530,8 @@ class Data:
                 )
 
                 # BUFFER pump, debit this value
-                # if PUMP2 is present, drive with PUMP2
-                if isinstance(self._devices.PUMP2, PeristalticPump):
+                # if BUFFER PUMP is present, drive with BUFFER PUMP
+                if isinstance(self._devices.BUFFER_PUMP, PeristalticPump):
                     scale2_delta_m_g = (
                         self.R2
                         / 60.0
@@ -564,7 +556,7 @@ class Data:
                     1.0 + self._scale1_sim_error_pct
                 )
 
-                self._devices.OHSA.set_sim_weights(
+                self._devices.BALANCE.set_sim_weights(
                     {
                         SCALE1_INDEX: scale1_mass_g,
                         SCALE2_INDEX: scale2_mass_g,
@@ -585,13 +577,13 @@ class Data:
     def init_sim_values(self):
 
         if not self._is_lab_mode:
-            if isinstance(self._devices.OHSA, Balance):
-                self._devices.OHSA.set_sim_noise(noise=(0, 0, 0))
-                self._devices.OHSA.set_sim_values(values=(0.01, 0.01, 0.01, 0))
-                self._devices.OHSA.set_sim_rates_of_change(roc=(0, 0, 0, 0))
+            if isinstance(self._devices.BALANCE, Balance):
+                self._devices.BALANCE.set_sim_noise(noise=(0, 0, 0))
+                self._devices.BALANCE.set_sim_values(values=(0.01, 0.01, 0.01, 0))
+                self._devices.BALANCE.set_sim_rates_of_change(roc=(0, 0, 0, 0))
 
-            if isinstance(self._devices.SCIP, PressureTransducer):
-                self._devices.SCIP.set_sim_values(
+            if isinstance(self._devices.PRES_XDCR, PressureTransducer):
+                self._devices.PRES_XDCR.set_sim_values(
                     values=(
                         (
                             5.0,
@@ -601,7 +593,7 @@ class Data:
                         + 9 * (0,)
                     )
                 )
-                self._devices.SCIP.set_sim_noise(
+                self._devices.PRES_XDCR.set_sim_noise(
                     noise=(
                         (
                             0.01,
@@ -611,4 +603,4 @@ class Data:
                         + 9 * (0,)
                     )
                 )
-                self._devices.OHSA.set_sim_rates_of_change(roc=(12 * (0,)))
+                self._devices.BALANCE.set_sim_rates_of_change(roc=(12 * (0,)))

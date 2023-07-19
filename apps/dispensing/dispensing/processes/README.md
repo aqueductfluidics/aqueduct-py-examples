@@ -1,6 +1,6 @@
-## Processes Directory
+# Processes Directory
 
-### Usage
+## Usage
 
 When creating a new process, the files in this directory are
 intended to serve as building blocks.

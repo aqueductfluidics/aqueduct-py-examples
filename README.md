@@ -10,7 +10,7 @@
 
 This repository contains:
 
-- **Libraries** (`/local/lib` directory), which include application-specific Python classes and methods.
+- **Applications** (`/apps` directory), which include application-specific Python classes and methods.
 
 - **Recipe Script** files (`/local/recipes` directory), which include Python scripts intended to be executed in the Aqueduct platform.
 These Python scripts depend on the Library of the same name (for example, scripts in the `/local/recipes/ph_control`

@@ -1,4 +1,9 @@
 """Simulated Process Model Module"""
+from aqueduct.core.units import PressureUnits
+
+import tff.methods
+import tff.classes
+import tff.data
 
 
 class PressureModel:
@@ -18,22 +23,6 @@ class PressureModel:
         3. calculate P2 assuming atmospheric output pressure and using Cv pinch valve
         4. calculate P1 using P2 and Cv TFF pass through
         5. calculate P3 (permeate) using the expression for TMP
-
-    PUMP1_NAME = "MFPP000001"           # feed pump, Scale1 container to TFF feed
-    PUMP2_NAME = "MFPP000002"           # buffer pump, Scale2 container to Scale1 container
-    PUMP3_NAME = "MFPP000003"           # permeate pump, TFF Perm2 output to Scale3 container
-    OHSA_NAME = "OHSA000001"
-    SCIP_NAME = "SCIP000001"
-    PV_NAME = "PV000001"                # inline between Txdcr2 and Scale1 container
-
-    SCALE1_INDEX = 2                    # feed balance, bottom right connector on Device Node
-    SCALE2_INDEX = 1                    # buffer balance, top right connector on Device Node
-    SCALE3_INDEX = 0                    # permeate balance, bottom left connector on Device Node
-
-    SCIP_INDEX = 0                      # bottom left connector on Device Node
-    TXDCR1_INDEX = 0                    # inline between Pump1 and TFF feed
-    TXDCR2_INDEX = 1                    # inline between TFF retentate and pinch valve
-    TXDCR3_INDEX = 2                    # inline between TFF Perm2 and Pump3
 
     :ivar filtration_start_time: Start time of the filtration process.
     :vartype filtration_start_time: float
@@ -184,10 +173,11 @@ class PressureModel:
         p1 = self.calc_p1(self._data.R1, self._data.PV, p2)
         p3 = PressureModel.calc_p3(p1, p2, self._data.R1, self._data.R3)
         p1, p2, p3 = min(p1, 50), min(p2, 50), min(p3, 50)
-        self._devices.SCIP.set_sim_values(
+        self._devices.PRES_XDCR.set_sim_values(
             values=(
                 p1,
                 p2,
                 p3,
-            )
+            ),
+            units=PressureUnits.PSI
         )

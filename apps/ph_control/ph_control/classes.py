@@ -27,9 +27,9 @@ class Devices:
     Class with members to contain each Aqueduct Device
     Object in the Setup.
 
-    PUMP0 is the peristaltic pump dedicated to the addition of base for station 0 
-    PUMP1 is the peristaltic pump dedicated to the addition of base for station 1 
-    PUMP2 is the peristaltic pump dedicated to the addition of base for station 2 
+    PUMP0 is the peristaltic pump dedicated to the addition of base for station 0
+    PUMP1 is the peristaltic pump dedicated to the addition of base for station 1
+    PUMP2 is the peristaltic pump dedicated to the addition of base for station 2
     PH_PROBE is the 3 x pH probe with one input active (device type PH3)
     """
 
@@ -414,7 +414,7 @@ class Data:
         :return: None
         """
         self._aqueduct.log(
-            "pH_0: {0}, pH_1: {1}, pH_2: {2}".format(
+            "pH_0: {}, pH_1: {}, pH_2: {}".format(
                 format_float(self.pH_0, 3),
                 format_float(self.pH_1, 3),
                 format_float(self.pH_2, 3),

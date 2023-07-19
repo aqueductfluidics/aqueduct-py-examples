@@ -134,14 +134,14 @@ def calc_maximum_flowrate_ul_min(
     """
     if pump_series == 2:
         if resolution in (0, 1):
-            return syringe_volume_ul / 6000.0 * 60
+            return syringe_volume_ul / 6000.0 * 60 * 6000
         if resolution in (2,):
-            return syringe_volume_ul / 48000.0 * 60
+            return syringe_volume_ul / 48000.0 * 60 * 6000
     elif pump_series == 3:
         if resolution in (0, 1):
-            return syringe_volume_ul / 24000.0 * 60
+            return syringe_volume_ul / 24000.0 * 60 * 6000
         if resolution in (2,):
-            return syringe_volume_ul / 192000.0 * 60
+            return syringe_volume_ul / 192000.0 * 60 * 6000
     return 0.0
 
 
@@ -234,3 +234,182 @@ def optimize_flowrates_to_target_ratio(
         pprint.pprint(results)
 
     return tuple(results)
+
+
+class DataRow:
+    """
+    Represents a data row with information about total volume, pump index, and chemical name.
+
+    :param total_volume_ml: The total volume in milliliters.
+    :type total_volume_ml: float
+    :param pump_index: The pump index.
+    :type pump_index: int
+    :param chemical_name: The name of the chemical.
+    :type chemical_name: str
+    """
+
+    total_volume_ml: float
+    pump_index: int
+    chemical_name: str
+
+    def __init__(self, total_volume_ml: float, pump_index: int, chemical_name: str):
+        self.total_volume_ml = total_volume_ml
+        self.pump_index = pump_index
+        self.chemical_name = chemical_name
+
+
+class TimeAndRate:
+    """
+    Represents time and rate information.
+
+    :param minutes: The time in minutes.
+    :type minutes: float
+    :param ul_min: The rate in microliters per minute.
+    :type ul_min: float
+    """
+
+    minutes: float
+    ul_min: float
+
+    def __init__(self, minutes: float, ul_min: float):
+        self.minutes = minutes
+        self.ul_min = ul_min
+
+
+def extract_total_volume_and_pump_index(
+    data: list,
+    station: int,
+    chem: int,
+) -> DataRow:
+    """
+    Extract
+        - the total volume (in mL)
+        - pump index (an integer)
+        - chemical name
+
+    from the template CSV for the timed dispense protocol.
+
+    The function expects
+      :param: data: List[List[dict]]
+        - [
+            [
+                ...
+                {'value': 'MonomerA', 'name': 'Chem2', 'index': 30},
+                {'value': '0', 'name': 'Pump_Chem2', 'index': 31},
+                {'value': '12.5', 'name': 'Syringe_Chem2(mL)', 'index': 32},
+                {'value': '40', 'name': 'Chem2(mL)', 'index': 33},
+                {'value': '1', 'name': 'Chem2_time1(min)', 'index': 34},
+                {'value': '4000', 'name': 'Chem2_rate1(uL/min)', 'index': 35},
+                ...
+            ]
+            ,
+        ]
+
+        :param: station: int - the station index (0-5, for up to six stations) to extract
+        :param: chem: int - the chemical (1 or 2) to extract
+    """
+    volume_key = f"Chem{chem}(mL)"
+    pump_key = f"Pump_Chem{chem}"
+
+    if chem == 1:
+        name_key = 'Chem1 "initiator"'
+    else:
+        name_key = 'Chem2 "monomer"'
+
+    index = next(
+        (
+            index
+            for (index, d) in enumerate(data[station])
+            if d.get("name") == volume_key
+        ),
+        None,
+    )
+    volume_ml = float(data[station][index].get("value"))
+
+    index = next(
+        (index for (index, d) in enumerate(data[station]) if d.get("name") == pump_key),
+        None,
+    )
+    pump_index = int(data[station][index].get("value"))
+
+    index = next(
+        (index for (index, d) in enumerate(data[station]) if d.get("name") == name_key),
+        None,
+    )
+    name = data[station][index].get("value")
+
+    return DataRow(volume_ml, pump_index, name)
+
+
+def extract_time_and_rate(
+    data: list, station: int, chem: int, slot: int
+) -> TimeAndRate:
+    """
+    Extract the time (in minutes) and rate (in uL/min) from the template CSV for the
+    timed dispense protocol.
+
+    The function expects
+      :param: data: List[List[dict]]
+        - [
+            [
+                {'value': 'R1-A', 'name': 'ELN', 'index': 0},
+                {'value': '1', 'name': 'Reactor', 'index': 1},
+                {'value': '80', 'name': 'Temp(C)', 'index': 2},
+                {'value': '2', 'name': 'time_polym(h)', 'index': 3},
+                {'value': '5', 'name': 'Heel_Chem(g)', 'index': 4},
+                {'value': '25', 'name': 'Heel_Water(mL)', 'index': 5},
+                {'value': 'Initiator1', 'name': 'Chem1', 'index': 6},
+                {'value': '6', 'name': 'Pump_Chem1', 'index': 7},
+                {'value': '12.5', 'name': 'Syringe_Chem1(mL)', 'index': 8},
+                {'value': '6', 'name': 'Chem1(mL)', 'index': 9},
+                {'value': '1', 'name': 'Chem1_time1(min)', 'index': 10},
+                {'value': '600', 'name': 'Chem1_rate1(uL/min)', 'index': 11},
+                {'value': '60', 'name': 'Chem1_time2(min)', 'index': 12},
+                {'value': '80', 'name': 'Chem1_rate2(uL/min)', 'index': 13},
+                {'value': '30', 'name': 'Chem1_time3(min)', 'index': 14},
+                {'value': '20', 'name': 'Chem1_rate3(uL/min)', 'index': 15},
+                {'value': '1', 'name': 'Chem1_time4(min)', 'index': 16},
+                {'value': '600', 'name': 'Chem1_rate4(uL/min)', 'index': 17},
+                {'value': '60', 'name': 'Chem1_time5(min)', 'index': 18},
+                {'value': '80', 'name': 'Chem1_rate5(uL/min)', 'index': 19},
+                {'value': '30', 'name': 'Chem1_time6(min)', 'index': 20},
+                {'value': '20', 'name': 'Chem1_rate6(uL/min)', 'index': 21},
+                {'value': '1', 'name': 'Chem1_time7(min)', 'index': 22},
+                {'value': '600', 'name': 'Chem1_rate7(uL/min)', 'index': 23},
+                {'value': '60', 'name': 'Chem1_time8(min)', 'index': 24},
+                {'value': '80', 'name': 'Chem1_rate8(uL/min)', 'index': 25},
+                {'value': '30', 'name': 'Chem1_time9(min)', 'index': 26},
+                {'value': '20', 'name': 'Chem1_rate9(uL/min)', 'index': 27},
+                {'value': '30', 'name': 'Chem1_time10(min)', 'index': 28},
+                {'value': '20', 'name': 'Chem1_rate10(uL/min)', 'index': 29},
+                {'value': 'MonomerA', 'name': 'Chem2', 'index': 30},
+                {'value': '0', 'name': 'Pump_Chem2', 'index': 31},
+                {'value': '12.5', 'name': 'Syringe_Chem2(mL)', 'index': 32},
+                {'value': '40', 'name': 'Chem2(mL)', 'index': 33},
+                {'value': '1', 'name': 'Chem2_time1(min)', 'index': 34},
+                {'value': '4000', 'name': 'Chem2_rate1(uL/min)', 'index': 35},
+                ...
+            ]
+            ,
+        ]
+
+        :param: station: int - the station index (0-5, for up to six stations) to extract
+        :param: chem: int - the chemical (1 or 2) to extract
+        :param: slot: int - (1-10) for the time slot, !!! don't use 0 !!!
+    """
+    time_key = f"Chem{chem}_time{slot}(min)"
+    rate_key = f"Chem{chem}_rate{slot}(uL/min)"
+
+    index = next(
+        (index for (index, d) in enumerate(data[station]) if d.get("name") == time_key),
+        None,
+    )
+    minutes = float(data[station][index].get("value"))
+
+    index = next(
+        (index for (index, d) in enumerate(data[station]) if d.get("name") == rate_key),
+        None,
+    )
+    ul_min = float(data[station][index].get("value"))
+
+    return TimeAndRate(minutes, ul_min)

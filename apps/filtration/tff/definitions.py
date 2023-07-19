@@ -1,11 +1,13 @@
 """Definitions Module"""
 
-PUMP1_NAME = "MFPP000001"  # feed pump, Scale1 container to TFF feed
-PUMP2_NAME = "MFPP000002"  # buffer pump, Scale2 container to Scale1 container
-PUMP3_NAME = "MFPP000003"  # permeate pump, TFF Perm2 output to Scale3 container
-OHSA_NAME = "OHSA000001"
-SCIP_NAME = "SCIP000001"
-PV_NAME = "PV000001"  # inline between Txdcr2 and Scale1 container
+FEED_PUMP_NAME = "FEED PUMP"  # feed pump, Scale1 container to TFF feed
+# buffer pump, Scale2 container to Scale1 container
+BUFFER_PUMP_NAME = "BUFFER PUMP"
+# permeate pump, TFF Perm2 output to Scale3 container
+PERMEATE_PUMP_NAME = "PERMEATE PUMP"
+BALANCE_NAME = "BALANCES"
+PRES_XDCRS_NAME = "PRES XDCRS"
+PINCH_VALVE_NAME = "PINCH VALVE"  # inline between Txdcr2 and Scale1 container
 
 SCALE1_INDEX = 2  # feed balance, bottom right connector on Device Node
 SCALE2_INDEX = 1  # buffer balance, top right connector on Device Node

@@ -19,16 +19,16 @@ from aqueduct.devices.pressure import PressureTransducer
 from aqueduct.devices.pump import PeristalticPump
 from aqueduct.devices.pump.peristaltic import Status
 from aqueduct.devices.valve import PinchValve
-from tff.definitions import OHSA_NAME
-from tff.definitions import PUMP1_NAME
-from tff.definitions import PUMP2_NAME
-from tff.definitions import PUMP3_NAME
-from tff.definitions import PV_NAME
+from tff.definitions import BALANCE_NAME
+from tff.definitions import FEED_PUMP_NAME
+from tff.definitions import BUFFER_PUMP_NAME
+from tff.definitions import PERMEATE_PUMP_NAME
+from tff.definitions import PINCH_VALVE_NAME
 from tff.definitions import SCALE1_INDEX
 from tff.definitions import SCALE2_INDEX
 from tff.definitions import SCALE3_INDEX
 from tff.definitions import SCIP_INDEX
-from tff.definitions import SCIP_NAME
+from tff.definitions import PRES_XDCRS_NAME
 from tff.definitions import STATUS_TARGET_MASS_HIT
 from tff.definitions import TXDCR1_INDEX
 from tff.definitions import TXDCR2_INDEX
@@ -45,21 +45,21 @@ class Devices:
     class attribute in the `Devices` class.
 
     Attributes:
-        - `PUMP1`: MasterFlex pump between scale 1 and the TFF cartridge input (feed pump).
-        - `PUMP2`: MasterFlex pump between scale 2 and scale 1 (buffer pump). Can be `None` in the 2 pump config.
-        - `PUMP3`: MasterFlex pump between the TFF outlet and scale 3 (retentate pump).
-        - `PV`: Pinch valve that controls the backpressure across the TFF membrane.
-        - `OHSA`: Aqueduct Device that interfaces with 3 Ohaus Adventurer balances.
-        - `SCIP`: Aqueduct Device that interfaces with 3 Parker SciLog SciPres transducers.
+        - `FEED_PUMP`: pump between scale 1 and the TFF cartridge input (feed pump).
+        - `BUFFER_PUMP`: pump between scale 2 and scale 1 (buffer pump). Can be `None` in the 2 pump config.
+        - `RETENTATE_PUMP`: pump between the TFF outlet and scale 3 (retentate pump).
+        - `PRES_XDCR`: Aqueduct Device that interfaces with pressure transducers.
+        - `BALANCE`: Aqueduct Device that interfaces with balances.
+        - `PINCH_VALVE`: Pinch valve that controls the backpressure across the TFF membrane.
 
     """
 
-    PUMP1: PeristalticPump = None
-    PUMP2: PeristalticPump = None
-    PUMP3: PeristalticPump = None
-    SCIP: PressureTransducer = None
-    OHSA: Balance = None
-    PV: PinchValve = None
+    FEED_PUMP: PeristalticPump = None
+    BUFFER_PUMP: PeristalticPump = None
+    RETENTATE_PUMP: PeristalticPump = None
+    PRES_XDCR: PressureTransducer = None
+    BALANCE: Balance = None
+    PINCH_VALVE: PinchValve = None
 
     def __init__(self, aq: Aqueduct):
         """
@@ -68,12 +68,12 @@ class Devices:
         Args:
             aq (Aqueduct): The Aqueduct instance.
         """
-        self.PUMP1 = aq.devices.get(PUMP1_NAME)
-        self.PUMP2 = aq.devices.get(PUMP2_NAME)
-        self.PUMP3 = aq.devices.get(PUMP3_NAME)
-        self.OHSA = aq.devices.get(OHSA_NAME)
-        self.SCIP = aq.devices.get(SCIP_NAME)
-        self.PV = aq.devices.get(PV_NAME)
+        self.FEED_PUMP = aq.devices.get(FEED_PUMP_NAME)
+        self.BUFFER_PUMP = aq.devices.get(BUFFER_PUMP_NAME)
+        self.RETENTATE_PUMP = aq.devices.get(PERMEATE_PUMP_NAME)
+        self.BALANCE = aq.devices.get(BALANCE_NAME)
+        self.PRES_XDCR = aq.devices.get(PRES_XDCRS_NAME)
+        self.PINCH_VALVE = aq.devices.get(PINCH_VALVE_NAME)
 
 
 class Setpoints:
@@ -89,6 +89,8 @@ class Setpoints:
         k_p (Setpoint): Setpoint for the proportional PID constant.
         k_i (Setpoint): Setpoint for the integral PID constant.
         k_d (Setpoint): Setpoint for the derivative PID constant.
+        feed_scale_control_active (Setpoint): Setpoint for feed scale control activation.
+        feed_scale_target_mass_g (Setpoint): = Setpoint for feed scale target mass (g).
     """
 
     pinch_valve_control_active: Setpoint = None
@@ -96,6 +98,9 @@ class Setpoints:
     k_p: Setpoint = None
     k_i: Setpoint = None
     k_d: Setpoint = None
+
+    feed_scale_control_active: Setpoint = None
+    feed_scale_target_mass_g: Setpoint = None
 
     _aqueduct: Aqueduct = None
 
@@ -130,6 +135,14 @@ class Setpoints:
             name="k_d",
             value=0.0,
             dtype=float.__name__,
+        )
+
+        self.feed_scale_control_active = self._aqueduct.setpoint(
+            "feed_scale_control_active", False, bool.__name__
+        )
+
+        self.feed_scale_target_mass_g = self._aqueduct.setpoint(
+            "feed_scale_target_mass_g", 0, float.__name__
         )
 
 
@@ -213,12 +226,12 @@ class Watchdog:
         """
         Turn off all alarms.
         """
-        self.over_pressure_alarm.active = False
-        self.low_pressure_alarm.active = False
-        self.vacuum_condition_alarm.active = False
-        self.low_buffer_vessel_alarm.active = False
-        self.low_retentate_vessel_alarm.active = False
-        self.volume_accumulation_alarm.active = False
+        self.over_pressure_alarm.off()
+        self.low_pressure_alarm.off()
+        self.vacuum_condition_alarm.off()
+        self.low_buffer_vessel_alarm.off()
+        self.low_retentate_vessel_alarm.off()
+        self.volume_accumulation_alarm.off()
 
     def check_alarms(self):
         """
@@ -481,6 +494,9 @@ class Process:
         if isinstance(self.watchdog, Watchdog):
             self.watchdog.assign_process_to_alarms(self)
 
+        if isinstance(self._setpoints, Setpoints):
+            self.bind_setpoints()
+
         self._model = tff.models.PressureModel(
             aqueduct=self.aqueduct,
             devices_obj=self.devices,
@@ -554,27 +570,27 @@ class Process:
         :rtype: Union[float, None]
         """
         if self.current_phase == self.INITIAL_CONC_PHASE:
-            if pump_name == PUMP1_NAME:
+            if pump_name == FEED_PUMP_NAME:
                 return self.init_conc_pump_1_target_flowrate_ml_min
-            elif pump_name == PUMP2_NAME:
+            elif pump_name == BUFFER_PUMP_NAME:
                 return self.init_conc_pump_2_target_flowrate_ml_min
-            elif pump_name == PUMP3_NAME:
+            elif pump_name == PERMEATE_PUMP_NAME:
                 return self.init_conc_pump_3_target_flowrate_ml_min
 
         if self.current_phase == self.DIAFILT_PHASE:
-            if pump_name == PUMP1_NAME:
+            if pump_name == FEED_PUMP_NAME:
                 return self.diafilt_pump_1_target_flowrate_ml_min
-            elif pump_name == PUMP2_NAME:
+            elif pump_name == BUFFER_PUMP_NAME:
                 return self.diafilt_pump_2_target_flowrate_ml_min
-            elif pump_name == PUMP3_NAME:
+            elif pump_name == PERMEATE_PUMP_NAME:
                 return self.diafilt_pump_3_target_flowrate_ml_min
 
         if self.current_phase == self.FINAL_CONC_PHASE:
-            if pump_name == PUMP1_NAME:
+            if pump_name == FEED_PUMP_NAME:
                 return self.final_conc_pump_1_target_flowrate_ml_min
-            elif pump_name == PUMP2_NAME:
+            elif pump_name == BUFFER_PUMP_NAME:
                 return self.final_conc_pump_2_target_flowrate_ml_min
-            elif pump_name == PUMP3_NAME:
+            elif pump_name == PERMEATE_PUMP_NAME:
                 return self.final_conc_pump_3_target_flowrate_ml_min
 
     def get_target_mass(self) -> Union[float, None]:
@@ -591,6 +607,20 @@ class Process:
             return self.diafilt_target_mass_g
         elif self.current_phase == self.FINAL_CONC_PHASE:
             return self.final_conc_target_mass_g
+
+    def bind_setpoints(self):
+        # callback function for a change in the feed_scale_target_mass_g setpoint
+        self._setpoints.feed_scale_target_mass_g.on_change = (
+            self._watchdog.volume_accumulation_alarm.update_scale_1_target_mass_from_value
+        )
+
+        self._setpoints.feed_scale_target_mass_g.kwargs = dict(
+            sp=self._setpoints.feed_scale_target_mass_g
+        )
+
+        self._watchdog.volume_accumulation_alarm._setpoint = (
+            self._setpoints.feed_scale_control_active
+        )
 
     def set_quick_run_params(
         self, speed: str = "fast", accelerate_watchdog: bool = True
@@ -692,32 +722,28 @@ class Process:
 
         All Pumps begin at 0% flow
         Pinch Valve 30% open
-        Start reading SCIP and OHSA devices at 1 s interval
         """
 
         print("[PHASE (INIT)] Initializing Operation...")
 
         print("[PHASE (INIT)] Stopping all Pumps.")
 
-        self.devices.PUMP1.stop()
+        self.devices.FEED_PUMP.stop()
 
         if (
-            isinstance(self.devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.BUFFER_PUMP, PeristalticPump)
             and self.two_pump_config is False
         ):
-            self.devices.PUMP2.stop()
+            self.devices.BUFFER_PUMP.stop()
 
-        self.devices.PUMP3.stop()
+        self.devices.RETENTATE_PUMP.stop()
 
-        tff.methods.set_pinch_valve(self.devices.PV, self.pinch_valve_init_pct_open)
+        tff.methods.set_pinch_valve(
+            self.devices.PINCH_VALVE, self.pinch_valve_init_pct_open)
 
-        # start reading the outputs of the Parker SciLog
-        # at an interval of once per second
-        self.devices.SCIP.update_record(True)
+        self.devices.PRES_XDCR.update_record(True)
 
-        # start reading the outputs of the OHSA balance device
-        # at an interval of once per second
-        self.devices.OHSA.update_record(True)
+        self.devices.BALANCE.update_record(True)
 
     def do_initial_conc_prompts(self):
         """
@@ -768,7 +794,7 @@ class Process:
 
             # tare scale 2
             print("[PHASE (INIT)] Taring SCALE2.")
-            self.devices.OHSA.tare(SCALE2_INDEX)
+            self.devices.BALANCE.tare(SCALE2_INDEX)
 
             # prompt operator to pour product into buffer vessel, press prompt to continue
             self._aqueduct.prompt(
@@ -786,7 +812,7 @@ class Process:
 
             # tare scale 3
             print("[PHASE (INIT)] Taring SCALE3.")
-            self.devices.OHSA.tare(SCALE3_INDEX)
+            self.devices.BALANCE.tare(SCALE3_INDEX)
 
             # Aqueduct input for the Polysaccharide mass
             ipt = self._aqueduct.input(
@@ -860,7 +886,7 @@ class Process:
         :return: None
         """
         if (
-            isinstance(self.devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.BUFFER_PUMP, PeristalticPump)
             and self.two_pump_config is False
         ):
 
@@ -882,7 +908,7 @@ class Process:
 
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
-            self.devices.OHSA.tare(SCALE1_INDEX)
+            self.devices.BALANCE.tare(SCALE1_INDEX)
             time.sleep(5)
 
             if self.do_prompts:
@@ -903,9 +929,10 @@ class Process:
 
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
-            self.devices.OHSA.tare(SCALE1_INDEX)
+            self.devices.BALANCE.tare(SCALE1_INDEX)
 
-            tff.methods.start_pump(self.devices.PUMP2, 50.0, Status.Clockwise)
+            tff.methods.start_pump(
+                self.devices.BUFFER_PUMP, 50.0, Status.Clockwise)
 
             self.data.update_data(debug=True, pause_on_error=True)
             time_start = time.time()
@@ -917,7 +944,7 @@ class Process:
 
                 # check to see whether we've timed out
                 if time.time() > timeout:
-                    self.devices.PUMP2.stop()
+                    self.devices.BUFFER_PUMP.stop()
                     self.data.update_data()
                     print("[PHASE (INIT)] Transfer complete.")
                     time.sleep(2)
@@ -932,7 +959,7 @@ class Process:
                     isinstance(self.data.W1, float)
                     and self.data.W1 > self.initial_transfer_volume
                 ):
-                    self.devices.PUMP2.stop()
+                    self.devices.BUFFER_PUMP.stop()
                     self.data.update_data()
                     print("[PHASE (INIT)] Transfer complete.")
                     time.sleep(2)
@@ -985,7 +1012,7 @@ class Process:
 
             # tare scale 1
             print("[PHASE (INIT)] Taring SCALE1.")
-            self.devices.OHSA.tare(SCALE1_INDEX)
+            self.devices.BALANCE.tare(SCALE1_INDEX)
 
             if self.do_prompts:
                 # prompt operator to pour product into feed vessel, press prompt to continue
@@ -1018,8 +1045,8 @@ class Process:
         print("[PHASE (INIT)] Beginning Initial Concentration Step 1: Pump 1 Ramp Up.")
         tff.methods.pump_ramp(
             interval_s=1,
-            pump=self.devices.PUMP1,
-            pump_name="PUMP1",
+            pump=self.devices.FEED_PUMP,
+            pump_name="FEED_PUMP",
             start_flowrate_ml_min=self.init_conc_pump_1_target_flowrate_ml_min / 2,
             end_flowrate_ml_min=self.init_conc_pump_1_target_flowrate_ml_min,
             rate_change_interval_s=self.init_conc_pump1_ramp_interval_s,
@@ -1042,7 +1069,7 @@ class Process:
         """
 
         if (
-            isinstance(self.devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.BUFFER_PUMP, PeristalticPump)
             and self.two_pump_config is False
         ):
             print(
@@ -1058,7 +1085,7 @@ class Process:
         self.data.update_data()
         self.watchdog.volume_accumulation_alarm.set_scale1_target_mass()
 
-        self.devices.SCIP.set_sim_rates_of_change(
+        self.devices.PRES_XDCR.set_sim_rates_of_change(
             roc=(
                 (
                     0.01,
@@ -1172,7 +1199,7 @@ class Process:
             # turn off the volume accumulation alarm
             self.watchdog.volume_accumulation_alarm.off()
 
-            # turn off PV control
+            # turn off PINCH_VALVE control
             self._setpoints.pinch_valve_control_active.update(False)
 
         """
@@ -1186,17 +1213,17 @@ class Process:
 
         print("[PHASE (INIT)] Initial Concentration Step complete.")
 
-        # Set PUMP2 (if present) and PUMP3 to no flow. Pump 1 will continue to operate at
+        # Set BUFFER PUMP (if present) and RETENTATE_PUMP to no flow. FEED PUMP will continue to operate at
         # target flowrate between Concentration and Diafiltration
         if (
-            isinstance(self.devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.BUFFER_PUMP, PeristalticPump)
             and self.two_pump_config is False
         ):
-            print("[PHASE (INIT)] Stopping PUMP2 and PUMP3.")
-            self.devices.PUMP2.stop()
+            print("[PHASE (INIT)] Stopping BUFFER PUMP and RETENTATE PUMP.")
+            self.devices.BUFFER_PUMP.stop()
         else:
-            print("[PHASE (INIT)] Stopping PUMP3.")
-        self.devices.PUMP3.stop()
+            print("[PHASE (INIT)] Stopping RETENTATE PUMP.")
+        self.devices.RETENTATE_PUMP.stop()
         self.data.update_data()
 
         # time delay to allow for pumps to decelerate to a stop before
@@ -1228,13 +1255,13 @@ class Process:
         """
         # tare scale 3
         print("[PHASE (INIT->DIA)] Taring SCALE3.")
-        self.devices.OHSA.tare(SCALE3_INDEX)
+        self.devices.BALANCE.tare(SCALE3_INDEX)
         time.sleep(5)
 
         # open pinch valve
         print("[PHASE (INIT->DIA)] Opening pinch valve.")
 
-        tff.methods.set_pinch_valve(self.devices.PV, 0.3)
+        tff.methods.set_pinch_valve(self.devices.PINCH_VALVE, 0.3)
 
         if self.do_prompts:
 
@@ -1256,7 +1283,7 @@ class Process:
                 )
 
             # tare scale 2 after empty vessel is placed on it
-            self.devices.OHSA.tare(SCALE2_INDEX)
+            self.devices.BALANCE.tare(SCALE2_INDEX)
 
             # prompt operator to pour liquid into vessel, press prompt to continue
             p = self._aqueduct.prompt(
@@ -1320,7 +1347,8 @@ class Process:
         self.data.update_data()
         self.watchdog.volume_accumulation_alarm.set_scale1_target_mass()
 
-        print("[PHASE (DIA)] Beginning Diafiltration Step 1: PUMP2 and PUMP3 Ramp Up.")
+        print(
+            "[PHASE (DIA)] Beginning Diafiltration Step 1: BUFFER PUMP and RETENTATE PUMP Ramp Up.")
         status = tff.methods.pumps_2_and_3_ramp(
             interval_s=1,
             pump2_start_flowrate_ml_min=self.diafilt_pump_2_target_flowrate_ml_min / 2,
@@ -1429,17 +1457,17 @@ class Process:
 
         print("[PHASE (DIA)] Diafiltration Step complete.")
 
-        # Set PUMP2 (if present) and PUMP3 to no flow. Pump 1 will continue to operate at
+        # Set BUFFER PUMP (if present) and RETENTATE PUMP to no flow. Pump 1 will continue to operate at
         # target flowrate between Diafiltration and Final Conc.
         if (
-            isinstance(self.devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.BUFFER_PUMP, PeristalticPump)
             and self.two_pump_config is False
         ):
-            print("[PHASE (DIA)] Stopping PUMP2 and PUMP3.")
-            self.devices.PUMP2.stop()
+            print("[PHASE (DIA)] Stopping BUFFER PUMP and RETENTATE PUMP.")
+            self.devices.BUFFER_PUMP.stop()
         else:
-            print("[PHASE (DIA)] Stopping PUMP3.")
-        self.devices.PUMP3.stop()
+            print("[PHASE (DIA)] Stopping RETENTATE PUMP.")
+        self.devices.RETENTATE_PUMP.stop()
         self.data.update_data()
 
         # time delay to allow for pumps to decelerate to a stop before
@@ -1472,12 +1500,12 @@ class Process:
 
         # tare permeate scale
         print("[PHASE (DIA->FINAL)] Taring SCALE3 (permeate scale).")
-        self.devices.OHSA.tare(SCALE3_INDEX)
+        self.devices.BALANCE.tare(SCALE3_INDEX)
         time.sleep(5)
 
         # open pinch valve
         print("[PHASE (DIA->FINAL)] Opening pinch valve.")
-        tff.methods.set_pinch_valve(self.devices.PV, 0.4)
+        tff.methods.set_pinch_valve(self.devices.PINCH_VALVE, 0.4)
 
         if self.do_prompts:
             # Aqueduct input for final concentration target
@@ -1540,12 +1568,13 @@ class Process:
         # turn off the underpressure alarms
         self.watchdog.low_pressure_alarm.off()
 
-        print("[PHASE (FINAL)] Beginning Final Concentration Step 1: PUMP3 Ramp Up.")
+        print(
+            "[PHASE (FINAL)] Beginning Final Concentration Step 1: RETENTATE PUMP Ramp Up.")
 
         status = tff.methods.pump_ramp(
             interval_s=1,
-            pump=self.devices.PUMP3,
-            pump_name="PUMP3",
+            pump=self.devices.RETENTATE_PUMP,
+            pump_name="RETENTATE PUMP",
             start_flowrate_ml_min=self.final_conc_pump_3_target_flowrate_ml_min / 2,
             end_flowrate_ml_min=self.final_conc_pump_3_target_flowrate_ml_min,
             rate_change_interval_s=self.final_conc_pump3_ramp_interval_s,
@@ -1566,7 +1595,7 @@ class Process:
         """
         if status != STATUS_TARGET_MASS_HIT:
             print("[PHASE (FINAL)] Setting pinch valve.")
-            tff.methods.set_pinch_valve(self.devices.PV, 0.3)
+            tff.methods.set_pinch_valve(self.devices.PINCH_VALVE, 0.3)
             time.sleep(5)
             print(
                 "[PHASE (FINAL)] Beginning Final Concentration Step 2: Pinch Valve Lock-In."
@@ -1657,14 +1686,14 @@ class Process:
 
         # stop Pumps 2 (if present) and 3
         if (
-            isinstance(self.devices.PUMP2, PeristalticPump)
+            isinstance(self.devices.BUFFER_PUMP, PeristalticPump)
             and self.two_pump_config is False
         ):
-            print("[PHASE (FINAL)] Stopping PUMP2 and PUMP3.")
-            self.devices.PUMP2.stop()
+            print("[PHASE (FINAL)] Stopping BUFFER PUMP and RETENTATE PUMP.")
+            self.devices.BUFFER_PUMP.stop()
         else:
-            print("[PHASE (FINAL)] Stopping PUMP3.")
-        self.devices.PUMP3.stop()
+            print("[PHASE (FINAL)] Stopping RETENTATE PUMP.")
+        self.devices.RETENTATE_PUMP.stop()
 
         # time delay to allow for pumps to decelerate to a stop before
         # recording final conc mass
@@ -1725,8 +1754,8 @@ class Process:
             )
 
         # stop Pump 1
-        print("[PHASE (CLN)] Stopping PUMP1.")
-        self.devices.PUMP1.stop()
+        print("[PHASE (CLN)] Stopping FEED_PUMP.")
+        self.devices.FEED_PUMP.stop()
 
     def do_wash(self):
         """
@@ -1734,11 +1763,10 @@ class Process:
             Recovery Wash
         *********************
         append the process info to the log file
-        save the log file
         Execute recovery wash of filter
-        Stop Pump 1
-        Stop reading in data from the OHSA and SCIP devices
+        Stop Feed Pump
         """
+        self.data.update_data()
 
         # prompt operator to set up recovery flush
         _p = self._aqueduct.prompt(
@@ -1749,10 +1777,12 @@ class Process:
 
         # start Pump !
         tff.methods.start_pump(
-            self.devices.PUMP1,
+            self.devices.FEED_PUMP,
             self.init_conc_pump_1_target_flowrate_ml_min,
             Status.Clockwise,
         )
+
+        self.data.update_data()
 
         # clear the trailing rates cache
         self.data.clear_cache()
@@ -1787,12 +1817,13 @@ class Process:
                 seconds_left = tff.helpers.format_float(
                     (timeout - datetime.datetime.utcnow()).total_seconds(), 1
                 )
-                print(f"[PHASE (WASH)] Washing for {seconds_left} more seconds...")
+                print(
+                    f"[PHASE (WASH)] Washing for {seconds_left} more seconds...")
                 counter = 0
 
         # stop Pump 1
-        print("[PHASE (WASH)] Stopping PUMP1.")
-        self.devices.PUMP1.stop()
+        print("[PHASE (WASH)] Stopping FEED_PUMP.")
+        self.devices.FEED_PUMP.stop()
 
         self.data.update_data()
 
@@ -1864,13 +1895,13 @@ class Process:
 
         def reset_sim_pressures_to_3_psi():
             for _ in [TXDCR1_INDEX, TXDCR2_INDEX, TXDCR3_INDEX]:
-                self.devices.SCIP.set_sim_pressures((3, 3, 3))
+                self.devices.PRES_XDCR.set_sim_pressures((3, 3, 3))
 
         print("Doing Pump 1 Ramp Up...")
         tff.methods.pump_ramp(
             interval_s=1,
-            pump=self.devices.PUMP1,
-            pump_name="PUMP1",
+            pump=self.devices.FEED_PUMP,
+            pump_name="FEED_PUMP",
             start_flowrate_ml_min=self.pump_1_target_flowrate_ml_min / 2,
             end_flowrate_ml_min=self.pump_1_target_flowrate_ml_min,
             rate_change_interval_s=1,
@@ -1898,7 +1929,7 @@ class Process:
             watchdog=self.watchdog,
         )
 
-        self.devices.SCIP.set_sim_noise((0, 0, 0))
+        self.devices.PRES_XDCR.set_sim_noise((0, 0, 0))
         self.watchdog.over_pressure_alarm.on()
         self.watchdog.low_pressure_alarm.on()
         self.watchdog.vacuum_condition_alarm.on()
@@ -1916,7 +1947,7 @@ class Process:
         for tp in pressures:
             v = SCIP_INDEX * tp[1] * [None]
             v[SCIP_INDEX * tp[1]] = tp[0]
-            self.devices.SCIP.set_sim_pressures(v)
+            self.devices.PRES_XDCR.set_sim_pressures(v)
             time.sleep(1)
 
             while True:

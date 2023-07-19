@@ -5,6 +5,7 @@ import tff.classes
 import tff.data
 import tff.methods
 from aqueduct.core.aq import Aqueduct
+from aqueduct.core.setpoint import Setpoint
 from aqueduct.devices.pump import PeristalticPump
 
 
@@ -39,6 +40,10 @@ class Alarm:
         self._aqueduct: Aqueduct = aqueduct_obj
         return
 
+    def is_active(self) -> bool:
+        """ Returns whether the alarm is active """
+        return self.active
+
     def check(self):
         """
         Method common to all Alarms that
@@ -50,7 +55,7 @@ class Alarm:
 
         :return:
         """
-        if self.active:
+        if self.is_active():
             if self.condition():
                 # this should pause the recipe
                 self.handle()
@@ -187,21 +192,21 @@ class OverPressureAlarm(Alarm):
         )
         self.cached_pump1_rate_ml_min = self._data.R1
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
-        self._devices.PUMP1.stop()
+        self._devices.FEED_PUMP.stop()
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+            self._devices.BUFFER_PUMP.stop()
+        self._devices.RETENTATE_PUMP.stop()
 
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             prompt = self._aqueduct.prompt(
@@ -238,8 +243,8 @@ class OverPressureAlarm(Alarm):
 
         tff.methods.pump_ramp(
             interval_s=1,
-            pump=self._devices.PUMP1,
-            pump_name="PUMP1",
+            pump=self._devices.FEED_PUMP,
+            pump_name="FEED_PUMP",
             start_flowrate_ml_min=self.cached_pump1_rate_ml_min / 2,
             end_flowrate_ml_min=self.cached_pump1_rate_ml_min * 0.9,
             rate_change_interval_s=self._pump_1_rate_change_interval_s,
@@ -270,7 +275,7 @@ class LowP3PressureAlarm(Alarm):
     """
     Condition: if P3 < 0.3 psig && P3 >= -3.0
 
-    Handle: Stop PUMP2/PUMP3
+    Handle: Stop BUFFER/RETENTATE Pumps
 
     Restart:
 
@@ -317,7 +322,7 @@ class LowP3PressureAlarm(Alarm):
 
         print("[***ALARM***] Underpressure P3 alarm raised!")
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             print("[ALARM (UNDERPRESSURE)] Stopping Pumps 2 and 3.")
@@ -326,23 +331,23 @@ class LowP3PressureAlarm(Alarm):
 
         self.cached_pump1_rate_ml_min = self._data.R1
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+            self._devices.BUFFER_PUMP.stop()
+        self._devices.RETENTATE_PUMP.stop()
 
         # small time delay
         time.sleep(5)
 
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             print(
@@ -441,21 +446,21 @@ class VacuumConditionAlarm(Alarm):
         )
         self.cached_pump1_rate_ml_min = self._data.R1
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
-        self._devices.PUMP1.stop()
+        self._devices.FEED_PUMP.stop()
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+            self._devices.BUFFER_PUMP.stop()
+        self._devices.RETENTATE_PUMP.stop()
 
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             prompt = self._aqueduct.prompt(
@@ -494,8 +499,8 @@ class VacuumConditionAlarm(Alarm):
 
         tff.methods.pump_ramp(
             interval_s=1,
-            pump=self._devices.PUMP1,
-            pump_name="PUMP1",
+            pump=self._devices.FEED_PUMP,
+            pump_name="FEED_PUMP",
             start_flowrate_ml_min=self.cached_pump1_rate_ml_min / 2,
             end_flowrate_ml_min=self.cached_pump1_rate_ml_min,
             rate_change_interval_s=self._pump_1_rate_change_interval_s,
@@ -573,7 +578,7 @@ class BufferVesselEmptyAlarm(Alarm):
         :return:
         """
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             print(
@@ -588,20 +593,20 @@ class BufferVesselEmptyAlarm(Alarm):
 
         self.cached_pump1_rate_ml_min = self._data.R1
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+            self._devices.BUFFER_PUMP.stop()
+        self._devices.RETENTATE_PUMP.stop()
 
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             prompt = self._aqueduct.prompt(
@@ -709,7 +714,7 @@ class RetentateVesselLowAlarm(Alarm):
         :return:
         """
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             print(
@@ -725,21 +730,21 @@ class RetentateVesselLowAlarm(Alarm):
 
         self.cached_pump1_rate_ml_min = self._data.R1
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             self.cached_pump2_rate_ml_min = self._data.R2
         self.cached_pump3_rate_ml_min = self._data.R3
-        self._devices.PUMP1.stop()
+        self._devices.FEED_PUMP.stop()
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
-            self._devices.PUMP2.stop()
-        self._devices.PUMP3.stop()
+            self._devices.BUFFER_PUMP.stop()
+        self._devices.RETENTATE_PUMP.stop()
 
         if (
-            isinstance(self._devices.PUMP2, PeristalticPump)
+            isinstance(self._devices.BUFFER_PUMP, PeristalticPump)
             and self._process.two_pump_config is False
         ):
             prompt = self._aqueduct.prompt(
@@ -776,8 +781,8 @@ class RetentateVesselLowAlarm(Alarm):
 
         tff.methods.pump_ramp(
             interval_s=1,
-            pump=self._devices.PUMP1,
-            pump_name="PUMP1",
+            pump=self._devices.FEED_PUMP,
+            pump_name="FEED_PUMP",
             start_flowrate_ml_min=self.cached_pump1_rate_ml_min / 2,
             end_flowrate_ml_min=self.cached_pump1_rate_ml_min,
             rate_change_interval_s=self._pump_1_rate_change_interval_s,
@@ -860,6 +865,9 @@ class VolumeAccumulationAlarm(Alarm):
     # 2 == adjust buffer pump to force m on feed balance to setpoint at specified rate
     mode = 2
 
+    # control setpoint
+    _setpoint: Setpoint
+
     def condition(self) -> bool:
         """
         If time > last_time + interval
@@ -876,6 +884,9 @@ class VolumeAccumulationAlarm(Alarm):
 
         return False
 
+    def is_active(self) -> bool:
+        return self._setpoint.value
+
     def handle(self):
         """
 
@@ -889,8 +900,8 @@ class VolumeAccumulationAlarm(Alarm):
         if isinstance(rates, tff.data.TrailingRates):
             rates.print()
 
-            # if PUMP2 is present, try to handle the vol. accum
-            if isinstance(self._devices.PUMP2, PeristalticPump):
+            # if BUFFER PUMP is present, try to handle the vol. accum
+            if isinstance(self._devices.BUFFER_PUMP, PeristalticPump):
 
                 try:
 
@@ -924,7 +935,7 @@ class VolumeAccumulationAlarm(Alarm):
 
         :return:
         """
-        self.active = True
+        self._setpoint.update(True)
 
     def off(self) -> None:
         """
@@ -932,8 +943,7 @@ class VolumeAccumulationAlarm(Alarm):
 
         :return:
         """
-        self.active = False
-        self.scale1_target_ml = None
+        self._setpoint.update(False)
 
     def set_scale1_target_mass(self) -> None:
         """
@@ -957,18 +967,36 @@ class VolumeAccumulationAlarm(Alarm):
                     )
                 )
                 self.scale1_target_ml = self._data.W1
+                self._process._setpoints.feed_scale_target_mass_g.update(
+                    self.scale1_target_ml
+                )
                 return
             time.sleep(1)
             self._data.update_data()
             n += 1
 
+    def update_scale_1_target_mass_from_value(self, sp: Setpoint):
+        """
+        Update the target mass value for Scale 1 based on the provided setpoint.
+
+        :param sp: The setpoint containing the target value.
+        :type sp: Setpoint
+        """
+        self.scale1_target_ml = sp.value
+
     def check_max_deviation(self, rates: "tff.data.TrailingRates") -> None:
+        """
+        Check if the deviation between BUFFER PUMP rate and buffer removal rate exceeds the maximum allowable value.
+
+        :param rates: The trailing rates containing the BUFFER PUMP rate and buffer removal rate.
+        :type rates: tff.data.TrailingRates
+        """
         if (
             abs(abs(rates.W2_ml_min) - abs(rates.R2_ml_min))
             > self.pump2_max_deviation_ml_min
         ):
             print(
-                """[CONTROL] Deviation between PUMP2 rate: {} mL/min,
+                """[CONTROL] Deviation between BUFFER PUMP rate: {} mL/min,
             and buffer removal rate, {} mL/min,
             exceeds maximum allowable value of {} mL/min.""".format(
                     rates.R2_ml_min, rates.W2_ml_min, self.pump2_max_deviation_ml_min
@@ -1006,24 +1034,21 @@ class VolumeAccumulationAlarm(Alarm):
                 self._data.R2 * self.max_pump2_adjustment_pct,
                 self.floor_pump2_adjustment_ml_min,
             )
-            pump2_new_rate = min(pump2_new_rate, self._data.R2 + max_adjustment_ml_min)
-            pump2_new_rate = max(pump2_new_rate, self._data.R2 - max_adjustment_ml_min)
+            pump2_new_rate = min(
+                pump2_new_rate, self._data.R2 + max_adjustment_ml_min)
+            pump2_new_rate = max(
+                pump2_new_rate, self._data.R2 - max_adjustment_ml_min)
             pump2_new_rate = round(pump2_new_rate, 2)
 
             if pump2_new_rate is not None and pump2_new_rate > 0:
                 print(
-                    "[CONTROL (MODE {})] changing PUMP2 rate to {} mL/min".format(
+                    "[CONTROL (MODE {})] changing BUFFER PUMP rate to {} mL/min".format(
                         self.mode, tff.helpers.format_float(pump2_new_rate, 2)
                     )
                 )
 
-                commands = self._devices.PUMP2.make_commands()
-                command = PeristalticPump.make_change_speed_command(
-                    rate_value=pump2_new_rate,
-                    rate_units=self._devices.PUMP2.RATE_UNITS.MlMin,
-                )
-                self._devices.PUMP2.set_command(commands, 0, command)
-                self._devices.PUMP2.change_speed(commands)
+                tff.methods.change_pump_speed(
+                    self._devices.BUFFER_PUMP, pump2_new_rate)
 
                 clear_cache = True
 
@@ -1062,22 +1087,26 @@ class VolumeAccumulationAlarm(Alarm):
             # set rate change magnitude to hit setpoint at next scheduled
             # check in
             pump2_rate_magnitude_ml_min = (
-                abs(self._data.W1 - self.scale1_target_ml) / self.scale1_target_time_min
+                abs(self._data.W1 - self.scale1_target_ml) /
+                self.scale1_target_time_min
             )
             pump2_new_rate = (
-                (sign * pump2_rate_magnitude_ml_min) + self._data.R2 - rates.W1_ml_min
+                (sign * pump2_rate_magnitude_ml_min) +
+                self._data.R2 - rates.W1_ml_min
             )
             max_adjustment_ml_min = max(
                 self._data.R2 * self.max_pump2_adjustment_pct,
                 self.floor_pump2_adjustment_ml_min,
             )
-            pump2_new_rate = min(pump2_new_rate, self._data.R2 + max_adjustment_ml_min)
-            pump2_new_rate = max(pump2_new_rate, self._data.R2 - max_adjustment_ml_min)
+            pump2_new_rate = min(
+                pump2_new_rate, self._data.R2 + max_adjustment_ml_min)
+            pump2_new_rate = max(
+                pump2_new_rate, self._data.R2 - max_adjustment_ml_min)
             pump2_new_rate = round(pump2_new_rate, 2)
 
             if pump2_new_rate is not None and pump2_new_rate > 0:
                 print(
-                    "[CONTROL (MODE {})] changing PUMP2 rate to {} mL/min to "
+                    "[CONTROL (MODE {})] changing BUFFER PUMP rate to {} mL/min to "
                     "hit target SCALE1 setpoint of {} mL".format(
                         self.mode,
                         tff.helpers.format_float(pump2_new_rate, 2),
@@ -1085,13 +1114,8 @@ class VolumeAccumulationAlarm(Alarm):
                     )
                 )
 
-                commands = self._devices.PUMP2.make_commands()
-                command = PeristalticPump.make_change_speed_command(
-                    rate_value=pump2_new_rate,
-                    rate_units=self._devices.PUMP2.RATE_UNITS.MlMin,
-                )
-                self._devices.PUMP2.set_command(commands, 0, command)
-                self._devices.PUMP2.change_speed(commands)
+                tff.methods.change_pump_speed(
+                    self._devices.BUFFER_PUMP, pump2_new_rate)
 
                 clear_cache = True
         else:
