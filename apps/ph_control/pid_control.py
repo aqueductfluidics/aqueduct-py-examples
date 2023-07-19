@@ -1,6 +1,7 @@
-import ph_control.classes
 from aqueduct.core.aq import Aqueduct
 from aqueduct.core.aq import InitParams
+
+import ph_control.classes
 
 params = InitParams.parse()
 aq = Aqueduct(params.user_id, params.ip_address, params.port)
