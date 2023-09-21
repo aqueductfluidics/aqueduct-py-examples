@@ -1284,7 +1284,7 @@ class ProcessHandler:
                             station.pH_setpoint.value,
                             pid_controllers[i],
                             self._models[i],
-                            i,
+                            pH_probe_indices[i],
                         ),
                         daemon=True,
                     )
